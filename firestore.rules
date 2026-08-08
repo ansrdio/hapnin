@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Hapnin signups are written server-side with the Firebase Admin SDK, which
+// bypasses these rules entirely. No client ever reads or writes these
+// collections, so deny all client access. Deploy with:
+//   firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

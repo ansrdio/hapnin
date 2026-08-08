@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Self-hosted display + body faces (Fontshare) ---- */
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Supreme";
+  src: url("/fonts/Supreme-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Supreme";
+  src: url("/fonts/Supreme-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-display: "Clash Display";
+  --font-body: "Supreme";
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-cream font-body antialiased;
+    /* subtle warm vignette so the "room" has depth */
+    background-image:
+      radial-gradient(120% 90% at 50% -10%, rgba(244, 178, 76, 0.10), transparent 55%),
+      radial-gradient(90% 70% at 85% 8%, rgba(242, 89, 63, 0.08), transparent 55%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+  ::selection {
+    background: theme("colors.gold");
+    color: theme("colors.ink");
+  }
+  /* Visible keyboard focus on the dark ground */
+  :focus-visible {
+    outline: 2px solid theme("colors.gold-hi");
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Flyer misregistration: a single coral "second plate" offset behind the
+     cream/gold letters. em-based so it scales with the clamp()'d headline. */
+  .masthead-shadow {
+    text-shadow: 0.035em 0.04em 0 theme("colors.coral");
+  }
+  .masthead-shadow-gold {
+    text-shadow: 0.035em 0.04em 0 theme("colors.coral");
+  }
+
+  /* Printed-flyer grain, kept very low so it reads as texture not noise */
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* ---- Hero page-load sequence: the light coming on ---- */
+@keyframes bloom-in {
+  from { opacity: 0; transform: scale(0.86); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.anim-bloom { animation: bloom-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.anim-rise  { opacity: 0; animation: rise-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.d-1 { animation-delay: 120ms; }
+.d-2 { animation-delay: 240ms; }
+.d-3 { animation-delay: 380ms; }
+.d-4 { animation-delay: 520ms; }
+.d-5 { animation-delay: 660ms; }
+
+/* ---- Pitch slideshow: directional slide entrance ---- */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.deck-slide[data-dir="1"]  { animation: slide-in-right 440ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.deck-slide[data-dir="-1"] { animation: slide-in-left 440ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .anim-bloom, .anim-rise, .deck-slide {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

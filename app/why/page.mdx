@@ -1,0 +1,96 @@
+import { Arithmetic } from "./components/Arithmetic";
+import { Ref } from "./components/Ref";
+
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+
+export const metadata = {
+  title: "Why Hapnin exists",
+  description:
+    "Ticketing is solved. This is about the one audience the solution was never shaped to fit — and the map nobody is positioned to collect.",
+  robots: { index: false, follow: false },
+  alternates: { canonical: `${siteUrl}/why` },
+  openGraph: {
+    type: "article",
+    url: `${siteUrl}/why`,
+    siteName: "Hapnin",
+    title: "Why Hapnin exists",
+    description:
+      "What today's platforms do well, the one thing about this audience they can't fit, and the map nobody is positioned to collect.",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Why Hapnin exists",
+    description: "The one audience today's ticketing platforms were never shaped to fit.",
+  },
+};
+
+## Nobody here is running events on a spreadsheet.
+
+Start with what isn&rsquo;t true, because most pitches in this space begin with a fiction. The story usually goes that African diaspora events run on WhatsApp threads and screenshots of bank transfers, and that the opportunity is to drag them into the modern era.
+
+That world doesn&rsquo;t exist. Organizers running afrobeats nights, comedy shows, owambes and film screenings use Posh, Eventbrite, DICE and Fixr — the same tools everyone else uses, and they use them well. Tickets scan at the door. Money lands on schedule. This is not a bring-them-online story, and any argument that opens there is talking to a market that isn&rsquo;t real.
+
+So the question isn&rsquo;t whether these organizers have software. They do, and it works. The question is whether the software was ever built for the shape of their audience. It wasn&rsquo;t — and that gap is structural, not a matter of anyone doing a bad job.
+
+## Dispersed, not dense.
+
+The sub-Saharan African immigrant population in the United States has more than tripled since 2000, reaching roughly 2.5 million by 2024 — growing far faster than immigration overall.<Ref k="mpi" /> Most of that population comes from Nigeria, Ethiopia, Ghana, Kenya and South Africa, and Nigerians are among the fastest-growing groups of all: up about 143 percent between 2010 and 2024.<Ref k="pew" /> Those are the numbers everyone quotes.
+
+But the number is the least interesting thing about this population. The interesting thing is its shape. African immigrants are **geographically dispersed** in a way that, say, Caribbean immigrants are not. Caribbean communities concentrate heavily in New York and Florida; African communities spread across Texas, Minnesota, Ohio, Washington, Colorado and more, with even the largest metros holding only around a tenth each.<Ref k="mpi" /> There is no two-or-three-city center of gravity.
+
+That single fact is what breaks the platform model, and it&rsquo;s worth being precise about why.
+
+Discovery marketplaces are density plays. They earn their fee by making a feed useful, and a feed is only useful once enough people in *one city* are on the same app that browsing it surfaces things worth going to. That mechanism works beautifully in New York, Atlanta, Los Angeles. It is also why the platforms themselves concede they are not the answer in smaller markets — below a density threshold, the feed is empty, and an empty feed sells nothing.
+
+A population spread thin across thirty metros is precisely the shape a density-dependent marketplace cannot serve. Not because the platforms are weak, but because the thing they sell stops existing when the crowd disperses.
+
+## Marketplace prices for a payment processor.
+
+Culture-led and mainstream platforms alike charge marketplace-rate fees — roughly ten percent plus a per-ticket charge is typical in this tier.<Ref k="fees" /> In a dense city that is a fair trade: the platform&rsquo;s own discovery can put a well-placed event in front of thousands of nearby users and drive a real share of the sales. You pay for reach, and you get reach.
+
+Now move the same event to Phoenix, or Charlotte, or Columbus, or Kansas City — the cities where the diaspora is actually growing. The feed is thin. The organizer does one hundred percent of the marketing themselves, on Instagram and in WhatsApp groups, the same way they always have. Then they hand a marketplace fee to a platform that brought them no one.
+
+The arithmetic on a realistic night:
+
+<Arithmetic />
+
+## There&rsquo;s no field for the culture.
+
+Even where discovery works, it can&rsquo;t see this. Every platform sorts the world two ways: by category and by city. An afrobeats night files under &ldquo;nightlife.&rdquo; A Nollywood screening files under &ldquo;film.&rdquo; An owambe files under nothing at all.
+
+The things that actually decide who shows up — language, community, cultural register — are not fields anywhere in the system. There is no way to say *Yoruba-language*, or *Nigerian*, or *the kind of room where highlife plays after midnight*, because none of those are values the taxonomy holds. So even a working feed in a dense city can&rsquo;t surface the scene. A Nigerian who moves to Phoenix has no way to find their people except the oldest way there is: knowing someone already in it.
+
+## Two ecosystems that never touch.
+
+None of this is for lack of ticketing know-how. Nigeria has a real, competent ticketing industry — Tix Africa, Selar, Tickethub and others, with multi-currency support and local payment rails built for the continent. It serves events **in** Nigeria. The United States has Posh, Eventbrite, DICE. They serve events **here**.
+
+Nothing connects the two. No shared record, no shared taxonomy, no way to ask a single question that spans both — such as where the people who bought tickets to a show in Lagos last year now live in America. The data exists on both sides. The bridge does not.
+
+## The map nobody is holding.
+
+Here is what that costs, and it is larger than any one organizer&rsquo;s fees.
+
+Nollywood is one of the largest film industries in the world by output — on the order of two thousand-plus titles a year, second only to India.<Ref k="nollywood" /> Its distribution to diaspora audiences abroad runs on guesswork. A film screens in London and Atlanta because someone knows someone. It skips thirty other cities where the audience plainly exists, because nobody can say which cities those are, which crowds turn out, for which kind of film, or how long after the home release the appetite peaks.
+
+The missing thing isn&rsquo;t rights, or logistics, or money. It&rsquo;s a **map**. And no one holds it, because no one is positioned to collect it. The platforms that hold the transactions have no reason to tag them by language or community — those aren&rsquo;t fields they carry. And the people who need the answer, the distributors and the filmmakers, never see the transactions at all.
+
+## What Hapnin does about it.
+
+Hapnin is ticketing for African diaspora events, priced to make sense in a secondary market rather than a dense one, with the cultural specificity these audiences get nowhere else. Every event is tagged from the first ticket sold — by community, language, genre, and the talent on the bill. The map is not a side project or a later phase. It is a byproduct of running the business correctly.
+
+Only once that exists does the second thing become possible: turning to the film side and answering the question no one currently can — not *would there be an audience in this city*, but *here is the audience in this city, this is what they turned out for, and this is how far in advance they bought.*
+
+The order matters. Fill rooms first. The map is what filling rooms leaves behind.
+
+## The part that compounds.
+
+Features are copyable. A larger competitor could ship every capability on this list in a quarter — the checkout, the offline door, the text-your-buyers tools. None of that is a moat.
+
+What can&rsquo;t be shipped in a quarter is the thing underneath. You cannot retroactively tag years of events by community, language and register that were never recorded that way. You cannot rebuild a relationship with audiences in cities a feed never reached. That asset compounds, and it starts accumulating the day the first ticket sells — which is the only kind of advantage worth building toward.
+
+## Where we actually are.
+
+Plainly: pre-launch. One city, one organizer, a first event soon. No revenue, no track record.
+
+And there is a prior attempt that failed, for a reason worth stating out loud — it tried to build a platform before it had filled a single room. This time the sequence is inverted. One city, one organizer, one event, and the software stays small until it has earned the right to grow. The thesis on this page is the reason to build. It is not yet a claim to have built it.
