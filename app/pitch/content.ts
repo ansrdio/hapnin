@@ -29,6 +29,8 @@ export const copy = {
   calcHeading: "What you’d keep.",
   calcSub:
     "300 tickets at $40, at a marketplace fee tier — on buyers you brought yourself. Set the rate to match your own plan.",
+  calcStripeNote:
+    "Ticket money goes straight to your own Stripe account. Not ours, not held, not on a payout schedule.",
 
   // 6 / 7 — what you get
   expectHeading: "Everything you already expect.",
@@ -36,9 +38,11 @@ export const copy = {
   uniqueHeading: "And two things you can’t get anywhere else.",
 
   // 8 — the offer
-  offerHeading: "Your first event costs you nothing.",
+  offerHeading: "Your first event is free. After that, you pay for what we actually do.",
   offerBody:
-    "No platform fee. Ticket money goes straight into your own Stripe account — not ours, not held, not on a payout schedule. Buyers cover card processing, same as anywhere.",
+    "No platform fee on your first event. After that it’s 3% plus 50¢ a ticket — roughly what it costs to run the thing, and about a third of what a marketplace tier charges.",
+  offerBody2:
+    "We’re not charging you for discovery we’re not providing. If that changes — if we ever build something that genuinely brings people to your room — we’ll talk about pricing then, and you’ll be able to see for yourself whether it’s working.",
 
   // 9 — honesty
   honestHeading: "Here’s what we don’t have.",
@@ -93,7 +97,7 @@ export const expected: [string, string][] = [
 export const unique: [string, string][] = [
   [
     "Your event, described the way your audience thinks",
-    "Not filed under “nightlife.” Tagged by community, language and genre — Nigerian, Yoruba, afrobeats, Nollywood — because that’s what actually decides who shows up.",
+    "Not filed under “nightlife.” Tagged by community, language and genre — Nigerian or Ghanaian, Yoruba or Amharic, afrobeats or amapiano, Nollywood — because that’s what actually decides who shows up.",
   ],
   [
     "An audience that carries across the whole scene",

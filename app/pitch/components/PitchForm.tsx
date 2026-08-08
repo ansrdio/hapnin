@@ -128,7 +128,7 @@ export function PitchForm() {
             name="event_name"
             type="text"
             autoComplete="off"
-            placeholder="Owambe Season, Lagos Nights…"
+            placeholder="Owambe Season, Amapiano Sundays…"
             className={fieldBase}
           />
         </div>

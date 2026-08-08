@@ -64,8 +64,7 @@ export default async function OpengraphImage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", color: "#F6EEE1" }}>
-          <div style={line}>Wetin</div>
-          <div style={line}>dey</div>
+          <div style={line}>What&#39;s</div>
           <div style={{ ...line, color: "#F4B24C" }}>hapnin?</div>
         </div>
 

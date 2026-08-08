@@ -145,7 +145,7 @@ export function OrganizerForm() {
           name="note"
           rows={2}
           maxLength={500}
-          placeholder="Afrobeats nights, a monthly owambe, a film series…"
+          placeholder="Afrobeats nights, an amapiano party, a Nollywood series…"
           className={`${fieldBase} resize-none`}
         />
       </div>

@@ -5,17 +5,17 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Hapnin — Wetin dey hapnin?",
+  title: "Hapnin — What's hapnin?",
   description:
-    "African events in your city — the afrobeats night, the Nollywood premiere, the owambe, the comedy show — in one place. Phoenix first. Then wherever you are.",
+    "African events in your city — the afrobeats night, the amapiano set, the Nollywood screening, the comedy show, the culture festival — in one place. Phoenix first. Then wherever you are.",
   applicationName: "Hapnin",
   keywords: [
     "Hapnin",
     "African events",
-    "Nigerian events",
+    "diaspora events",
     "afrobeats",
+    "amapiano",
     "Nollywood",
-    "owambe",
     "Phoenix",
     "diaspora",
     "event tickets",
@@ -25,14 +25,14 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName: "Hapnin",
-    title: "Wetin dey hapnin?",
+    title: "What's hapnin?",
     description:
       "Plenty. You just never heard about it. African events in your city, in one place. Phoenix first.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Wetin dey hapnin?",
+    title: "What's hapnin?",
     description:
       "Plenty. You just never heard about it. African events in your city, in one place.",
   },

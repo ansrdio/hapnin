@@ -55,13 +55,13 @@ export default function Page() {
             />
             <h1 className="relative font-display font-bold leading-[0.86] tracking-[-0.02em]">
               <span className="anim-rise d-2 block text-[clamp(3.25rem,17vw,10.5rem)] text-cream masthead-shadow">
-                Wetin
+                What&rsquo;s
               </span>
-              <span className="anim-rise d-3 block text-[clamp(3.25rem,17vw,10.5rem)] text-cream masthead-shadow">
-                dey
+              <span className="anim-rise d-3 block text-[clamp(3.25rem,17vw,10.5rem)] text-gold masthead-shadow-gold">
+                hapnin
               </span>
               <span className="anim-rise d-4 block text-[clamp(3.25rem,17vw,10.5rem)] text-gold masthead-shadow-gold">
-                hapnin?
+                ?
               </span>
             </h1>
           </div>
@@ -71,9 +71,9 @@ export default function Page() {
               Plenty. You just never heard about it.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-mauve-dim">
-              The afrobeats night, the Nollywood premiere, the owambe, the comedy show — African
-              events in your city spread through group chats you&rsquo;re not in. Hapnin puts them
-              in one place.
+              The afrobeats night. The amapiano set. The Nollywood screening. The comedy show. The
+              culture festival. African events in your city move through group chats you&rsquo;re
+              not in &mdash; Hapnin puts them in one place.
             </p>
           </div>
 

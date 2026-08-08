@@ -94,6 +94,9 @@ const slides: Slide[] = [
         <div className="mt-7">
           <FeeCalculator />
         </div>
+        <p className="mt-8 border-t border-plum-hi pt-6 text-[15px] leading-relaxed text-cream/90">
+          {copy.calcStripeNote}
+        </p>
       </Center>
     ),
   },
@@ -147,14 +150,15 @@ const slides: Slide[] = [
   },
   {
     key: "offer",
-    title: "Your first event costs you nothing",
+    title: "Your first event is free",
     node: (
       <Center>
         <div className="anim-rise d-1 rounded-3xl border border-gold/45 bg-gold/[0.07] p-7 sm:p-10">
-          <h2 className="font-display text-3xl font-bold leading-[1.03] text-cream sm:text-5xl">
+          <h2 className="font-display text-2xl font-bold leading-[1.08] text-cream sm:text-4xl">
             {copy.offerHeading}
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-cream/90">{copy.offerBody}</p>
+          <p className="mt-5 leading-relaxed text-mauve-dim">{copy.offerBody2}</p>
         </div>
       </Center>
     ),

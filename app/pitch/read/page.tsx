@@ -78,6 +78,9 @@ export default function PitchReadPage() {
             <div className="mt-8">
               <FeeCalculator />
             </div>
+            <p className="mt-8 border-t border-plum-hi pt-6 text-[15px] leading-relaxed text-cream/90">
+              {copy.calcStripeNote}
+            </p>
           </div>
         </div>
       </section>
@@ -125,10 +128,11 @@ export default function PitchReadPage() {
       <section className="py-6 sm:py-10">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-3xl border border-gold/45 bg-gold/[0.07] p-7 sm:p-11">
-            <h2 className="font-display text-3xl font-bold leading-[1.03] text-cream sm:text-5xl">
+            <h2 className="font-display text-2xl font-bold leading-[1.08] text-cream sm:text-4xl">
               {copy.offerHeading}
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-cream/90">{copy.offerBody}</p>
+            <p className="mt-5 leading-relaxed text-mauve-dim">{copy.offerBody2}</p>
           </div>
         </div>
       </section>

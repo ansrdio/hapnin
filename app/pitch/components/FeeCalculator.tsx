@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 
-// Card processing lives in ONE place so it's trivial to update. Real Stripe
-// standard rate. Buyers cover this on both sides, so it never changes what the
-// organizer keeps — it's shown only for transparency.
+// Rates live in ONE place each so they're trivial to update.
+// Card processing is covered by buyers on every side, so it never changes what
+// the organizer keeps — it's shown once, separately, for transparency.
 const CARD = { percent: 2.9, fixed: 0.3 };
+// Hapnin's ongoing platform fee — the standing price after the free first event.
+const HAPNIN = { percent: 3, fixed: 0.5 };
 
 const usd0 = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -27,11 +29,14 @@ export function FeeCalculator() {
   const m = useMemo(() => {
     const gross = tickets * price;
     const cardFees = gross * (CARD.percent / 100) + CARD.fixed * tickets;
-    const typicalFee = gross * (pct / 100) + perTicket * tickets;
-    const hapninKeep = gross; // 0% platform fee, card covered by buyers
-    const typicalKeep = gross - typicalFee;
-    const diff = hapninKeep - typicalKeep; // == typicalFee
-    return { gross, cardFees, typicalFee, hapninKeep, typicalKeep, diff };
+    const marketFee = gross * (pct / 100) + perTicket * tickets;
+    const marketKeep = gross - marketFee;
+    const ongoingFee = gross * (HAPNIN.percent / 100) + HAPNIN.fixed * tickets;
+    const ongoingKeep = gross - ongoingFee;
+    const firstKeep = gross; // 0% on the launch offer
+    // Headline the ONGOING saving — the one that survives the free event ending.
+    const ongoingDiff = ongoingKeep - marketKeep; // == marketFee - ongoingFee
+    return { gross, cardFees, marketFee, marketKeep, ongoingFee, ongoingKeep, firstKeep, ongoingDiff };
   }, [tickets, price, pct, perTicket]);
 
   return (
@@ -62,27 +67,35 @@ export function FeeCalculator() {
       </div>
 
       {/* Two panels */}
-      <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* On Hapnin — lit */}
-        <div className="rounded-2xl border border-gold/45 bg-gold/[0.07] p-6">
-          <div className="flex items-center gap-2">
+      <div className="mt-11 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* On Hapnin — lit, ongoing rate standing, free first event as a badge */}
+        <div className="relative rounded-2xl border border-gold/45 bg-gold/[0.07] p-6">
+          <span className="absolute -top-3 left-5 rounded-full bg-gold px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+            First event free
+          </span>
+          <div className="mt-2 flex items-center gap-2">
             <span className="inline-block h-2 w-2 rotate-45 bg-gold" aria-hidden="true" />
             <h3 className="font-display text-lg font-semibold text-cream">On Hapnin</h3>
           </div>
           <dl className="mt-5 space-y-3 text-[15px]">
             <Row label="Gross" value={usd0.format(m.gross)} />
-            <Row label="Platform fee (0%)" value={usd0.format(0)} />
             <Row
-              label="Card processing"
-              value={`${usd0.format(m.cardFees)}`}
-              hint="covered by buyers"
+              label="Platform fee"
+              value={`−${usd0.format(m.ongoingFee)}`}
+              hint="ongoing · 3% + 50¢"
             />
           </dl>
           <div className="mt-5 border-t border-gold/25 pt-4">
             <div className="flex items-baseline justify-between">
               <span className="text-sm uppercase tracking-[0.14em] text-gold">You keep</span>
               <span className="font-display text-2xl font-bold tabular-nums text-cream">
-                {usd0.format(m.hapninKeep)}
+                {usd0.format(m.ongoingKeep)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline justify-between text-sm">
+              <span className="text-mauve-dim">Your first event</span>
+              <span className="font-display font-semibold tabular-nums text-gold">
+                {usd0.format(m.firstKeep)} · free
               </span>
             </div>
           </div>
@@ -90,30 +103,16 @@ export function FeeCalculator() {
 
         {/* Marketplace tier — muted, editable */}
         <div className="rounded-2xl border border-plum-hi bg-plum p-6">
-          <h3 className="font-display text-lg font-semibold text-mauve-dim">
-            Marketplace tier
-          </h3>
+          <h3 className="font-display text-lg font-semibold text-mauve-dim">Marketplace tier</h3>
           <dl className="mt-5 space-y-3 text-[15px]">
             <Row label="Gross" value={usd0.format(m.gross)} muted />
-            <Row
-              label="Platform fee"
-              value={`−${usd0.format(m.typicalFee)}`}
-              muted
-            />
-            <Row
-              label="Card processing"
-              value={`${usd0.format(m.cardFees)}`}
-              hint="covered by buyers"
-              muted
-            />
+            <Row label="Platform fee" value={`−${usd0.format(m.marketFee)}`} muted />
           </dl>
           <div className="mt-5 border-t border-plum-hi pt-4">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm uppercase tracking-[0.14em] text-mauve-dim">
-                You keep
-              </span>
+              <span className="text-sm uppercase tracking-[0.14em] text-mauve-dim">You keep</span>
               <span className="font-display text-2xl font-bold tabular-nums text-mauve-dim">
-                {usd0.format(m.typicalKeep)}
+                {usd0.format(m.marketKeep)}
               </span>
             </div>
           </div>
@@ -149,20 +148,23 @@ export function FeeCalculator() {
         </div>
       </div>
 
-      {/* Headline difference */}
+      {/* Card processing — pulled OUT of the columns so it doesn't read like an
+          un-deducted deduction. It's the same on both sides and buyers pay it. */}
+      <p className="mt-4 text-sm text-mauve-dim/80">
+        Card processing ({usd0.format(m.cardFees)}) is covered by buyers on both sides — same as
+        anywhere.
+      </p>
+
+      {/* Headline the ONGOING saving; the free event is the secondary line. */}
       <p
         className="mt-8 font-display text-3xl font-bold text-cream sm:text-4xl"
         aria-live="polite"
       >
-        You keep <span className="text-gold tabular-nums">{usd0.format(Math.max(0, m.diff))}</span>{" "}
-        more.
+        You keep{" "}
+        <span className="text-gold tabular-nums">{usd0.format(Math.max(0, m.ongoingDiff))}</span> more.
       </p>
-      {/* The quiet line that is the whole argument. */}
-      <p className="mt-2 font-display text-lg text-mauve-dim">On tickets you sold yourself.</p>
-      <p className="mt-4 max-w-xl text-sm leading-relaxed text-mauve-dim/80">
-        Card fees are the same rails either way and buyers cover them — so the gap above is purely
-        the platform&rsquo;s cut.
-      </p>
+      <p className="mt-2 font-display text-lg text-gold">And your first event is free.</p>
+      <p className="mt-1 font-display text-lg text-mauve-dim">On tickets you sold yourself.</p>
     </div>
   );
 }
