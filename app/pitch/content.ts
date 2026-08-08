@@ -32,6 +32,13 @@ export const copy = {
   calcStripeNote:
     "Ticket money goes straight to your own Stripe account. Not ours, not held, not on a payout schedule.",
 
+  // comparison table (below the calculator)
+  comparisonHeading: "What you’re paying for, and what you’re getting.",
+  comparisonIntro:
+    "The cheapest platforms are cheap because they don’t do much. The ones built for culture-led events do a lot — and charge for a discovery feed that works in New York and thins out fast anywhere else. Here’s the whole picture.",
+  comparisonUnder:
+    "We don’t have a feed. That’s the honest gap, and it’s why the fee is where it is — we’re not charging you for an audience we haven’t built yet. Everything else on this list, you get from day one.",
+
   // 6 / 7 — what you get
   expectHeading: "Everything you already expect.",
   expectSub: "No downgrade. All of it works on the night:",

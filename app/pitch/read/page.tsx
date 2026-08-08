@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FeeCalculator } from "../components/FeeCalculator";
+import { ComparisonTable } from "../components/ComparisonTable";
 import { PitchForm } from "../components/PitchForm";
 import { CrowdGrowth } from "../components/CrowdGrowth";
 import { copy, roomSources, expected, unique, trustPoints } from "../content";
@@ -82,6 +83,13 @@ export default function PitchReadPage() {
               {copy.calcStripeNote}
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* ===================== COMPARISON TABLE ===================== */}
+      <section className="py-10 sm:py-14">
+        <div className="mx-auto max-w-4xl">
+          <ComparisonTable />
         </div>
       </section>
 

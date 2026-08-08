@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FeeCalculator } from "./FeeCalculator";
+import { ComparisonTable } from "./ComparisonTable";
 import { PitchForm } from "./PitchForm";
 import { CrowdGrowth } from "./CrowdGrowth";
 import { copy, roomSources, expected, unique, trustPoints } from "../content";
@@ -97,6 +98,16 @@ const slides: Slide[] = [
         <p className="mt-8 border-t border-plum-hi pt-6 text-[15px] leading-relaxed text-cream/90">
           {copy.calcStripeNote}
         </p>
+      </Center>
+    ),
+  },
+  {
+    key: "comparison",
+    title: "What you’re paying for, and what you’re getting",
+    interactive: true, // long, scroll-to-read — no tap-to-advance
+    node: (
+      <Center wide>
+        <ComparisonTable />
       </Center>
     ),
   },
