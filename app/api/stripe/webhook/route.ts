@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getDb } from "@/lib/firebase-admin";
 import { setStripeOnboarded } from "@/lib/organizers";
+import { fulfillPaidOrder, releaseHold } from "@/lib/checkout";
 import { FieldValue } from "firebase-admin/firestore";
 import type Stripe from "stripe";
 
@@ -48,7 +49,19 @@ export async function POST(req: Request) {
         await setStripeOnboarded(account.id, ready);
         break;
       }
-      // Phase 1: case "payment_intent.succeeded": …
+      case "payment_intent.succeeded": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const pendingId = pi.metadata?.pending_order_id;
+        if (pendingId) await fulfillPaidOrder(pendingId, pi.id);
+        break;
+      }
+      case "payment_intent.payment_failed":
+      case "payment_intent.canceled": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const pendingId = pi.metadata?.pending_order_id;
+        if (pendingId) await releaseHold(pendingId);
+        break;
+      }
       default:
         break;
     }

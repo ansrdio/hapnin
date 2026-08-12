@@ -2,6 +2,14 @@
 
 One line per merged feature, newest first.
 
+## Phase 1 — the demo loop
+- Event data + atomic inventory (`reserveInventory`/`releaseInventory` via Firestore transactions); signed HMAC QR tokens; public `/e/{slug}`; minimal admin event-create.
+- Checkout `/e/{slug}/checkout`: quantity, buyer details, ZIP, pre-checked opt-in, Nollywood question; Stripe Payment Element (Apple/Google Pay + card).
+- Payment: destination-charge PaymentIntent (`transfer_data.destination` + `on_behalf_of` + `application_fee_amount`, 0 on first event); amounts computed server-side; buyers cover card processing.
+- Webhook `payment_intent.succeeded` → buyer (phone-keyed) + order (frozen `days_before_event`) + one ticket per admission + verbatim consent + counters + ticket SMS; idempotent. Failure/cancel releases the hold.
+- Ticket page `/t/{orderId}` (server-rendered QR); confirmation page polls until the webhook lands.
+- Door scanner `/scan/{eventId}`: camera (ZXing), server-verified check-in, first-check-in-wins (transaction), green/red + name + running count. (Wallet passes + offline deferred to Phase 3.)
+
 ## Phase 0 — foundations
 - Firebase Admin core shared by Firestore + Auth (`lib/firebase-admin.ts`).
 - Vocabulary enums as validated constants (`lib/enums.ts`); Firestore data model (`docs/data-dictionary.md`).
