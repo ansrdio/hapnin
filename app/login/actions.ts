@@ -31,23 +31,27 @@ export async function sendLoginLink(_prev: LoginState, formData: FormData): Prom
   // No Brevo yet → let the client send via Firebase.
   if (!isEmailConfigured()) return { status: "fallback", email };
 
+  // Only send to known accounts; always report success to avoid leaking which
+  // emails exist. Unknown email → report sent, send nothing.
   const known = isAdminEmail(email) || !!(await getOrganizerByEmail(email));
-  if (known) {
-    try {
-      const link = await getAdminAuth().generateSignInWithEmailLink(email, {
-        url: `${siteUrl()}/login`,
-        handleCodeInApp: true,
-      });
-      const sent = await sendEmail({
-        to: email,
-        subject: "Your Hapnin sign-in link",
-        html: loginEmailHtml(link),
-      });
-      if (!sent.ok) return { status: "error", message: "Couldn’t send the link. Try again." };
-    } catch (err) {
-      console.error("sendLoginLink error", err);
-      return { status: "error", message: "Couldn’t send the link. Try again." };
-    }
+  if (!known) return { status: "sent", email };
+
+  try {
+    const link = await getAdminAuth().generateSignInWithEmailLink(email, {
+      url: `${siteUrl()}/login`,
+      handleCodeInApp: true,
+    });
+    const sent = await sendEmail({
+      to: email,
+      subject: "Your Hapnin sign-in link",
+      html: loginEmailHtml(link),
+    });
+    // Brevo rejected the send (e.g. sender/domain not verified yet) → fall back
+    // to Firebase's built-in email so login is never blocked.
+    if (!sent.ok) return { status: "fallback", email };
+  } catch (err) {
+    console.error("sendLoginLink error", err);
+    return { status: "fallback", email };
   }
   return { status: "sent", email };
 }
