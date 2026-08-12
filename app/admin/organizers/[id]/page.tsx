@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrganizerById } from "@/lib/organizers";
+import { listEventsByOrganizer } from "@/lib/events";
 import { startOnboardingAction, refreshStripeStatusAction } from "../../actions";
 import { TestSmsForm } from "./TestSmsForm";
+import { CreateEventForm } from "./CreateEventForm";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,7 @@ export default async function OrganizerDetail({
   const { onboarding } = await searchParams;
   const o = await getOrganizerById(id);
   if (!o) notFound();
+  const events = await listEventsByOrganizer(id);
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -64,6 +67,29 @@ export default async function OrganizerDetail({
         <h2 className="font-display text-lg font-semibold text-cream">Test SMS</h2>
         <p className="mt-1 text-sm text-mauve-dim">Sends to {o.phone}. Logs to the server console until Twilio creds are set.</p>
         <TestSmsForm organizerId={o.id} />
+      </section>
+
+      <section className="rounded-2xl border border-plum-hi bg-plum/40 p-6">
+        <h2 className="font-display text-lg font-semibold text-cream">Events</h2>
+        {events.length > 0 && (
+          <ul className="mt-3 divide-y divide-plum-hi rounded-xl border border-plum-hi">
+            {events.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="font-display font-semibold text-cream">{e.title}</p>
+                  <p className="text-sm text-mauve-dim">/e/{e.slug} · {e.status}</p>
+                </div>
+                <a href={`/e/${e.slug}`} target="_blank" rel="noreferrer" className="text-sm text-gold hover:underline">
+                  View →
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-6 border-t border-plum-hi pt-6">
+          <h3 className="mb-4 font-display font-semibold text-cream">Create event</h3>
+          <CreateEventForm organizerId={o.id} />
+        </div>
       </section>
     </div>
   );
