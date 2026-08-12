@@ -75,6 +75,38 @@ Open http://localhost:3000. Submitting a form writes a document; check the colle
 3. Add the four environment variables from the table above under **Settings → Environment Variables** (Production + Preview). Set `NEXT_PUBLIC_SITE_URL` to your real domain. For `FIREBASE_PRIVATE_KEY`, paste the whole key including the `-----BEGIN/END-----` lines.
 4. Deploy. Point `hapnin.now` at the project under **Settings → Domains**.
 
+---
+
+# Hapnin v1 — the ticketing product
+
+The full product (spec: `hapnin-mvp-spec.md`) is built on the same app. It uses
+**Firestore** (not the Postgres in `001_hapnin_schema.sql` — see
+`docs/decisions/0001-firestore-over-postgres.md`). Read `docs/architecture.md` and
+`docs/data-dictionary.md` first.
+
+### Extra services to enable
+- **Firebase Auth** → Email/Password provider with **Email link (passwordless)** on; add your domains (localhost, hapnin.now) under Authorized domains. Register a **Web app** to get the client config.
+- **Firebase Storage** enabled (flyer uploads, Phase 2).
+- **Stripe** with **Connect (Express)** — business model "You collect payments and pay recipients" (destination charges).
+- **Twilio** account + number (optional until A2P 10DLC; `sendSMS()` logs to console until then).
+
+### Env vars (add to `.env.local` and Vercel)
+Firebase Admin (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`),
+Firebase Web (`NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_APP_ID`),
+Stripe (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`),
+Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`),
+Auth (`ADMIN_EMAILS` — comma-separated admin logins). See `.env.local.example`.
+
+### Product routes
+- **Admin** (auth, `ADMIN_EMAILS`): `/admin`, `/admin/organizers/{id}` — create organizers, run Stripe onboarding, send a test SMS.
+- **Organizer** (auth): `/o` (dashboard lands Phase 2), `/scan` (Phase 1).
+- **Buyer** (no auth): `/e/{slug}` (Phase 1), `/o/{handle}` (Phase 2).
+- **API:** `/api/auth/session` (session cookie), `/api/stripe/webhook`.
+
+### Stripe webhook (local)
+`stripe listen --forward-to localhost:3000/api/stripe/webhook` → paste the `whsec_…`
+into `STRIPE_WEBHOOK_SECRET`.
+
 ## Notes / next steps
 
 - **Rate limiting is in-memory**, so on serverless it's per warm instance, not global — enough to blunt casual abuse of a signup form. For hard cross-instance limits, swap the `Map` in `lib/rate-limit.ts` for [Upstash Redis](https://upstash.com/) (the function signature stays the same).
