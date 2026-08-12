@@ -1,6 +1,6 @@
 import "server-only";
 import { getStripe } from "./stripe";
-import { getOrganizerById, setStripeAccountId } from "./organizers";
+import { getOrganizerById, setStripeAccountId, setStripeOnboarded } from "./organizers";
 
 const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
@@ -36,4 +36,18 @@ export async function createOnboardingLink(organizerId: string): Promise<string>
     return_url: `${siteUrl()}/admin/organizers/${organizer.id}?onboarding=done`,
   });
   return link.url;
+}
+
+/**
+ * Pull the connected account's live status from Stripe and update
+ * `stripe_onboarded`. Used instead of the account.updated webhook so onboarding
+ * status doesn't depend on Connect webhook routing. Returns the onboarded state.
+ */
+export async function refreshOnboardingStatus(organizerId: string): Promise<boolean> {
+  const organizer = await getOrganizerById(organizerId);
+  if (!organizer?.stripe_account_id) return false;
+  const account = await getStripe().accounts.retrieve(organizer.stripe_account_id);
+  const ready = !!account.details_submitted && !!account.charges_enabled;
+  await setStripeOnboarded(organizer.stripe_account_id, ready);
+  return ready;
 }

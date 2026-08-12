@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createOrganizer, getOrganizerById } from "@/lib/organizers";
-import { createOnboardingLink } from "@/lib/connect";
+import { createOnboardingLink, refreshOnboardingStatus } from "@/lib/connect";
 import { sendSMS } from "@/lib/sms";
 import { normalizeEmail, normalizeUsPhone, normalizeInstagram, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "./action-state";
@@ -51,6 +51,14 @@ export async function startOnboardingAction(formData: FormData): Promise<void> {
   if (!id) return;
   const url = await createOnboardingLink(id);
   redirect(url); // → Stripe-hosted Express onboarding
+}
+
+export async function refreshStripeStatusAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get("organizer_id") ?? "");
+  if (!id) return;
+  await refreshOnboardingStatus(id);
+  revalidatePath(`/admin/organizers/${id}`);
 }
 
 export async function sendTestSmsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
