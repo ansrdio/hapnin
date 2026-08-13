@@ -110,12 +110,11 @@ export async function getTier(eventId: string, tierId: string): Promise<Tier | n
 }
 
 export async function listEventsByOrganizer(organizerId: string): Promise<EventRecord[]> {
-  const snap = await getDb()
-    .collection(EVENTS)
-    .where("organizer_id", "==", organizerId)
-    .orderBy("starts_at", "desc")
-    .get();
-  return snap.docs.map((d) => toEvent(d.id, d.data()));
+  // Equality-only query so Firestore auto-indexes it (a `where` + `orderBy` on a
+  // different field would need a composite index). An organizer has few events,
+  // so sort newest-first in memory.
+  const snap = await getDb().collection(EVENTS).where("organizer_id", "==", organizerId).get();
+  return snap.docs.map((d) => toEvent(d.id, d.data())).sort((a, b) => b.starts_at - a.starts_at);
 }
 
 export type NewTier = {
