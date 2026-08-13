@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getAdminAuth } from "@/lib/firebase-admin";
 import { isAdminEmail } from "@/lib/auth";
 import { getOrganizerByEmail } from "@/lib/organizers";
+import { findTeamMembership } from "@/lib/team";
 import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { normalizeEmail } from "@/lib/validation";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
@@ -33,7 +34,10 @@ export async function sendLoginLink(_prev: LoginState, formData: FormData): Prom
 
   // Only send to known accounts; always report success to avoid leaking which
   // emails exist. Unknown email → report sent, send nothing.
-  const known = isAdminEmail(email) || !!(await getOrganizerByEmail(email));
+  const known =
+    isAdminEmail(email) ||
+    !!(await getOrganizerByEmail(email)) ||
+    !!(await findTeamMembership(email)); // team members (managers/door) sign in too
   if (!known) return { status: "sent", email };
 
   try {
