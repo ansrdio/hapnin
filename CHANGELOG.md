@@ -2,6 +2,13 @@
 
 One line per merged feature, newest first.
 
+## Phase 2 — the organizer's product (in progress)
+- Shared UI kit (`app/components/ui.tsx`): page shell, cards, buttons, inputs, stats, status badges — one visual language for every product screen.
+- Organizer dashboard `/o`: their events with live sold/gross, aggregate totals, payout-status nudge, empty state.
+- Full event builder `/o/events/new`: dynamic ticket tiers (add/remove), category vocabulary, save-as-draft or publish; shared form parser (`lib/event-input.ts`) used by admin + organizer so validation never drifts.
+- Event manage `/o/events/[id]`: live stats, per-tier sold/remaining, publish/unpublish/cancel, shareable link, door-scanner + preview links. Ownership-checked.
+- (Next: flyer upload, comps, SMS broadcasts, team/door members, public `/o/{handle}`, buyer-facing polish.)
+
 ## Phase 1 — the demo loop
 - Event data + atomic inventory (`reserveInventory`/`releaseInventory` via Firestore transactions); signed HMAC QR tokens; public `/e/{slug}`; minimal admin event-create.
 - Checkout `/e/{slug}/checkout`: quantity, buyer details, ZIP, pre-checked opt-in, Nollywood question; Stripe Payment Element (Apple/Google Pay + card).

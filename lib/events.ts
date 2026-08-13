@@ -37,6 +37,11 @@ export type EventRecord = {
   genre: Genre;
   talent: string[];
   is_first_event: boolean; // free launch event → application_fee 0
+  // Live counters, bumped by fulfillment (tickets_sold/gross_cents) and the door
+  // scanner (checked_in). Default 0 until the first sale/scan.
+  tickets_sold: number;
+  gross_cents: number;
+  checked_in: number;
 };
 
 const EVENTS = "events";
@@ -71,6 +76,9 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     genre: d.genre,
     talent: d.talent ?? [],
     is_first_event: !!d.is_first_event,
+    tickets_sold: d.tickets_sold ?? 0,
+    gross_cents: d.gross_cents ?? 0,
+    checked_in: d.checked_in ?? 0,
   };
 }
 
@@ -115,6 +123,11 @@ export async function listEventsByOrganizer(organizerId: string): Promise<EventR
   // so sort newest-first in memory.
   const snap = await getDb().collection(EVENTS).where("organizer_id", "==", organizerId).get();
   return snap.docs.map((d) => toEvent(d.id, d.data())).sort((a, b) => b.starts_at - a.starts_at);
+}
+
+/** Flip an event's status (publish → on_sale, unpublish → draft, etc.). */
+export async function setEventStatus(eventId: string, status: EventStatus): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).update({ status });
 }
 
 export type NewTier = {
