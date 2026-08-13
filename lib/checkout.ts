@@ -5,6 +5,7 @@ import { getStripe } from "./stripe";
 import { getEventById, getEventBySlug, getTier, reserveInventory, releaseInventory } from "./events";
 import { getOrganizerById } from "./organizers";
 import { findOrCreateBuyer, recordConsent } from "./buyers";
+import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
 
@@ -54,6 +55,7 @@ export type CheckoutInput = {
     marketing_opt_in: boolean;
   };
   referral_source: string | null;
+  promoter_code: string | null;
   ip: string | null;
   user_agent: string | null;
 };
@@ -79,6 +81,9 @@ export async function createCheckoutIntent(
 
   const qty = Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
   const amounts = computeAmounts(tier.price_cents, qty, event.is_first_event);
+
+  // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
+  const promoterLink = input.promoter_code ? await resolvePromoterCode(event.id, input.promoter_code) : null;
 
   // Reserve BEFORE creating the intent.
   await reserveInventory(event.id, tier.id, qty);
@@ -114,6 +119,7 @@ export async function createCheckoutIntent(
       ...amounts,
       buyer: input.buyer,
       referral_source: input.referral_source,
+      promoter_link_id: promoterLink?.id ?? null,
       consent: {
         granted: input.buyer.marketing_opt_in,
         text: CHECKOUT_CONSENT_TEXT,
@@ -181,7 +187,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     channel: "online",
     days_before_event: daysBefore,
     referral_source: p.referral_source ?? null,
-    promoter_link_id: null,
+    promoter_link_id: p.promoter_link_id ?? null,
     created_at: FieldValue.serverTimestamp(),
   });
 
@@ -224,6 +230,11 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     tickets_sold: FieldValue.increment(p.quantity),
     gross_cents: FieldValue.increment(p.subtotal_cents),
   });
+
+  // Attribute to the promoter, if any.
+  if (p.promoter_link_id) {
+    await adjustPromoterStats(p.promoter_link_id, { orders: 1, tickets: p.quantity, gross: p.subtotal_cents });
+  }
 
   await pendingRef.update({ status: "fulfilled", order_id: orderRef.id });
 

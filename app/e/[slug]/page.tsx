@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getEventBySlug, getTiers, type Tier } from "@/lib/events";
+import { resolvePromoterCode } from "@/lib/promoters";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +39,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ p?: string }>;
+}) {
   const { slug } = await params;
+  const { p } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
   const tiers = await getTiers(event.id);
   const onSale = event.status === "on_sale";
   const allSoldOut = tiers.length > 0 && tiers.every(tierSoldOut);
+
+  // Promoter attribution — validate the code so we only forward/celebrate real ones.
+  const promoter = p ? await resolvePromoterCode(event.id, p) : null;
+  const checkoutHref = promoter ? `/e/${event.slug}/checkout?p=${promoter.code}` : `/e/${event.slug}/checkout`;
 
   return (
     <main className="grain min-h-[100svh]">
@@ -84,6 +96,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </p>
         </div>
 
+        {promoter && (
+          <p className="mt-6 inline-block rounded-full border border-gold/40 bg-gold/5 px-4 py-1.5 text-sm text-gold">
+            Invited by {promoter.name}
+          </p>
+        )}
+
         {event.description && (
           <p className="mt-6 whitespace-pre-line leading-relaxed text-mauve-dim">{event.description}</p>
         )}
@@ -120,7 +138,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </span>
           {onSale && !allSoldOut ? (
             <Link
-              href={`/e/${event.slug}/checkout`}
+              href={checkoutHref}
               className="rounded-xl bg-gold px-7 py-3.5 font-display font-semibold text-ink transition-colors hover:bg-gold-hi"
             >
               Get tickets

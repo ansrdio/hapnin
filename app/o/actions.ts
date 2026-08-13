@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireOrganizer, requireOwner, requireScanAccess } from "@/lib/auth";
 import { addTeamMember, removeTeamMember } from "@/lib/team";
 import { getOrderById, checkInOrder } from "@/lib/orders";
+import { createPromoterLink } from "@/lib/promoters";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
@@ -197,6 +198,27 @@ export async function refundOrderAction(formData: FormData): Promise<void> {
   revalidatePath(`/o/events/${eventId}/guests`);
   revalidatePath(`/o/events/${eventId}`);
   revalidatePath("/o");
+}
+
+/** Create a promoter link for an event the organizer owns. */
+export async function createPromoterLinkAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const name = cleanText(String(formData.get("name") ?? ""), 60);
+  const commissionRaw = String(formData.get("commission") ?? "").trim();
+  const commissionCents = commissionRaw ? Math.max(0, Math.round(parseFloat(commissionRaw) * 100)) : 0;
+
+  if (!(await ownedEvent(eventId, organizer.id))) return { status: "error", message: "Event not found." };
+  if (!name) return { status: "error", fieldErrors: { name: "Give the promoter a name." } };
+
+  try {
+    await createPromoterLink({ eventId, organizerId: organizer.id, name, commissionCents });
+    revalidatePath(`/o/events/${eventId}`);
+    return { status: "success", message: `Link created for ${name}.` };
+  } catch (err) {
+    console.error("createPromoterLink error", err);
+    return { status: "error", message: "Couldn’t create the link. Try again." };
+  }
 }
 
 /** Add a team member (manager or door). Owner only. */

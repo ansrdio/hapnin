@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
 import { getEventById, getTiers } from "@/lib/events";
 import { getEventAudience } from "@/lib/broadcasts";
+import { listPromoterLinks } from "@/lib/promoters";
 import { setEventStatusAction, setEventFlyerAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
@@ -16,6 +17,7 @@ import {
 import { ShareLink } from "./ShareLink";
 import { CompForm } from "./CompForm";
 import { BroadcastForm } from "./BroadcastForm";
+import { PromoterLinks } from "./PromoterLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +50,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   if (!event || event.organizer_id !== organizer.id) notFound();
   const tiers = await getTiers(id);
   const audience = await getEventAudience(id);
+  const promoterLinks = await listPromoterLinks(id);
 
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
@@ -127,6 +130,16 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Promoters */}
+      <Card className="mb-6">
+        <p className="font-display font-semibold text-cream">Promoter links</p>
+        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+          Give each promoter their own link. Sales through it are tracked to them — set a commission per order
+          to see what you owe.
+        </p>
+        <PromoterLinks eventId={event.id} slug={event.slug} links={promoterLinks} />
       </Card>
 
       {/* Broadcast */}

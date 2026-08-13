@@ -30,11 +30,13 @@ export function CheckoutClient({
   eventTitle,
   consentText,
   tiers,
+  promoterCode,
 }: {
   slug: string;
   eventTitle: string;
   consentText: string;
   tiers: Tier[];
+  promoterCode?: string | null;
 }) {
   const [tierId, setTierId] = useState(tiers[0].id);
   const [qty, setQty] = useState(1);
@@ -59,7 +61,7 @@ export function CheckoutClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, tierId, quantity: qty, ...f, screening, optIn }),
+        body: JSON.stringify({ slug, tierId, quantity: qty, ...f, screening, optIn, p: promoterCode ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) {

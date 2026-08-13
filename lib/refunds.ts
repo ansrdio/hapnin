@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getStripe } from "./stripe";
 import { releaseInventory } from "./events";
+import { adjustPromoterStats } from "./promoters";
 
 /**
  * Full refund of an order. For online orders this refunds the PaymentIntent and,
@@ -53,4 +54,9 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
   if (o.channel !== "comp") eventUpdate.gross_cents = FieldValue.increment(-(o.subtotal_cents ?? 0));
   if (wereCheckedIn > 0) eventUpdate.checked_in = FieldValue.increment(-wereCheckedIn);
   await db.collection("events").doc(eventId).update(eventUpdate);
+
+  // Reverse promoter attribution.
+  if (o.promoter_link_id) {
+    await adjustPromoterStats(o.promoter_link_id, { orders: -1, tickets: -(o.quantity ?? 0), gross: -(o.subtotal_cents ?? 0) });
+  }
 }

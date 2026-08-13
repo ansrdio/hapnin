@@ -7,8 +7,15 @@ import { CheckoutClient } from "./CheckoutClient";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Checkout — Hapnin", robots: { index: false } };
 
-export default async function CheckoutPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CheckoutPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ p?: string }>;
+}) {
   const { slug } = await params;
+  const { p } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event || event.status !== "on_sale") notFound();
 
@@ -20,6 +27,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
       slug={slug}
       eventTitle={event.title}
       consentText={CHECKOUT_CONSENT_TEXT}
+      promoterCode={p ?? null}
       tiers={tiers.map((t) => ({
         id: t.id,
         name: t.name,

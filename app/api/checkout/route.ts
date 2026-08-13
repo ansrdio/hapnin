@@ -53,6 +53,7 @@ export async function POST(req: Request) {
         marketing_opt_in: body.optIn !== false,
       },
       referral_source: body.ref ? cleanText(String(body.ref), 40) : null,
+      promoter_code: body.p ? cleanText(String(body.p), 40) : null,
       ip,
       user_agent: h.get("user-agent"),
     });
