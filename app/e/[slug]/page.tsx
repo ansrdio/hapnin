@@ -5,6 +5,7 @@ import { getEventBySlug, getTiers, type Tier } from "@/lib/events";
 import { getOrganizerById } from "@/lib/organizers";
 import { resolvePromoterCode } from "@/lib/promoters";
 import { WaitlistForm } from "./WaitlistForm";
+import { ShareButton } from "./ShareButton";
 
 export const dynamic = "force-dynamic";
 
@@ -101,153 +102,176 @@ export default async function EventPage({
   const checkoutHref = promoter ? `/e/${event.slug}/checkout?p=${promoter.code}` : `/e/${event.slug}/checkout`;
   const tableHref = (id: string) => `${checkoutHref}${checkoutHref.includes("?") ? "&" : "?"}tier=${id}`;
 
+  const Flyer = event.flyer_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={event.flyer_url}
+      alt=""
+      className="anim-bloom w-full rounded-3xl border border-white/10 object-cover shadow-2xl shadow-black/50"
+    />
+  ) : (
+    <div
+      className="anim-bloom aspect-square w-full rounded-3xl border border-white/10"
+      style={{
+        backgroundImage:
+          "radial-gradient(80% 80% at 50% 20%, rgba(244,178,76,0.35), rgba(242,89,63,0.18) 55%, rgba(27,10,42,0.6) 85%)",
+      }}
+      aria-hidden="true"
+    />
+  );
+
   return (
     <main className="grain relative min-h-[100svh] pb-28">
-      {/* Flyer hero, fading into the ground */}
-      {event.flyer_url ? (
-        <div className="anim-bloom relative h-[58svh] w-full overflow-hidden sm:h-[62svh]">
+      {/* Blurred flyer tints the whole page to the event */}
+      {event.flyer_url && (
+        <div className="fixed inset-0 -z-10" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={event.flyer_url} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-ink/40 to-transparent" />
+          <img src={event.flyer_url} alt="" className="h-full w-full scale-125 object-cover blur-3xl" />
+          <div className="absolute inset-0 bg-ink/85" />
         </div>
-      ) : (
-        <div
-          className="h-[32svh] w-full sm:h-[40svh]"
-          style={{
-            backgroundImage:
-              "radial-gradient(90% 80% at 50% 0%, rgba(244,178,76,0.30), rgba(242,89,63,0.15) 55%, transparent 80%)",
-          }}
-          aria-hidden="true"
-        />
       )}
 
-      <div className={`relative mx-auto max-w-2xl px-5 sm:px-8 ${event.flyer_url ? "-mt-24 sm:-mt-28" : "pt-6"}`}>
-        {/* Organizer */}
-        {organizer && (
-          <Link
-            href={`/o/${organizer.handle}`}
-            className="anim-rise d-1 inline-flex items-center gap-2.5 rounded-full border border-plum-hi bg-plum/60 py-1.5 pl-1.5 pr-4 backdrop-blur transition-colors hover:border-gold"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold font-display text-sm font-bold text-ink">
-              {organizer.name.charAt(0).toUpperCase()}
-            </span>
-            <span className="text-sm font-medium text-cream">{organizer.name}</span>
-            {organizer.marketing_approved && <VerifiedBadge />}
-          </Link>
-        )}
+      <div className="mx-auto max-w-5xl px-5 pt-6 sm:px-8 lg:pt-12">
+        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-12">
+          {/* Flyer — top on mobile, sticky card on the right on desktop */}
+          <aside className="lg:order-2 lg:sticky lg:top-12">{Flyer}</aside>
 
-        <p className="anim-rise d-1 mt-5 text-xs font-semibold uppercase tracking-[0.28em] text-gold">
-          {event.city}, {event.state}
-        </p>
-        <h1 className="anim-rise d-2 masthead-shadow mt-2 font-display text-4xl font-bold leading-[1.03] text-cream sm:text-6xl">
-          {event.title}
-        </h1>
-
-        {/* Meta card */}
-        <div className="anim-rise d-3 mt-7 space-y-3.5 rounded-2xl border border-plum-hi bg-plum/40 p-5 backdrop-blur">
-          <div className="flex items-start gap-3">
-            <CalendarIcon />
-            <p className="font-medium text-cream">{fmtDate(event.starts_at, event.timezone)}</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <PinIcon />
-            <div>
-              <p className="font-medium text-cream">{event.venue_name}</p>
-              <p className="text-sm text-mauve-dim">{event.venue_address}</p>
+          {/* Content */}
+          <div className="mt-7 lg:order-1 lg:mt-0">
+            <div className="anim-rise flex items-center justify-between gap-3">
+              {organizer ? (
+                <Link
+                  href={`/o/${organizer.handle}`}
+                  className="inline-flex items-center gap-2.5 transition-opacity hover:opacity-80"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold font-display text-sm font-bold text-ink">
+                    {organizer.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-sm font-medium text-cream">{organizer.name}</span>
+                  {organizer.marketing_approved && <VerifiedBadge />}
+                </Link>
+              ) : (
+                <span />
+              )}
+              <ShareButton title={event.title} />
             </div>
-          </div>
-        </div>
 
-        {promoter && (
-          <p className="anim-rise d-3 mt-5 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-4 py-1.5 text-sm text-gold">
-            <span className="text-base">🎟️</span> Invited by {promoter.name}
-          </p>
-        )}
+            <h1 className="anim-rise d-1 mt-6 font-display text-4xl font-bold leading-[1.05] text-cream sm:text-5xl">
+              {event.title}
+            </h1>
 
-        {event.description && (
-          <section className="anim-rise d-4 mt-9">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gold">About</h2>
-            <p className="whitespace-pre-line leading-relaxed text-mauve-dim">{event.description}</p>
-          </section>
-        )}
-
-        {/* Tickets (GA) */}
-        {gaTiers.length > 0 && (
-          <section className="anim-rise d-4 mt-9">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tickets</h2>
-            <ul className="space-y-2.5">
-              {gaTiers.map((t) => {
-                const st = tierStatus(t);
-                return (
-                  <li
-                    key={t.id}
-                    className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-colors ${
-                      st.available ? "border-plum-hi bg-plum/40" : "border-plum-hi/60 bg-plum/20 opacity-55"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
-                      {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
-                    </div>
-                    <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )}
-
-        {/* Tables / bottle service — a tappable map */}
-        {tableTiers.length > 0 && (
-          <section className="anim-rise d-4 mt-9">
-            <h2 className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tables</h2>
-            <p className="mb-4 text-sm text-mauve-dim">Pick a table — it admits your whole party.</p>
-            <div className="rounded-3xl border border-plum-hi bg-plum/30 p-5">
-              <div className="mb-4 text-center text-[11px] uppercase tracking-[0.3em] text-mauve-dim/70">Stage</div>
-              <div className="flex flex-wrap justify-center gap-3">
-                {tableTiers.map((t) => {
-                  const st = tierStatus(t);
-                  const inner = (
-                    <div
-                      className={`flex h-24 w-24 flex-col items-center justify-center rounded-2xl border text-center transition-colors ${
-                        st.available
-                          ? "border-gold/60 bg-gold/10 text-cream hover:border-gold hover:bg-gold/20"
-                          : "border-plum-hi/60 bg-plum/20 text-mauve-dim opacity-55"
-                      }`}
-                    >
-                      <span className="font-display text-sm font-semibold">{t.name}</span>
-                      <span className="text-[11px] text-mauve-dim">{t.seats} guests</span>
-                      <span className="mt-0.5 font-display text-sm tabular-nums">{usd(t.price_cents)}</span>
-                    </div>
-                  );
-                  return onSale && st.available ? (
-                    <Link key={t.id} href={tableHref(t.id)}>
-                      {inner}
-                    </Link>
-                  ) : (
-                    <div key={t.id}>{inner}</div>
-                  );
-                })}
+            {/* Meta — Posh-style dividers */}
+            <div className="anim-rise d-2 mt-6 space-y-3 border-y border-white/10 py-5">
+              <div className="flex items-start gap-3">
+                <CalendarIcon />
+                <p className="font-medium text-cream">{fmtDate(event.starts_at, event.timezone)}</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <PinIcon />
+                <div>
+                  <p className="font-medium text-cream">{event.venue_name}</p>
+                  <p className="text-sm text-mauve-dim">
+                    {event.venue_address} · {event.city}, {event.state}
+                  </p>
+                </div>
               </div>
             </div>
-          </section>
-        )}
 
-        {tiers.length === 0 && (
-          <p className="anim-rise d-4 mt-9 rounded-2xl border border-plum-hi px-5 py-4 text-mauve-dim">No tickets yet.</p>
-        )}
+            {promoter && (
+              <div className="anim-rise d-2 flex items-center gap-3 border-b border-white/10 py-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold/15 text-lg">🎟️</span>
+                <div>
+                  <p className="font-medium text-cream">Invited by {promoter.name}</p>
+                  <p className="text-sm text-mauve-dim">Your spot’s reserved through their link.</p>
+                </div>
+              </div>
+            )}
 
-        {onSale && allSoldOut && (
-          <div className="mt-9">
-            <WaitlistForm slug={event.slug} />
+            {event.description && (
+              <section className="anim-rise d-3 border-b border-white/10 py-6">
+                <h2 className="mb-2 font-display font-semibold text-cream">About this event</h2>
+                <p className="whitespace-pre-line leading-relaxed text-mauve-dim">{event.description}</p>
+              </section>
+            )}
+
+            {/* Tickets (GA) */}
+            {gaTiers.length > 0 && (
+              <section className="anim-rise d-3 mt-6">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tickets</h2>
+                <ul className="space-y-2.5">
+                  {gaTiers.map((t) => {
+                    const st = tierStatus(t);
+                    return (
+                      <li
+                        key={t.id}
+                        className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-colors ${
+                          st.available ? "border-white/10 bg-white/[0.03]" : "border-white/5 opacity-55"
+                        }`}
+                      >
+                        <div>
+                          <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
+                          {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
+                        </div>
+                        <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            {/* Tables / bottle service — a tappable map */}
+            {tableTiers.length > 0 && (
+              <section className="anim-rise d-3 mt-8">
+                <h2 className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tables</h2>
+                <p className="mb-4 text-sm text-mauve-dim">Pick a table — it admits your whole party.</p>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                  <div className="mb-4 text-center text-[11px] uppercase tracking-[0.3em] text-mauve-dim/70">Stage</div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {tableTiers.map((t) => {
+                      const st = tierStatus(t);
+                      const inner = (
+                        <div
+                          className={`flex h-24 w-24 flex-col items-center justify-center rounded-2xl border text-center transition-colors ${
+                            st.available
+                              ? "border-gold/60 bg-gold/10 text-cream hover:border-gold hover:bg-gold/20"
+                              : "border-white/10 text-mauve-dim opacity-55"
+                          }`}
+                        >
+                          <span className="font-display text-sm font-semibold">{t.name}</span>
+                          <span className="text-[11px] text-mauve-dim">{t.seats} guests</span>
+                          <span className="mt-0.5 font-display text-sm tabular-nums">{usd(t.price_cents)}</span>
+                        </div>
+                      );
+                      return onSale && st.available ? (
+                        <Link key={t.id} href={tableHref(t.id)}>
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={t.id}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tiers.length === 0 && (
+              <p className="anim-rise d-3 mt-6 rounded-2xl border border-white/10 px-5 py-4 text-mauve-dim">No tickets yet.</p>
+            )}
+
+            {onSale && allSoldOut && (
+              <div className="mt-8">
+                <WaitlistForm slug={event.slug} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Sticky buy bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-plum-hi bg-ink/90 backdrop-blur-lg">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+      {/* Sticky buy bar — pill button, Posh-style */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-ink/80 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <div className="leading-tight">
             {onSale && !allSoldOut ? (
               <>
@@ -263,12 +287,12 @@ export default async function EventPage({
           {onSale && !allSoldOut ? (
             <Link
               href={checkoutHref}
-              className="rounded-xl bg-gold px-8 py-3.5 font-display text-base font-semibold text-ink shadow-lg shadow-gold/20 transition-colors hover:bg-gold-hi"
+              className="rounded-full bg-gold px-10 py-3.5 font-display text-base font-semibold text-ink shadow-lg shadow-gold/25 transition-colors hover:bg-gold-hi"
             >
               Get tickets
             </Link>
           ) : (
-            <span className="rounded-xl border border-plum-hi px-8 py-3.5 font-display text-mauve-dim">
+            <span className="rounded-full border border-white/15 px-10 py-3.5 font-display text-mauve-dim">
               {allSoldOut ? "Join waitlist ↑" : "Coming soon"}
             </span>
           )}
