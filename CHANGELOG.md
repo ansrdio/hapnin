@@ -2,7 +2,8 @@
 
 One line per merged feature, newest first.
 
-## Phase 2 — the organizer's product (in progress)
+## Phase 2 — the organizer's product
+- Public organizer page `/o/{handle}`: identity + upcoming on-sale events (flyer, date, venue, from-price) linking to each `/e/{slug}`. Private dashboard moved under an `(dashboard)` route group so its auth layout doesn't gate this public page.
 - Shared UI kit (`app/components/ui.tsx`): page shell, cards, buttons, inputs, stats, status badges — one visual language for every product screen.
 - Organizer dashboard `/o`: their events with live sold/gross, aggregate totals, payout-status nudge, empty state.
 - Full event builder `/o/events/new`: dynamic ticket tiers (add/remove), category vocabulary, save-as-draft or publish; shared form parser (`lib/event-input.ts`) used by admin + organizer so validation never drifts.
