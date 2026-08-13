@@ -103,7 +103,7 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8">
+    <div className="anim-rise mb-8">
       {back && (
         <Link href={back.href} className="mb-2 inline-block text-sm text-mauve-dim transition-colors hover:text-cream">
           ← {back.label}
@@ -111,8 +111,8 @@ export function PageHeader({
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-cream sm:text-3xl">{title}</h1>
-          {subtitle && <p className="mt-1 text-mauve-dim">{subtitle}</p>}
+          <h1 className="masthead-shadow font-display text-2xl font-bold text-cream sm:text-3xl">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-mauve-dim">{subtitle}</p>}
         </div>
         {action}
       </div>
