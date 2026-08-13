@@ -90,9 +90,9 @@ export function CheckoutClient({
 
   if (clientSecret && options && amounts) {
     return (
-      <main className="mx-auto max-w-md px-5 py-10">
-        <h1 className="font-display text-2xl font-semibold text-cream">Pay</h1>
-        <p className="mt-1 text-mauve-dim">{eventTitle}</p>
+      <main className="grain mx-auto max-w-md px-5 py-12">
+        <h1 className="masthead-shadow anim-rise font-display text-3xl font-bold text-cream">Pay</h1>
+        <p className="anim-rise mt-1 text-mauve-dim">{eventTitle}</p>
         <dl className="mt-6 space-y-1.5 text-sm">
           <div className="flex justify-between text-mauve-dim">
             <dt>Tickets</dt>
@@ -123,11 +123,11 @@ export function CheckoutClient({
   }
 
   return (
-    <main className="mx-auto max-w-md px-5 py-10">
-      <h1 className="font-display text-3xl font-bold text-cream">Get tickets</h1>
-      <p className="mt-1 text-mauve-dim">{eventTitle}</p>
+    <main className="grain mx-auto max-w-md px-5 py-12">
+      <h1 className="masthead-shadow anim-rise font-display text-4xl font-bold text-cream">Get tickets</h1>
+      <p className="anim-rise mt-1 text-mauve-dim">{eventTitle}</p>
 
-      <form onSubmit={submitDetails} noValidate className="mt-8 space-y-5">
+      <form onSubmit={submitDetails} noValidate className="anim-rise d-1 mt-8 space-y-5">
         {tiers.length > 1 && (
           <div>
             <label className={label}>Ticket</label>

@@ -57,46 +57,44 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
   const googleWallet = isGoogleWalletConfigured();
 
   return (
-    <main className="mx-auto max-w-md px-5 py-10">
-      <p className="text-sm font-medium uppercase tracking-[0.24em] text-gold">Your tickets</p>
-      <h1 className="mt-2 font-display text-3xl font-bold leading-tight text-cream">{event.title}</h1>
-      <p className="mt-2 text-mauve-dim">{fmtDate(event.starts_at, event.timezone)}</p>
-      <p className="text-mauve-dim">{event.venue_name} · {event.venue_address}</p>
+    <main className="grain mx-auto max-w-md px-5 py-12">
+      <p className="anim-rise text-xs font-semibold uppercase tracking-[0.24em] text-gold">Your tickets</p>
+      <h1 className="anim-rise d-1 masthead-shadow mt-2 font-display text-3xl font-bold leading-tight text-cream">
+        {event.title}
+      </h1>
+      <p className="anim-rise d-1 mt-3 text-mauve-dim">{fmtDate(event.starts_at, event.timezone)}</p>
+      <p className="anim-rise d-1 text-mauve-dim">{event.venue_name} · {event.venue_address}</p>
 
       <div className="mt-8 space-y-5">
         {tickets.map((t, i) => (
-          <div key={t.id} className="rounded-2xl border border-plum-hi bg-plum/40 p-5">
-            <div className="mb-3 flex items-center justify-between">
+          <div key={t.id} className="anim-rise d-2 overflow-hidden rounded-3xl border border-plum-hi bg-plum/40">
+            <div className="flex items-center justify-between px-5 pt-5">
               <span className="font-display font-semibold text-cream">
                 Ticket {i + 1} of {tickets.length}
               </span>
               {t.checked_in_at ? (
-                <span className="rounded-full bg-emerald/15 px-3 py-1 text-xs text-emerald">Checked in</span>
+                <span className="rounded-full bg-emerald/15 px-3 py-1 text-xs font-medium text-emerald">Checked in</span>
               ) : (
-                <span className="rounded-full bg-ink px-3 py-1 text-xs text-mauve-dim">Not scanned</span>
+                <span className="rounded-full border border-plum-hi px-3 py-1 text-xs text-mauve-dim">Not scanned</span>
               )}
             </div>
-            <div
-              className="mx-auto w-full max-w-[240px] rounded-xl bg-white p-3"
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: qrs[i] }}
-            />
+            <div className="p-5">
+              <div
+                className={`mx-auto w-full max-w-[240px] rounded-2xl bg-white p-3 ${t.checked_in_at ? "opacity-40" : ""}`}
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: qrs[i] }}
+              />
+            </div>
             {(appleWallet || googleWallet) && !t.checked_in_at && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2 border-t border-plum-hi/70 px-5 py-4">
                 {appleWallet && (
-                  <a
-                    href={`/api/wallet/apple/${t.id}`}
-                    className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum"
-                  >
-                     Add to Apple Wallet
+                  <a href={`/api/wallet/apple/${t.id}`} className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum">
+                     Apple Wallet
                   </a>
                 )}
                 {googleWallet && (
-                  <a
-                    href={`/api/wallet/google/${t.id}`}
-                    className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum"
-                  >
-                    Save to Google Wallet
+                  <a href={`/api/wallet/google/${t.id}`} className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum">
+                    Google Wallet
                   </a>
                 )}
               </div>

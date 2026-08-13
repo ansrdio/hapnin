@@ -15,9 +15,11 @@ export default async function ConfirmationPage({
 
   if (redirect_status && redirect_status !== "succeeded") {
     return (
-      <main className="mx-auto max-w-md px-5 py-16">
-        <h1 className="font-display text-2xl font-semibold text-cream">Payment didn’t go through.</h1>
-        <p className="mt-2 text-mauve-dim">No charge was made. Head back and try again.</p>
+      <main className="grain flex min-h-[100svh] flex-col items-center justify-center px-5 text-center">
+        <div className="anim-rise">
+          <h1 className="font-display text-2xl font-semibold text-cream">Payment didn’t go through.</h1>
+          <p className="mt-2 text-mauve-dim">No charge was made. Head back and try again.</p>
+        </div>
       </main>
     );
   }
@@ -29,9 +31,12 @@ export default async function ConfirmationPage({
   }
 
   return (
-    <main className="mx-auto max-w-md px-5 py-16 text-center">
-      <h1 className="font-display text-3xl font-bold text-cream">You’re in. 🎟️</h1>
-      <p className="mt-3 text-mauve-dim">Getting your ticket ready…</p>
+    <main className="grain flex min-h-[100svh] flex-col items-center justify-center px-5 text-center">
+      <div className="anim-bloom mb-8 flex h-16 w-16 items-center justify-center rounded-full border-2 border-gold/30">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+      </div>
+      <h1 className="anim-rise d-1 masthead-shadow font-display text-4xl font-bold text-cream">You’re in.</h1>
+      <p className="anim-rise d-2 mt-3 text-mauve-dim">Getting your ticket ready…</p>
       <ConfirmationPoller pi={payment_intent ?? ""} />
     </main>
   );

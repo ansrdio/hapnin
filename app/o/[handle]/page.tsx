@@ -45,48 +45,60 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
   const prices = await Promise.all(live.map(fromPrice));
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12 sm:py-16">
+    <main className="grain mx-auto max-w-3xl px-5 py-14 sm:py-20">
       {/* Identity */}
-      <header className="mb-10">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-plum font-display text-2xl font-bold text-gold">
+      <header className="anim-rise mb-12">
+        <div className="anim-bloom flex h-20 w-20 items-center justify-center rounded-3xl bg-gold font-display text-3xl font-bold text-ink shadow-lg shadow-gold/20">
           {organizer.name.charAt(0).toUpperCase()}
         </div>
-        <h1 className="mt-4 font-display text-3xl font-semibold text-cream sm:text-4xl">{organizer.name}</h1>
-        {organizer.instagram_handle && (
-          <a
-            href={`https://instagram.com/${organizer.instagram_handle}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 inline-block text-mauve-dim transition-colors hover:text-cream"
-          >
-            @{organizer.instagram_handle}
-          </a>
-        )}
+        <h1 className="masthead-shadow mt-5 font-display text-4xl font-bold text-cream sm:text-5xl">
+          {organizer.name}
+        </h1>
+        <div className="mt-2 flex items-center gap-3 text-mauve-dim">
+          {organizer.marketing_approved && (
+            <span className="inline-flex items-center gap-1 text-sm text-gold">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                <path d="M12 2l2.2 1.6 2.7-.2 1 2.5 2.3 1.5-.7 2.6.7 2.6-2.3 1.5-1 2.5-2.7-.2L12 22l-2.2-1.6-2.7.2-1-2.5-2.3-1.5.7-2.6L3.8 11l2.3-1.5 1-2.5 2.7.2L12 2z" />
+              </svg>
+              Verified
+            </span>
+          )}
+          {organizer.instagram_handle && (
+            <a
+              href={`https://instagram.com/${organizer.instagram_handle}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm transition-colors hover:text-cream"
+            >
+              @{organizer.instagram_handle}
+            </a>
+          )}
+        </div>
       </header>
 
       {/* Events */}
-      <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">Upcoming events</h2>
+      <h2 className="anim-rise d-1 mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-gold">Upcoming events</h2>
       {live.length === 0 ? (
-        <p className="rounded-2xl border border-plum-hi bg-plum/40 p-6 text-mauve-dim">
+        <p className="anim-rise d-1 rounded-2xl border border-plum-hi bg-plum/40 p-6 text-mauve-dim">
           No events on sale right now. Check back soon.
         </p>
       ) : (
         <ul className="space-y-4">
           {live.map((e, i) => (
-            <li key={e.id}>
+            <li key={e.id} className="anim-rise d-2">
               <Link
                 href={`/e/${e.slug}`}
-                className="flex gap-4 overflow-hidden rounded-2xl border border-plum-hi bg-plum/40 transition-colors hover:border-gold"
+                className="group flex gap-4 overflow-hidden rounded-3xl border border-plum-hi bg-plum/40 transition-all hover:border-gold"
               >
-                <div className="relative h-32 w-28 shrink-0 bg-ink/50">
+                <div className="relative h-36 w-28 shrink-0 overflow-hidden bg-ink/50">
                   {e.flyer_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={e.flyer_url} alt="" className="h-full w-full object-cover" />
+                    <img src={e.flyer_url} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   )}
                 </div>
-                <div className="flex flex-1 flex-col justify-center py-4 pr-4">
-                  <p className="font-display text-lg font-semibold text-cream">{e.title}</p>
-                  <p className="mt-0.5 text-sm text-mauve-dim">{fmtDate(e.starts_at)}</p>
+                <div className="flex flex-1 flex-col justify-center py-4 pr-5">
+                  <p className="font-display text-xl font-semibold text-cream">{e.title}</p>
+                  <p className="mt-1 text-sm text-mauve-dim">{fmtDate(e.starts_at)}</p>
                   <p className="text-sm text-mauve-dim">
                     {e.venue_name} · {e.city}, {e.state}
                   </p>
@@ -102,7 +114,7 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
         </ul>
       )}
 
-      <footer className="mt-16 text-center text-xs text-mauve-dim/70">
+      <footer className="mt-20 text-center text-xs text-mauve-dim/70">
         Powered by <Link href="/" className="text-mauve-dim hover:text-cream">Hapnin</Link>
       </footer>
     </main>
