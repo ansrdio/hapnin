@@ -13,6 +13,7 @@ import {
   money,
 } from "@/app/components/ui";
 import { ShareLink } from "./ShareLink";
+import { CompForm } from "./CompForm";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,16 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Comps */}
+      <Card className="mb-6">
+        <p className="font-display font-semibold text-cream">Issue comps</p>
+        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+          Free passes for guest list, press, or artist plus-ones. They text to the guest and scan at the door
+          like any ticket — no charge, but they count toward capacity.
+        </p>
+        <CompForm eventId={event.id} tiers={tiers.map((t) => ({ id: t.id, name: t.name }))} />
       </Card>
 
       {/* Flyer */}

@@ -8,7 +8,8 @@ One line per merged feature, newest first.
 - Full event builder `/o/events/new`: dynamic ticket tiers (add/remove), category vocabulary, save-as-draft or publish; shared form parser (`lib/event-input.ts`) used by admin + organizer so validation never drifts.
 - Event manage `/o/events/[id]`: live stats, per-tier sold/remaining, publish/unpublish/cancel, shareable link, door-scanner + preview links. Ownership-checked.
 - Flyer upload: organizer-authed `/api/upload/flyer` streams images into Firebase Storage (Admin SDK) with a download token for public read; reusable `FlyerUpload` picker in the builder + manage page; thumbnails on the dashboard.
-- (Next: comps, SMS broadcasts, team/door members, public `/o/{handle}`, buyer-facing polish.)
+- Comps (`lib/comps.ts`): issue free passes from the manage page — reserves tier inventory, `channel="comp"` order + `is_comp` tickets with signed QR, texts the guest, counts toward capacity but never gross.
+- (Next: SMS broadcasts, team/door members, public `/o/{handle}`, buyer-facing polish.)
 
 ## Phase 1 — the demo loop
 - Event data + atomic inventory (`reserveInventory`/`releaseInventory` via Firestore transactions); signed HMAC QR tokens; public `/e/{slug}`; minimal admin event-create.
