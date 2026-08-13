@@ -4,7 +4,8 @@ import { getEventById, getTiers } from "@/lib/events";
 import { getEventAudience } from "@/lib/broadcasts";
 import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
-import { setEventStatusAction, setEventFlyerAction } from "@/app/o/actions";
+import { waitlistCount } from "@/lib/waitlist";
+import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
   PageHeader,
@@ -54,6 +55,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const audience = await getEventAudience(id);
   const promoterLinks = await listPromoterLinks(id);
   const promoCodes = await listPromoCodes(id);
+  const waitlist = await waitlistCount(id);
 
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
@@ -134,6 +136,24 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           })}
         </div>
       </Card>
+
+      {/* Waitlist */}
+      {waitlist > 0 && (
+        <Card className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-display font-semibold text-cream">Waitlist</p>
+              <p className="mt-0.5 text-sm text-mauve-dim">
+                {waitlist} {waitlist === 1 ? "person is" : "people are"} waiting. Text them a buy link when seats open.
+              </p>
+            </div>
+            <form action={notifyWaitlistAction}>
+              <input type="hidden" name="event_id" value={event.id} />
+              <button className={buttonClass("secondary")}>Notify waitlist</button>
+            </form>
+          </div>
+        </Card>
+      )}
 
       {/* Promo codes */}
       <Card className="mb-6">

@@ -8,6 +8,7 @@ import { getOrderById, checkInOrder } from "@/lib/orders";
 import { createPromoterLink } from "@/lib/promoters";
 import { createPromoCode, normalizeCode } from "@/lib/promos";
 import { sellAtDoor } from "@/lib/boxoffice";
+import { notifyWaitlist } from "@/lib/waitlist";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
@@ -258,6 +259,19 @@ export async function createPromoterLinkAction(_prev: ActionState, formData: For
     console.error("createPromoterLink error", err);
     return { status: "error", message: "Couldn’t create the link. Try again." };
   }
+}
+
+/** Text the event's waitlist that tickets are available. Owner/manager. */
+export async function notifyWaitlistAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!(await ownedEvent(eventId, organizer.id))) return;
+  try {
+    await notifyWaitlist(eventId);
+  } catch (err) {
+    console.error("notifyWaitlist error", err);
+  }
+  revalidatePath(`/o/events/${eventId}`);
 }
 
 /** Create a promo code for an event the organizer owns. */

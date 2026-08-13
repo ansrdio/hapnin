@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getEventBySlug, getTiers, type Tier } from "@/lib/events";
 import { resolvePromoterCode } from "@/lib/promoters";
+import { WaitlistForm } from "./WaitlistForm";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +129,8 @@ export default async function EventPage({
             })}
             {tiers.length === 0 && <li className="px-5 py-4 text-mauve-dim">No tickets yet.</li>}
           </ul>
+
+          {onSale && allSoldOut && <WaitlistForm slug={event.slug} />}
         </div>
       </div>
 
