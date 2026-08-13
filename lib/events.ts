@@ -130,6 +130,11 @@ export async function setEventStatus(eventId: string, status: EventStatus): Prom
   await getDb().collection(EVENTS).doc(eventId).update({ status });
 }
 
+/** Set (or clear) an event's flyer image URL. */
+export async function setEventFlyer(eventId: string, flyerUrl: string | null): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl });
+}
+
 export type NewTier = {
   name: string;
   price_cents: number;
@@ -141,6 +146,7 @@ export async function createEvent(input: {
   title: string;
   slug: string;
   description?: string | null;
+  flyer_url?: string | null;
   venue_name: string;
   venue_address: string;
   city: string;
@@ -174,7 +180,7 @@ export async function createEvent(input: {
     title: input.title,
     slug,
     description: input.description ?? null,
-    flyer_url: null,
+    flyer_url: input.flyer_url ?? null,
     venue_name: input.venue_name,
     venue_address: input.venue_address,
     city: input.city,

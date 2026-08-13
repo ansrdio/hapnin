@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
-import { createEvent, getEventById, setEventStatus } from "@/lib/events";
+import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
 import { parseEventForm } from "@/lib/event-input";
 import { isOneOf, EVENT_STATUS } from "@/lib/enums";
 import type { ActionState } from "@/app/admin/action-state";
@@ -23,6 +23,7 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       title: values.title!,
       slug: values.slug!,
       description: values.description ?? null,
+      flyer_url: values.flyer_url ?? null,
       venue_name: values.venue_name!,
       venue_address: values.venue_address!,
       city: values.city!,
@@ -59,6 +60,21 @@ export async function setEventStatusAction(formData: FormData): Promise<void> {
   if (!event || event.organizer_id !== organizer.id) return; // not theirs → no-op
 
   await setEventStatus(eventId, status);
+  revalidatePath(`/o/events/${eventId}`);
+  revalidatePath("/o");
+}
+
+/** Set or clear an event's flyer (from the manage page). */
+export async function setEventFlyerAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const raw = String(formData.get("flyer_url") ?? "").trim();
+  const flyerUrl = /^https:\/\/\S{1,600}$/.test(raw) ? raw : null;
+
+  const event = await getEventById(eventId);
+  if (!event || event.organizer_id !== organizer.id) return; // not theirs → no-op
+
+  await setEventFlyer(eventId, flyerUrl);
   revalidatePath(`/o/events/${eventId}`);
   revalidatePath("/o");
 }

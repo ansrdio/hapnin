@@ -74,14 +74,24 @@ export default async function OrganizerHome() {
                   className="block rounded-2xl border border-plum-hi bg-plum/40 p-5 transition-colors hover:border-gold"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-display text-lg font-semibold text-cream">{e.title}</span>
-                        <StatusBadge status={e.status} />
+                    <div className="flex items-start gap-3.5">
+                      {e.flyer_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={e.flyer_url}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                        />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-display text-lg font-semibold text-cream">{e.title}</span>
+                          <StatusBadge status={e.status} />
+                        </div>
+                        <p className="mt-0.5 text-sm text-mauve-dim">
+                          {fmtDate(e.starts_at)} · {e.venue_name}
+                        </p>
                       </div>
-                      <p className="mt-0.5 text-sm text-mauve-dim">
-                        {fmtDate(e.starts_at)} · {e.venue_name}
-                      </p>
                     </div>
                     <div className="flex gap-6 text-right">
                       <div>

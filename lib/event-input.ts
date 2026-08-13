@@ -23,6 +23,7 @@ export type ParsedEventValues = {
   title: string;
   slug: string;
   description: string | null;
+  flyer_url: string | null;
   venue_name: string;
   venue_address: string;
   city: string;
@@ -53,6 +54,9 @@ export function parseEventForm(formData: FormData): {
   const capacityRaw = String(formData.get("capacity") ?? "").trim();
   const capacity = capacityRaw ? parseInt(capacityRaw, 10) : null;
   const description = cleanText(String(formData.get("description") ?? ""), 2000) || null;
+  // flyer_url is produced by our own upload endpoint; only accept an https URL.
+  const flyerRaw = String(formData.get("flyer_url") ?? "").trim();
+  const flyer_url = /^https:\/\/\S{1,600}$/.test(flyerRaw) ? flyerRaw : null;
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const is_first_event = formData.get("is_first_event") === "on";
 
@@ -88,7 +92,7 @@ export function parseEventForm(formData: FormData): {
 
   return {
     values: {
-      title, slug: slug ?? undefined, description,
+      title, slug: slug ?? undefined, description, flyer_url,
       venue_name, venue_address, city, state,
       starts_at: starts_at ?? undefined, capacity, talent, is_first_event,
       event_type, community, primary_language, genre, tiers,

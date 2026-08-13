@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
 import { getEventById, getTiers } from "@/lib/events";
-import { setEventStatusAction } from "@/app/o/actions";
+import { setEventStatusAction, setEventFlyerAction } from "@/app/o/actions";
+import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
   PageHeader,
   Card,
@@ -122,6 +123,16 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Flyer */}
+      <Card className="mb-6">
+        <p className="mb-4 font-display font-semibold text-cream">Flyer</p>
+        <form action={setEventFlyerAction} className="space-y-4">
+          <input type="hidden" name="event_id" value={event.id} />
+          <FlyerUpload initialUrl={event.flyer_url ?? ""} />
+          <button className={buttonClass("secondary")}>Save flyer</button>
+        </form>
       </Card>
 
       {/* Share + door */}

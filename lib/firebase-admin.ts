@@ -2,6 +2,7 @@ import "server-only";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 
 // Single Firebase Admin app for the whole server. The Admin SDK bypasses
 // Firestore Security Rules, so every product read/write must go through a server
@@ -25,8 +26,15 @@ function getAdminApp(): App {
     );
   }
   privateKey = privateKey.replace(/\\n/g, "\n"); // Vercel stores \n literally
-  app = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  // Newer Firebase projects default to the {projectId}.firebasestorage.app bucket.
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`;
+  app = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), storageBucket });
   return app;
+}
+
+/** Default Storage bucket (event flyers live here). */
+export function getBucket() {
+  return getStorage(getAdminApp()).bucket();
 }
 
 let db: Firestore | null = null;
