@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { requireOrganizer } from "@/lib/auth";
+import { requireScanAccess } from "@/lib/auth";
 import { listEventsByOrganizer } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
 export default async function ScanHome() {
-  const { organizer } = await requireOrganizer();
+  const { organizer } = await requireScanAccess();
   const events = await listEventsByOrganizer(organizer.id);
 
   return (

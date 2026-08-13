@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { requireOrganizer } from "@/lib/auth";
+import { requireScanAccess } from "@/lib/auth";
 import { getDb } from "@/lib/firebase-admin";
 import { getEventById } from "@/lib/events";
 import { verifyQrToken } from "@/lib/qr";
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 // belong to them. First-check-in-wins is enforced in a Firestore transaction, so
 // two door phones scanning the same ticket can't both admit.
 export async function POST(req: Request) {
-  const { organizer } = await requireOrganizer();
+  const { organizer } = await requireScanAccess();
   const { eventId, token } = (await req.json().catch(() => ({}))) as { eventId?: string; token?: string };
   if (!eventId || !token) return NextResponse.json({ result: "invalid" });
 

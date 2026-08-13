@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireOrganizer } from "@/lib/auth";
+import { requireOrganizer, requireOwner } from "@/lib/auth";
+import { addTeamMember, removeTeamMember } from "@/lib/team";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
-import { isOneOf, EVENT_STATUS } from "@/lib/enums";
+import { isOneOf, EVENT_STATUS, TEAM_ROLE } from "@/lib/enums";
 import { normalizeUsPhone, normalizeEmail, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "@/app/admin/action-state";
 
@@ -145,4 +146,31 @@ export async function broadcastAction(_prev: ActionState, formData: FormData): P
     console.error("broadcast error", err);
     return { status: "error", message: "Couldn’t send the broadcast. Try again." };
   }
+}
+
+/** Add a team member (manager or door). Owner only. */
+export async function addTeamMemberAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOwner();
+  const email = normalizeEmail(String(formData.get("email") ?? ""));
+  const name = cleanText(String(formData.get("name") ?? ""), 80) || null;
+  const role = String(formData.get("role") ?? "");
+
+  const fieldErrors: FieldErrors = {};
+  if (!email) fieldErrors.email = "A working email — this is their login.";
+  if (!isOneOf(TEAM_ROLE, role)) fieldErrors.role = "Pick a role.";
+  if (email && email === organizer.email) fieldErrors.email = "That’s you — you already own this account.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  await addTeamMember({ organizerId: organizer.id, email: email!, name, role: role as never });
+  revalidatePath("/o/team");
+  return { status: "success", message: `${name || email} added as ${role}.` };
+}
+
+/** Remove a team member. Owner only. */
+export async function removeTeamMemberAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOwner();
+  const email = String(formData.get("email") ?? "");
+  if (!email) return;
+  await removeTeamMember(organizer.id, email);
+  revalidatePath("/o/team");
 }

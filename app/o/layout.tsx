@@ -5,7 +5,7 @@ import { signOutAction } from "@/app/actions/session";
 // Guard: everything under /o/* requires a signed-in organizer. The real
 // dashboard arrives in Phase 2; Phase 0 just proves the login + guard work.
 export default async function OrganizerLayout({ children }: { children: React.ReactNode }) {
-  const { organizer } = await requireOrganizer();
+  const { organizer, role } = await requireOrganizer();
   return (
     <div className="min-h-[100svh]">
       <header className="border-b border-plum-hi px-5 py-4 sm:px-8">
@@ -13,11 +13,21 @@ export default async function OrganizerLayout({ children }: { children: React.Re
           <Link href="/o" className="font-display text-lg font-semibold text-cream">
             {organizer.name}
           </Link>
-          <form action={signOutAction}>
-            <button className="text-sm text-mauve-dim underline decoration-plum-hi underline-offset-4 hover:text-cream">
-              Sign out
-            </button>
-          </form>
+          <nav className="flex items-center gap-5 text-sm">
+            <Link href="/o" className="text-mauve-dim transition-colors hover:text-cream">
+              Events
+            </Link>
+            {role === "owner" && (
+              <Link href="/o/team" className="text-mauve-dim transition-colors hover:text-cream">
+                Team
+              </Link>
+            )}
+            <form action={signOutAction}>
+              <button className="text-mauve-dim underline decoration-plum-hi underline-offset-4 hover:text-cream">
+                Sign out
+              </button>
+            </form>
+          </nav>
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8">{children}</main>

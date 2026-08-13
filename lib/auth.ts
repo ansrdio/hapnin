@@ -2,7 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAdminAuth } from "./firebase-admin";
-import { getOrganizerByUid, getOrganizerByEmail, type Organizer } from "./organizers";
+import { getOrganizerByUid, getOrganizerByEmail, getOrganizerById, type Organizer } from "./organizers";
+import { findTeamMembership } from "./team";
 
 // Auth model (see ADR 0002): the browser completes an email-link sign-in with the
 // Firebase Web SDK, gets an ID token, and POSTs it to /api/auth/session, which
@@ -45,11 +46,44 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-/** Guard for /o/* — redirects to login if not a signed-in organizer. */
-export async function requireOrganizer(): Promise<{ user: SessionUser; organizer: Organizer }> {
+// Access role for an organizer's workspace. "owner" is the organizer themselves;
+// "manager"/"door" are team members (lib/team).
+export type OrgRole = "owner" | "manager" | "door";
+
+/** Resolve which organizer workspace this user can act in, and in what role. */
+async function resolveAccess(user: SessionUser): Promise<{ organizer: Organizer; role: OrgRole } | null> {
+  const owned = (await getOrganizerByUid(user.uid)) ?? (await getOrganizerByEmail(user.email));
+  if (owned) return { organizer: owned, role: "owner" };
+  const membership = await findTeamMembership(user.email);
+  if (membership) {
+    const org = await getOrganizerById(membership.organizerId);
+    if (org) return { organizer: org, role: membership.role };
+  }
+  return null;
+}
+
+/** Guard for /o/* — owner or manager. Door-only members are sent to the scanner. */
+export async function requireOrganizer(): Promise<{ user: SessionUser; organizer: Organizer; role: OrgRole }> {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/o");
-  const organizer = (await getOrganizerByUid(user.uid)) ?? (await getOrganizerByEmail(user.email));
-  if (!organizer) redirect("/login?denied=1");
+  const access = await resolveAccess(user);
+  if (!access) redirect("/login?denied=1");
+  if (access.role === "door") redirect("/scan"); // door staff can't manage
+  return { user, organizer: access.organizer, role: access.role };
+}
+
+/** Guard for /scan/* — owner, manager, or door staff. */
+export async function requireScanAccess(): Promise<{ user: SessionUser; organizer: Organizer; role: OrgRole }> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login?next=/scan");
+  const access = await resolveAccess(user);
+  if (!access) redirect("/login?denied=1");
+  return { user, organizer: access.organizer, role: access.role };
+}
+
+/** Guard for owner-only actions (e.g. managing the team). */
+export async function requireOwner(): Promise<{ user: SessionUser; organizer: Organizer }> {
+  const { user, organizer, role } = await requireOrganizer();
+  if (role !== "owner") redirect("/o");
   return { user, organizer };
 }
