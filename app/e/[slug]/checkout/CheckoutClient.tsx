@@ -6,7 +6,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { getStripeClient } from "@/lib/stripe-client";
 
 type Tier = { id: string; name: string; price_cents: number; remaining: number };
-type Amounts = { subtotal_cents: number; card_fee_cents: number; total_cents: number };
+type Amounts = { subtotal_cents: number; discount_cents: number; card_fee_cents: number; total_cents: number };
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const field =
@@ -42,6 +42,7 @@ export function CheckoutClient({
   const [qty, setQty] = useState(1);
   const [f, setF] = useState({ firstName: "", lastName: "", phone: "", email: "", zip: "" });
   const [screening, setScreening] = useState("");
+  const [promo, setPromo] = useState("");
   const [optIn, setOptIn] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -61,7 +62,7 @@ export function CheckoutClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, tierId, quantity: qty, ...f, screening, optIn, p: promoterCode ?? undefined }),
+        body: JSON.stringify({ slug, tierId, quantity: qty, ...f, screening, optIn, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -92,9 +93,31 @@ export function CheckoutClient({
       <main className="mx-auto max-w-md px-5 py-10">
         <h1 className="font-display text-2xl font-semibold text-cream">Pay</h1>
         <p className="mt-1 text-mauve-dim">{eventTitle}</p>
-        <Elements stripe={getStripeClient()} options={options}>
-          <PayStep slug={slug} total={amounts.total_cents} />
-        </Elements>
+        <dl className="mt-6 space-y-1.5 text-sm">
+          <div className="flex justify-between text-mauve-dim">
+            <dt>Tickets</dt>
+            <dd className="tabular-nums">{usd(amounts.subtotal_cents + amounts.discount_cents)}</dd>
+          </div>
+          {amounts.discount_cents > 0 && (
+            <div className="flex justify-between text-emerald">
+              <dt>Discount</dt>
+              <dd className="tabular-nums">−{usd(amounts.discount_cents)}</dd>
+            </div>
+          )}
+          <div className="flex justify-between text-mauve-dim">
+            <dt>Card processing</dt>
+            <dd className="tabular-nums">{usd(amounts.card_fee_cents)}</dd>
+          </div>
+          <div className="flex justify-between border-t border-plum-hi pt-1.5 font-semibold text-cream">
+            <dt>Total</dt>
+            <dd className="tabular-nums">{usd(amounts.total_cents)}</dd>
+          </div>
+        </dl>
+        <div className="mt-6">
+          <Elements stripe={getStripeClient()} options={options}>
+            <PayStep slug={slug} total={amounts.total_cents} />
+          </Elements>
+        </div>
       </main>
     );
   }
@@ -197,6 +220,18 @@ export function CheckoutClient({
             ))}
           </div>
         </fieldset>
+
+        <div>
+          <label className={label}>Promo code (optional)</label>
+          <input
+            className={`${field} uppercase`}
+            value={promo}
+            onChange={(e) => setPromo(e.target.value)}
+            placeholder="CODE"
+            autoCapitalize="characters"
+          />
+          {errors.promo && <p className="mt-1 text-sm text-coral">{errors.promo}</p>}
+        </div>
 
         <label className="flex items-start gap-3 text-sm leading-relaxed text-mauve-dim">
           <input type="checkbox" checked={optIn} onChange={(e) => setOptIn(e.target.checked)} className="mt-1 accent-gold" />

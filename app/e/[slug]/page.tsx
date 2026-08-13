@@ -21,12 +21,13 @@ function fmtDate(ms: number, tz: string) {
   }).format(new Date(ms));
 }
 
-function tierSoldOut(t: Tier): boolean {
+function tierStatus(t: Tier): { available: boolean; label: string | null } {
   const now = Date.now();
-  if (!t.is_active) return true;
-  if (t.quantity_sold >= t.quantity_total) return true;
-  if (t.sales_end_at && now > t.sales_end_at) return true;
-  return false;
+  if (!t.is_active) return { available: false, label: "Unavailable" };
+  if (t.sales_start_at && now < t.sales_start_at) return { available: false, label: "Not yet on sale" };
+  if (t.sales_end_at && now > t.sales_end_at) return { available: false, label: "Sales closed" };
+  if (t.quantity_sold >= t.quantity_total) return { available: false, label: "Sold out" };
+  return { available: true, label: null };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -53,7 +54,7 @@ export default async function EventPage({
 
   const tiers = await getTiers(event.id);
   const onSale = event.status === "on_sale";
-  const allSoldOut = tiers.length > 0 && tiers.every(tierSoldOut);
+  const allSoldOut = tiers.length > 0 && tiers.every((t) => !tierStatus(t).available);
 
   // Promoter attribution — validate the code so we only forward/celebrate real ones.
   const promoter = p ? await resolvePromoterCode(event.id, p) : null;
@@ -111,15 +112,15 @@ export default async function EventPage({
           <h2 className="text-sm font-medium uppercase tracking-[0.2em] text-gold">Tickets</h2>
           <ul className="mt-4 divide-y divide-plum-hi rounded-2xl border border-plum-hi">
             {tiers.map((t) => {
-              const out = tierSoldOut(t);
+              const st = tierStatus(t);
               return (
                 <li
                   key={t.id}
-                  className={`flex items-center justify-between gap-4 px-5 py-4 ${out ? "opacity-45" : ""}`}
+                  className={`flex items-center justify-between gap-4 px-5 py-4 ${st.available ? "" : "opacity-45"}`}
                 >
                   <div>
                     <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
-                    {out && <p className="text-sm text-mauve-dim">Sold out</p>}
+                    {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
                   </div>
                   <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
                 </li>

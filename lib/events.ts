@@ -139,6 +139,8 @@ export type NewTier = {
   name: string;
   price_cents: number;
   quantity_total: number;
+  sales_start_at?: number | null; // epoch ms
+  sales_end_at?: number | null;
 };
 
 export async function createEvent(input: {
@@ -210,8 +212,8 @@ export async function createEvent(input: {
       price_cents: t.price_cents,
       quantity_total: t.quantity_total,
       quantity_sold: 0,
-      sales_start_at: null,
-      sales_end_at: null,
+      sales_start_at: t.sales_start_at ?? null,
+      sales_end_at: t.sales_end_at ?? null,
       is_active: true,
       sort_order: i,
     });

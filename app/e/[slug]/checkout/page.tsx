@@ -19,7 +19,14 @@ export default async function CheckoutPage({
   const event = await getEventBySlug(slug);
   if (!event || event.status !== "on_sale") notFound();
 
-  const tiers = (await getTiers(event.id)).filter((t) => t.is_active && t.quantity_sold < t.quantity_total);
+  const now = Date.now();
+  const tiers = (await getTiers(event.id)).filter(
+    (t) =>
+      t.is_active &&
+      t.quantity_sold < t.quantity_total &&
+      (!t.sales_start_at || now >= t.sales_start_at) &&
+      (!t.sales_end_at || now <= t.sales_end_at)
+  );
   if (tiers.length === 0) notFound();
 
   return (

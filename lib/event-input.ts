@@ -68,11 +68,15 @@ export function parseEventForm(formData: FormData): {
   const names = formData.getAll("tier_name").map(String);
   const prices = formData.getAll("tier_price").map(String);
   const qtys = formData.getAll("tier_qty").map(String);
+  const starts = formData.getAll("tier_start").map(String);
+  const ends = formData.getAll("tier_end").map(String);
   const tiers = names
     .map((name, i) => ({
       name: cleanText(name, 80),
       price_cents: Math.round(parseFloat(prices[i] || "0") * 100),
       quantity_total: parseInt(qtys[i] || "0", 10),
+      sales_start_at: parsePhoenixLocal(starts[i] || ""),
+      sales_end_at: parsePhoenixLocal(ends[i] || ""),
     }))
     .filter((t) => t.name && t.quantity_total > 0 && t.price_cents >= 0);
 

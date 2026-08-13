@@ -4,6 +4,7 @@ import { getDb } from "./firebase-admin";
 import { getStripe } from "./stripe";
 import { releaseInventory } from "./events";
 import { adjustPromoterStats } from "./promoters";
+import { adjustPromoRedemption } from "./promos";
 
 /**
  * Full refund of an order. For online orders this refunds the PaymentIntent and,
@@ -59,4 +60,6 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
   if (o.promoter_link_id) {
     await adjustPromoterStats(o.promoter_link_id, { orders: -1, tickets: -(o.quantity ?? 0), gross: -(o.subtotal_cents ?? 0) });
   }
+  // Return the promo redemption.
+  if (o.promo_code_id) await adjustPromoRedemption(o.promo_code_id, -1);
 }

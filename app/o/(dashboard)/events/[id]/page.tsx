@@ -3,6 +3,7 @@ import { requireOrganizer } from "@/lib/auth";
 import { getEventById, getTiers } from "@/lib/events";
 import { getEventAudience } from "@/lib/broadcasts";
 import { listPromoterLinks } from "@/lib/promoters";
+import { listPromoCodes } from "@/lib/promos";
 import { setEventStatusAction, setEventFlyerAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
@@ -18,6 +19,7 @@ import { ShareLink } from "./ShareLink";
 import { CompForm } from "./CompForm";
 import { BroadcastForm } from "./BroadcastForm";
 import { PromoterLinks } from "./PromoterLinks";
+import { PromoCodes } from "./PromoCodes";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const tiers = await getTiers(id);
   const audience = await getEventAudience(id);
   const promoterLinks = await listPromoterLinks(id);
+  const promoCodes = await listPromoCodes(id);
 
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
@@ -130,6 +133,15 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Promo codes */}
+      <Card className="mb-6">
+        <p className="font-display font-semibold text-cream">Promo codes</p>
+        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+          Discounts buyers enter at checkout — percentage or flat amount, with an optional cap on uses.
+        </p>
+        <PromoCodes eventId={event.id} codes={promoCodes} />
       </Card>
 
       {/* Promoters */}

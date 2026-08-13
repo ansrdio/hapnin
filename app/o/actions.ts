@@ -6,6 +6,7 @@ import { requireOrganizer, requireOwner, requireScanAccess } from "@/lib/auth";
 import { addTeamMember, removeTeamMember } from "@/lib/team";
 import { getOrderById, checkInOrder } from "@/lib/orders";
 import { createPromoterLink } from "@/lib/promoters";
+import { createPromoCode, normalizeCode } from "@/lib/promos";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
@@ -218,6 +219,38 @@ export async function createPromoterLinkAction(_prev: ActionState, formData: For
   } catch (err) {
     console.error("createPromoterLink error", err);
     return { status: "error", message: "Couldn’t create the link. Try again." };
+  }
+}
+
+/** Create a promo code for an event the organizer owns. */
+export async function createPromoCodeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const code = normalizeCode(String(formData.get("code") ?? ""));
+  const kind = String(formData.get("kind") ?? "");
+  const valueRaw = parseFloat(String(formData.get("value") ?? "0")) || 0;
+  const maxRaw = String(formData.get("max_redemptions") ?? "").trim();
+  const maxRedemptions = maxRaw ? Math.max(1, parseInt(maxRaw, 10)) : null;
+
+  if (!(await ownedEvent(eventId, organizer.id))) return { status: "error", message: "Event not found." };
+
+  const fieldErrors: FieldErrors = {};
+  if (!code) fieldErrors.code = "Letters and numbers only.";
+  if (kind !== "percent" && kind !== "amount") fieldErrors.kind = "Pick a type.";
+  if (kind === "percent" && (valueRaw <= 0 || valueRaw > 100)) fieldErrors.value = "1–100%.";
+  if (kind === "amount" && valueRaw <= 0) fieldErrors.value = "Enter an amount.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  const value = kind === "percent" ? Math.round(valueRaw) : Math.round(valueRaw * 100);
+
+  try {
+    await createPromoCode({ eventId, organizerId: organizer.id, code, kind: kind as "percent" | "amount", value, maxRedemptions });
+    revalidatePath(`/o/events/${eventId}`);
+    return { status: "success", message: `Code ${code} created.` };
+  } catch (err) {
+    if ((err as Error).message === "CODE_TAKEN") return { status: "error", fieldErrors: { code: "That code exists." } };
+    console.error("createPromoCode error", err);
+    return { status: "error", message: "Couldn’t create the code." };
   }
 }
 

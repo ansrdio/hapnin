@@ -8,7 +8,7 @@ import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
 import { Card, Field, Input, Textarea, Select, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 
-type TierRow = { key: number; name: string; price: string; qty: string };
+type TierRow = { key: number; name: string; price: string; qty: string; start: string; end: string };
 let nextKey = 2;
 
 function SubmitButtons() {
@@ -41,13 +41,13 @@ export function EventBuilder() {
   const [state, action] = useActionState(createOrganizerEventAction, initialActionState);
   const err = state.fieldErrors ?? {};
   const [tiers, setTiers] = useState<TierRow[]>([
-    { key: 0, name: "", price: "", qty: "" },
-    { key: 1, name: "", price: "", qty: "" },
+    { key: 0, name: "", price: "", qty: "", start: "", end: "" },
+    { key: 1, name: "", price: "", qty: "", start: "", end: "" },
   ]);
 
   const setTier = (key: number, patch: Partial<TierRow>) =>
     setTiers((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  const addTier = () => setTiers((rows) => [...rows, { key: nextKey++, name: "", price: "", qty: "" }]);
+  const addTier = () => setTiers((rows) => [...rows, { key: nextKey++, name: "", price: "", qty: "", start: "", end: "" }]);
   const removeTier = (key: number) => setTiers((rows) => (rows.length > 1 ? rows.filter((r) => r.key !== key) : rows));
 
   return (
@@ -119,46 +119,64 @@ export function EventBuilder() {
           </button>
         </div>
         {err.tiers && <p className="text-sm text-coral">{err.tiers}</p>}
-        <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_100px_90px_32px] gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
-            <span>Name</span>
-            <span>Price ($)</span>
-            <span>Qty</span>
-            <span />
-          </div>
+        <div className="space-y-3">
           {tiers.map((t, i) => (
-            <div key={t.key} className="grid grid-cols-[1fr_100px_90px_32px] items-center gap-2">
-              <Input
-                name="tier_name"
-                value={t.name}
-                onChange={(e) => setTier(t.key, { name: e.target.value })}
-                placeholder={i === 0 ? "General Admission" : "VIP"}
-              />
-              <Input
-                name="tier_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={t.price}
-                onChange={(e) => setTier(t.key, { price: e.target.value })}
-                placeholder="0.00"
-              />
-              <Input
-                name="tier_qty"
-                type="number"
-                min="0"
-                value={t.qty}
-                onChange={(e) => setTier(t.key, { qty: e.target.value })}
-                placeholder="100"
-              />
-              <button
-                type="button"
-                onClick={() => removeTier(t.key)}
-                aria-label="Remove tier"
-                className="flex h-full items-center justify-center rounded-lg text-mauve-dim transition-colors hover:text-coral"
-              >
-                ✕
-              </button>
+            <div key={t.key} className="space-y-2 rounded-xl border border-plum-hi p-3">
+              <div className="grid grid-cols-[1fr_100px_90px_28px] items-center gap-2">
+                <Input
+                  name="tier_name"
+                  value={t.name}
+                  onChange={(e) => setTier(t.key, { name: e.target.value })}
+                  placeholder={i === 0 ? "General Admission" : "VIP"}
+                />
+                <Input
+                  name="tier_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={t.price}
+                  onChange={(e) => setTier(t.key, { price: e.target.value })}
+                  placeholder="Price"
+                />
+                <Input
+                  name="tier_qty"
+                  type="number"
+                  min="0"
+                  value={t.qty}
+                  onChange={(e) => setTier(t.key, { qty: e.target.value })}
+                  placeholder="Qty"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeTier(t.key)}
+                  aria-label="Remove tier"
+                  className="flex h-full items-center justify-center rounded-lg text-mauve-dim transition-colors hover:text-coral"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block text-[10px] uppercase tracking-[0.12em] text-mauve-dim">
+                  On sale from (optional)
+                  <Input
+                    name="tier_start"
+                    type="datetime-local"
+                    value={t.start}
+                    onChange={(e) => setTier(t.key, { start: e.target.value })}
+                    className="mt-1 [color-scheme:dark]"
+                  />
+                </label>
+                <label className="block text-[10px] uppercase tracking-[0.12em] text-mauve-dim">
+                  Until (optional)
+                  <Input
+                    name="tier_end"
+                    type="datetime-local"
+                    value={t.end}
+                    onChange={(e) => setTier(t.key, { end: e.target.value })}
+                    className="mt-1 [color-scheme:dark]"
+                  />
+                </label>
+              </div>
             </div>
           ))}
         </div>

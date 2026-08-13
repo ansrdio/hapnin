@@ -6,6 +6,7 @@ import { getEventById, getEventBySlug, getTier, reserveInventory, releaseInvento
 import { getOrganizerById } from "./organizers";
 import { findOrCreateBuyer, recordConsent } from "./buyers";
 import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
+import { resolvePromo, promoDiscountCents, adjustPromoRedemption } from "./promos";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
 
@@ -23,18 +24,22 @@ export const CHECKOUT_CONSENT_TEXT =
   "Yes — text me about Hapnin and the organizers of events you attend, about African events near me. Reply STOP to opt out.";
 
 export type Amounts = {
-  subtotal_cents: number;
+  subtotal_cents: number; // face value after any discount
+  discount_cents: number;
   card_fee_cents: number;
   application_fee_cents: number;
   total_cents: number;
 };
 
-export function computeAmounts(priceCents: number, qty: number, isFirstEvent: boolean): Amounts {
-  const subtotal = priceCents * qty;
+export function computeAmounts(priceCents: number, qty: number, isFirstEvent: boolean, discountCents = 0): Amounts {
+  const gross = priceCents * qty;
+  const discount = Math.max(0, Math.min(discountCents, gross));
+  const subtotal = gross - discount;
   const card = Math.round(subtotal * CARD.pct + CARD.fixed * qty);
   const application = isFirstEvent ? 0 : Math.round(subtotal * PLATFORM.pct + PLATFORM.fixed * qty);
   return {
     subtotal_cents: subtotal,
+    discount_cents: discount,
     card_fee_cents: card,
     application_fee_cents: application,
     total_cents: subtotal + card,
@@ -56,6 +61,7 @@ export type CheckoutInput = {
   };
   referral_source: string | null;
   promoter_code: string | null;
+  promo_code: string | null;
   ip: string | null;
   user_agent: string | null;
 };
@@ -76,11 +82,24 @@ export async function createCheckoutIntent(
   const tier = await getTier(event.id, input.tierId);
   if (!tier) throw new Error("TIER_NOT_FOUND");
 
+  // Sale window (authoritative; the UI hides these but never trust it).
+  const now = Date.now();
+  if (tier.sales_start_at && now < tier.sales_start_at) throw new Error("NOT_ON_SALE");
+  if (tier.sales_end_at && now > tier.sales_end_at) throw new Error("SOLD_OUT");
+
   const organizer = await getOrganizerById(event.organizer_id);
   if (!organizer?.stripe_account_id || !organizer.stripe_onboarded) throw new Error("ORGANIZER_NOT_READY");
 
   const qty = Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
-  const amounts = computeAmounts(tier.price_cents, qty, event.is_first_event);
+
+  // Promo code: an invalid one the buyer typed is an error; no code is fine.
+  let promo = null;
+  if (input.promo_code) {
+    promo = await resolvePromo(event.id, input.promo_code);
+    if (!promo) throw new Error("INVALID_PROMO");
+  }
+  const discount = promo ? promoDiscountCents(promo, tier.price_cents * qty) : 0;
+  const amounts = computeAmounts(tier.price_cents, qty, event.is_first_event, discount);
 
   // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
   const promoterLink = input.promoter_code ? await resolvePromoterCode(event.id, input.promoter_code) : null;
@@ -120,6 +139,7 @@ export async function createCheckoutIntent(
       buyer: input.buyer,
       referral_source: input.referral_source,
       promoter_link_id: promoterLink?.id ?? null,
+      promo_code_id: promo?.id ?? null,
       consent: {
         granted: input.buyer.marketing_opt_in,
         text: CHECKOUT_CONSENT_TEXT,
@@ -180,11 +200,13 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     tier_id: p.tier_id,
     quantity: p.quantity,
     subtotal_cents: p.subtotal_cents,
+    discount_cents: p.discount_cents ?? 0,
     fee_cents: p.application_fee_cents,
     total_cents: p.total_cents,
     stripe_payment_intent_id: paymentIntentId,
     status: "paid",
     channel: "online",
+    promo_code_id: p.promo_code_id ?? null,
     days_before_event: daysBefore,
     referral_source: p.referral_source ?? null,
     promoter_link_id: p.promoter_link_id ?? null,
@@ -235,6 +257,8 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   if (p.promoter_link_id) {
     await adjustPromoterStats(p.promoter_link_id, { orders: 1, tickets: p.quantity, gross: p.subtotal_cents });
   }
+  // Count the promo redemption.
+  if (p.promo_code_id) await adjustPromoRedemption(p.promo_code_id, 1);
 
   await pendingRef.update({ status: "fulfilled", order_id: orderRef.id });
 
