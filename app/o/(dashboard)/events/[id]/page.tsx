@@ -194,6 +194,9 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           <LinkButton href={`/scan/${event.id}`} variant="secondary">
             Open door scanner
           </LinkButton>
+          <LinkButton href={`/scan/${event.id}/sell`} variant="secondary">
+            Box office
+          </LinkButton>
           {event.status === "on_sale" && (
             <LinkButton href={`/e/${event.slug}`} variant="ghost" target="_blank">
               Preview ↗

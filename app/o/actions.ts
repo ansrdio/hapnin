@@ -7,6 +7,7 @@ import { addTeamMember, removeTeamMember } from "@/lib/team";
 import { getOrderById, checkInOrder } from "@/lib/orders";
 import { createPromoterLink } from "@/lib/promoters";
 import { createPromoCode, normalizeCode } from "@/lib/promos";
+import { sellAtDoor } from "@/lib/boxoffice";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
@@ -199,6 +200,43 @@ export async function refundOrderAction(formData: FormData): Promise<void> {
   revalidatePath(`/o/events/${eventId}/guests`);
   revalidatePath(`/o/events/${eventId}`);
   revalidatePath("/o");
+}
+
+/** Record a box-office (cash/external-card) door sale. Owner/manager/door. */
+export async function doorSellAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireScanAccess();
+  const eventId = String(formData.get("event_id") ?? "");
+  const tierId = String(formData.get("tier_id") ?? "");
+  const quantity = parseInt(String(formData.get("quantity") ?? "1"), 10) || 1;
+  const payment = String(formData.get("payment") ?? "cash");
+  const phoneRaw = String(formData.get("phone") ?? "").trim();
+  const phone = phoneRaw ? normalizeUsPhone(phoneRaw) : null;
+  const first_name = cleanText(String(formData.get("first_name") ?? ""), 80) || null;
+
+  if (!(await ownedEvent(eventId, organizer.id))) return { status: "error", message: "Event not found." };
+  const fieldErrors: FieldErrors = {};
+  if (!tierId) fieldErrors.tier_id = "Pick a tier.";
+  if (payment !== "cash" && payment !== "card") fieldErrors.payment = "Pick how they paid.";
+  if (phoneRaw && !phone) fieldErrors.phone = "That number looks off.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  try {
+    const { orderId } = await sellAtDoor({
+      eventId,
+      tierId,
+      quantity,
+      payment: payment as "cash" | "card",
+      buyer: { phone, first_name },
+      byId: organizer.id,
+    });
+    revalidatePath(`/o/events/${eventId}`);
+    return { status: "success", message: `Sold ${quantity}. ${phone ? "Texted the ticket." : `hapnin.now/t/${orderId}`}` };
+  } catch (err) {
+    const m = (err as Error).message;
+    if (m === "SOLD_OUT") return { status: "error", fieldErrors: { tier_id: "Not enough left in that tier." } };
+    console.error("doorSell error", err);
+    return { status: "error", message: "Couldn’t record the sale. Try again." };
+  }
 }
 
 /** Create a promoter link for an event the organizer owns. */

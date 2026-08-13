@@ -81,9 +81,14 @@ export function ScannerClient({ eventId, eventTitle }: { eventId: string; eventT
     <main className="relative min-h-[100svh] bg-ink">
       <div className="flex items-center justify-between px-5 py-4">
         <Link href="/scan" className="text-sm text-mauve-dim hover:text-cream">← Events</Link>
-        <span className="font-display text-sm text-cream">
-          Checked in: <span className="tabular-nums text-gold">{count ?? "—"}</span>
-        </span>
+        <div className="flex items-center gap-4">
+          <Link href={`/scan/${eventId}/sell`} className="text-sm text-gold hover:text-gold-hi">
+            Box office
+          </Link>
+          <span className="font-display text-sm text-cream">
+            In: <span className="tabular-nums text-gold">{count ?? "—"}</span>
+          </span>
+        </div>
       </div>
 
       <div className="px-5">
