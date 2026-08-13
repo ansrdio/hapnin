@@ -67,6 +67,10 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error("stripe webhook handler error", event.type, err);
+    // Un-record the dedup marker so Stripe's retry (or a manual Resend) can
+    // re-run the handler — otherwise a single transient failure strands the
+    // order forever, since every retry would be treated as a duplicate.
+    await getDb().collection("webhook_events").doc(event.id).delete().catch(() => {});
     return NextResponse.json({ error: "handler_error" }, { status: 500 });
   }
 
