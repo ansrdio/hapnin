@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { getOrderById, getTicketsByOrder } from "@/lib/orders";
-import { getEventById } from "@/lib/events";
+import { getEventById, getTier } from "@/lib/events";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet";
 import { TransferForm } from "./TransferForm";
 
@@ -25,7 +25,11 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
   const { orderId } = await params;
   const order = await getOrderById(orderId);
   if (!order) notFound();
-  const [event, allTickets] = await Promise.all([getEventById(order.event_id), getTicketsByOrder(orderId)]);
+  const [event, allTickets, tier] = await Promise.all([
+    getEventById(order.event_id),
+    getTicketsByOrder(orderId),
+    getTier(order.event_id, order.tier_id),
+  ]);
   if (!event) notFound();
 
   // Voided (refunded) tickets don't show a QR.
@@ -64,6 +68,11 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
       </h1>
       <p className="anim-rise d-1 mt-3 text-mauve-dim">{fmtDate(event.starts_at, event.timezone)}</p>
       <p className="anim-rise d-1 text-mauve-dim">{event.venue_name} · {event.venue_address}</p>
+      {tier && tier.kind === "table" && (
+        <p className="anim-rise d-1 mt-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-3.5 py-1.5 text-sm text-gold">
+          {tier.name} · admits up to {tier.seats} guests
+        </p>
+      )}
 
       <div className="mt-8 space-y-5">
         {tickets.map((t, i) => (

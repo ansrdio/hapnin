@@ -87,6 +87,8 @@ export default async function EventPage({
   if (!event) notFound();
 
   const [tiers, organizer] = await Promise.all([getTiers(event.id), getOrganizerById(event.organizer_id)]);
+  const gaTiers = tiers.filter((t) => t.kind !== "table");
+  const tableTiers = tiers.filter((t) => t.kind === "table");
   const onSale = event.status === "on_sale";
   const allSoldOut = tiers.length > 0 && tiers.every((t) => !tierStatus(t).available);
 
@@ -97,6 +99,7 @@ export default async function EventPage({
   // Promoter attribution — validate the code so we only forward/celebrate real ones.
   const promoter = p ? await resolvePromoterCode(event.id, p) : null;
   const checkoutHref = promoter ? `/e/${event.slug}/checkout?p=${promoter.code}` : `/e/${event.slug}/checkout`;
+  const tableHref = (id: string) => `${checkoutHref}${checkoutHref.includes("?") ? "&" : "?"}tier=${id}`;
 
   return (
     <main className="grain relative min-h-[100svh] pb-28">
@@ -169,34 +172,77 @@ export default async function EventPage({
           </section>
         )}
 
-        {/* Tiers */}
-        <section className="anim-rise d-4 mt-9">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tickets</h2>
-          <ul className="space-y-2.5">
-            {tiers.map((t) => {
-              const st = tierStatus(t);
-              return (
-                <li
-                  key={t.id}
-                  className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-colors ${
-                    st.available ? "border-plum-hi bg-plum/40" : "border-plum-hi/60 bg-plum/20 opacity-55"
-                  }`}
-                >
-                  <div>
-                    <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
-                    {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
-                  </div>
-                  <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
-                </li>
-              );
-            })}
-            {tiers.length === 0 && (
-              <li className="rounded-2xl border border-plum-hi px-5 py-4 text-mauve-dim">No tickets yet.</li>
-            )}
-          </ul>
+        {/* Tickets (GA) */}
+        {gaTiers.length > 0 && (
+          <section className="anim-rise d-4 mt-9">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tickets</h2>
+            <ul className="space-y-2.5">
+              {gaTiers.map((t) => {
+                const st = tierStatus(t);
+                return (
+                  <li
+                    key={t.id}
+                    className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-colors ${
+                      st.available ? "border-plum-hi bg-plum/40" : "border-plum-hi/60 bg-plum/20 opacity-55"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
+                      {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
+                    </div>
+                    <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
-          {onSale && allSoldOut && <WaitlistForm slug={event.slug} />}
-        </section>
+        {/* Tables / bottle service — a tappable map */}
+        {tableTiers.length > 0 && (
+          <section className="anim-rise d-4 mt-9">
+            <h2 className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Tables</h2>
+            <p className="mb-4 text-sm text-mauve-dim">Pick a table — it admits your whole party.</p>
+            <div className="rounded-3xl border border-plum-hi bg-plum/30 p-5">
+              <div className="mb-4 text-center text-[11px] uppercase tracking-[0.3em] text-mauve-dim/70">Stage</div>
+              <div className="flex flex-wrap justify-center gap-3">
+                {tableTiers.map((t) => {
+                  const st = tierStatus(t);
+                  const inner = (
+                    <div
+                      className={`flex h-24 w-24 flex-col items-center justify-center rounded-2xl border text-center transition-colors ${
+                        st.available
+                          ? "border-gold/60 bg-gold/10 text-cream hover:border-gold hover:bg-gold/20"
+                          : "border-plum-hi/60 bg-plum/20 text-mauve-dim opacity-55"
+                      }`}
+                    >
+                      <span className="font-display text-sm font-semibold">{t.name}</span>
+                      <span className="text-[11px] text-mauve-dim">{t.seats} guests</span>
+                      <span className="mt-0.5 font-display text-sm tabular-nums">{usd(t.price_cents)}</span>
+                    </div>
+                  );
+                  return onSale && st.available ? (
+                    <Link key={t.id} href={tableHref(t.id)}>
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={t.id}>{inner}</div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {tiers.length === 0 && (
+          <p className="anim-rise d-4 mt-9 rounded-2xl border border-plum-hi px-5 py-4 text-mauve-dim">No tickets yet.</p>
+        )}
+
+        {onSale && allSoldOut && (
+          <div className="mt-9">
+            <WaitlistForm slug={event.slug} />
+          </div>
+        )}
       </div>
 
       {/* Sticky buy bar */}

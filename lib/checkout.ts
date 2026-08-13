@@ -90,7 +90,8 @@ export async function createCheckoutIntent(
   const organizer = await getOrganizerById(event.organizer_id);
   if (!organizer?.stripe_account_id || !organizer.stripe_onboarded) throw new Error("ORGANIZER_NOT_READY");
 
-  const qty = Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
+  // A table sells as one unit (it admits `seats` guests); GA sells up to MAX_QTY.
+  const qty = tier.kind === "table" ? 1 : Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
 
   // Promo code: an invalid one the buyer typed is an error; no code is fine.
   let promo = null;

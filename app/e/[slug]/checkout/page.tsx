@@ -12,10 +12,10 @@ export default async function CheckoutPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string }>;
+  searchParams: Promise<{ p?: string; tier?: string }>;
 }) {
   const { slug } = await params;
-  const { p } = await searchParams;
+  const { p, tier: preselectTierId } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event || event.status !== "on_sale") notFound();
 
@@ -35,11 +35,14 @@ export default async function CheckoutPage({
       eventTitle={event.title}
       consentText={CHECKOUT_CONSENT_TEXT}
       promoterCode={p ?? null}
+      preselectTierId={preselectTierId ?? null}
       tiers={tiers.map((t) => ({
         id: t.id,
         name: t.name,
         price_cents: t.price_cents,
         remaining: t.quantity_total - t.quantity_sold,
+        kind: t.kind,
+        seats: t.seats,
       }))}
     />
   );

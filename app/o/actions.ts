@@ -11,7 +11,7 @@ import { sellAtDoor } from "@/lib/boxoffice";
 import { notifyWaitlist } from "@/lib/waitlist";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
-import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
+import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable } from "@/lib/events";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -272,6 +272,31 @@ export async function notifyWaitlistAction(formData: FormData): Promise<void> {
     console.error("notifyWaitlist error", err);
   }
   revalidatePath(`/o/events/${eventId}`);
+}
+
+/** Add a reserved table / bottle-service booth to an event the organizer owns. */
+export async function createTableAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const name = cleanText(String(formData.get("name") ?? ""), 60);
+  const seats = parseInt(String(formData.get("seats") ?? "0"), 10) || 0;
+  const priceRaw = parseFloat(String(formData.get("price") ?? "0")) || 0;
+
+  if (!(await ownedEvent(eventId, organizer.id))) return { status: "error", message: "Event not found." };
+  const fieldErrors: FieldErrors = {};
+  if (!name) fieldErrors.name = "Name the table.";
+  if (seats < 1) fieldErrors.seats = "How many guests?";
+  if (priceRaw <= 0) fieldErrors.price = "Set a price.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  try {
+    await createTable(eventId, { name, seats, price_cents: Math.round(priceRaw * 100) });
+    revalidatePath(`/o/events/${eventId}`);
+    return { status: "success", message: `${name} added.` };
+  } catch (err) {
+    console.error("createTable error", err);
+    return { status: "error", message: "Couldn’t add the table." };
+  }
 }
 
 /** Create a promo code for an event the organizer owns. */

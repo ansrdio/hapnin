@@ -13,6 +13,8 @@ export type Tier = {
   sales_end_at: number | null;
   is_active: boolean;
   sort_order: number;
+  kind: "ga" | "table"; // "table" = a reserved table / bottle-service booth
+  seats: number | null; // guests a table admits
 };
 
 export type EventRecord = {
@@ -93,6 +95,8 @@ function toTier(id: string, d: FirebaseFirestore.DocumentData): Tier {
     sales_end_at: tsToMs(d.sales_end_at),
     is_active: d.is_active !== false,
     sort_order: d.sort_order ?? 0,
+    kind: d.kind === "table" ? "table" : "ga",
+    seats: d.seats ?? null,
   };
 }
 
@@ -133,6 +137,26 @@ export async function setEventStatus(eventId: string, status: EventStatus): Prom
 /** Set (or clear) an event's flyer image URL. */
 export async function setEventFlyer(eventId: string, flyerUrl: string | null): Promise<void> {
   await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl });
+}
+
+/** Add a reserved table / bottle-service booth (a tier with kind="table"). */
+export async function createTable(
+  eventId: string,
+  input: { name: string; seats: number; price_cents: number }
+): Promise<void> {
+  const ref = getDb().collection(EVENTS).doc(eventId).collection("tiers").doc();
+  await ref.set({
+    name: input.name,
+    price_cents: input.price_cents,
+    quantity_total: 1,
+    quantity_sold: 0,
+    sales_start_at: null,
+    sales_end_at: null,
+    is_active: true,
+    sort_order: 100,
+    kind: "table",
+    seats: input.seats,
+  });
 }
 
 export type NewTier = {

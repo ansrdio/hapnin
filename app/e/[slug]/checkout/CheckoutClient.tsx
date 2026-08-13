@@ -5,7 +5,7 @@ import type { Appearance } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { getStripeClient } from "@/lib/stripe-client";
 
-type Tier = { id: string; name: string; price_cents: number; remaining: number };
+type Tier = { id: string; name: string; price_cents: number; remaining: number; kind: "ga" | "table"; seats: number | null };
 type Amounts = { subtotal_cents: number; discount_cents: number; card_fee_cents: number; total_cents: number };
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -31,14 +31,17 @@ export function CheckoutClient({
   consentText,
   tiers,
   promoterCode,
+  preselectTierId,
 }: {
   slug: string;
   eventTitle: string;
   consentText: string;
   tiers: Tier[];
   promoterCode?: string | null;
+  preselectTierId?: string | null;
 }) {
-  const [tierId, setTierId] = useState(tiers[0].id);
+  const initialTier = tiers.find((t) => t.id === preselectTierId)?.id ?? tiers[0].id;
+  const [tierId, setTierId] = useState(initialTier);
   const [qty, setQty] = useState(1);
   const [f, setF] = useState({ firstName: "", lastName: "", phone: "", email: "", zip: "" });
   const [screening, setScreening] = useState("");
@@ -50,7 +53,9 @@ export function CheckoutClient({
   const [amounts, setAmounts] = useState<Amounts | null>(null);
 
   const tier = tiers.find((t) => t.id === tierId)!;
-  const maxQ = Math.min(8, tier.remaining);
+  const isTable = tier.kind === "table";
+  const maxQ = isTable ? 1 : Math.min(8, tier.remaining);
+  const effQty = isTable ? 1 : qty;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setF((p) => ({ ...p, [k]: e.target.value }));
 
@@ -62,7 +67,7 @@ export function CheckoutClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, tierId, quantity: qty, ...f, screening, optIn, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
+        body: JSON.stringify({ slug, tierId, quantity: effQty, ...f, screening, optIn, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -148,31 +153,43 @@ export function CheckoutClient({
           </div>
         )}
 
-        <div>
-          <label className={label}>Quantity</label>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="h-11 w-11 rounded-xl border border-plum-hi text-xl text-cream hover:bg-plum"
-              aria-label="Decrease"
-            >
-              −
-            </button>
-            <span className="font-display text-xl tabular-nums text-cream">{qty}</span>
-            <button
-              type="button"
-              onClick={() => setQty((q) => Math.min(maxQ, q + 1))}
-              className="h-11 w-11 rounded-xl border border-plum-hi text-xl text-cream hover:bg-plum"
-              aria-label="Increase"
-            >
-              +
-            </button>
-            <span className="ml-auto font-display text-lg tabular-nums text-cream">
-              {usd(tier.price_cents * qty)}
-            </span>
+        {isTable ? (
+          <div className="rounded-xl border border-gold/40 bg-gold/5 px-4 py-3.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-display font-semibold text-cream">{tier.name}</p>
+                <p className="text-sm text-mauve-dim">Admits up to {tier.seats} guests</p>
+              </div>
+              <span className="font-display text-lg tabular-nums text-cream">{usd(tier.price_cents)}</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label className={label}>Quantity</label>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                className="h-11 w-11 rounded-xl border border-plum-hi text-xl text-cream hover:bg-plum"
+                aria-label="Decrease"
+              >
+                −
+              </button>
+              <span className="font-display text-xl tabular-nums text-cream">{qty}</span>
+              <button
+                type="button"
+                onClick={() => setQty((q) => Math.min(maxQ, q + 1))}
+                className="h-11 w-11 rounded-xl border border-plum-hi text-xl text-cream hover:bg-plum"
+                aria-label="Increase"
+              >
+                +
+              </button>
+              <span className="ml-auto font-display text-lg tabular-nums text-cream">
+                {usd(tier.price_cents * qty)}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -245,7 +262,7 @@ export function CheckoutClient({
           disabled={busy}
           className="w-full rounded-xl bg-gold px-6 py-4 font-display text-lg font-semibold text-ink transition-colors hover:bg-gold-hi disabled:opacity-60"
         >
-          {busy ? "One sec…" : `Continue — ${usd(tier.price_cents * qty)}`}
+          {busy ? "One sec…" : `Continue — ${usd(tier.price_cents * effQty)}`}
         </button>
       </form>
     </main>

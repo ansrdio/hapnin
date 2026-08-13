@@ -2,6 +2,11 @@
 
 One line per merged feature, newest first.
 
+## Design pass
+- Buyer-facing redesign (event page, checkout, ticket, confirmation, public org page) in the brand language: full-bleed flyer hero fading to aubergine, organizer identity + verified badge, masthead coral-shadow headlines, icon meta card, "From $X" sticky buy bar, entrance animations, OG flyer share image.
+- Organizer/admin + login leveled up via the shared PageHeader (masthead title + animation) and grain/masthead on login.
+- Reserved tables / bottle service (`kind:"table"` tier + `seats`): organizer adds tables on the manage page; buyers pick from a visual table map on the event page; table sells as one unit admitting its whole party; shown on the ticket + enforced (qty 1) at checkout.
+
 ## Pre-design — Eventbrite/Posh parity
 - Guest list `/o/events/[id]/guests`: orders joined to buyer/tier/check-in; search; manual check-in, resend, refund.
 - Refunds (`lib/refunds.ts`): full Stripe refund w/ transfer + fee reversal (destination charge), voids tickets, restores inventory + counters; idempotent.
@@ -12,7 +17,6 @@ One line per merged feature, newest first.
 - Waitlist (`lib/waitlist.ts`): sold-out events collect a waitlist; organizer texts a buy link.
 - Analytics `/o/events/[id]/analytics`: gross/tickets/check-in/refunds + bars by day/tier/channel/source + top promoters.
 - Wallet passes plumbing (`lib/wallet.ts`): signed Apple `.pkpass` + Google save JWT, dormant until creds (`docs/wallet-passes.md`).
-- Deferred to the design pass: reserved tables / bottle service (inherently visual seat map).
 
 ## Phase 2 — the organizer's product
 - Public organizer page `/o/{handle}`: identity + upcoming on-sale events (flyer, date, venue, from-price) linking to each `/e/{slug}`. Private dashboard moved under an `(dashboard)` route group so its auth layout doesn't gate this public page.

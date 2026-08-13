@@ -21,6 +21,7 @@ import { CompForm } from "./CompForm";
 import { BroadcastForm } from "./BroadcastForm";
 import { PromoterLinks } from "./PromoterLinks";
 import { PromoCodes } from "./PromoCodes";
+import { TableManager } from "./TableManager";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,8 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const event = await getEventById(id);
   if (!event || event.organizer_id !== organizer.id) notFound();
   const tiers = await getTiers(id);
+  const gaTiers = tiers.filter((t) => t.kind !== "table");
+  const tableTiers = tiers.filter((t) => t.kind === "table");
   const audience = await getEventAudience(id);
   const promoterLinks = await listPromoterLinks(id);
   const promoCodes = await listPromoCodes(id);
@@ -121,7 +124,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
       <Card className="mb-6">
         <p className="mb-4 font-display font-semibold text-cream">Tiers</p>
         <div className="divide-y divide-plum-hi">
-          {tiers.map((t) => {
+          {gaTiers.map((t) => {
             const left = Math.max(0, t.quantity_total - t.quantity_sold);
             return (
               <div key={t.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
@@ -140,6 +143,15 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Tables / bottle service */}
+      <Card className="mb-6">
+        <p className="font-display font-semibold text-cream">Tables & bottle service</p>
+        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+          Reserved tables sell as one unit and admit their whole party. Buyers pick them from a map on the event page.
+        </p>
+        <TableManager eventId={event.id} tables={tableTiers} />
       </Card>
 
       {/* Waitlist */}
