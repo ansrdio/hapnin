@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { getOrderById, getTicketsByOrder } from "@/lib/orders";
 import { getEventById } from "@/lib/events";
+import { TransferForm } from "./TransferForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your tickets — Hapnin", robots: { index: false } };
@@ -23,8 +24,23 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
   const { orderId } = await params;
   const order = await getOrderById(orderId);
   if (!order) notFound();
-  const [event, tickets] = await Promise.all([getEventById(order.event_id), getTicketsByOrder(orderId)]);
+  const [event, allTickets] = await Promise.all([getEventById(order.event_id), getTicketsByOrder(orderId)]);
   if (!event) notFound();
+
+  // Voided (refunded) tickets don't show a QR.
+  const tickets = allTickets.filter((t) => !t.voided_at);
+  const transferable = tickets.filter((t) => !t.checked_in_at).length;
+
+  if (tickets.length === 0) {
+    return (
+      <main className="mx-auto max-w-md px-5 py-10">
+        <h1 className="font-display text-2xl font-bold text-cream">{event.title}</h1>
+        <p className="mt-4 rounded-2xl border border-plum-hi bg-plum/40 p-5 text-mauve-dim">
+          These tickets are no longer active — they were refunded or transferred.
+        </p>
+      </main>
+    );
+  }
 
   const qrs = await Promise.all(
     tickets.map((t) =>
@@ -68,6 +84,8 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
       <p className="mt-8 text-center text-sm text-mauve-dim">
         Show this at the door. Screenshot it in case you lose signal.
       </p>
+
+      <TransferForm orderId={orderId} transferable={transferable} />
     </main>
   );
 }

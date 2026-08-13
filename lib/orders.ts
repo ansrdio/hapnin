@@ -22,6 +22,7 @@ export type TicketRecord = {
   qr_token: string;
   is_comp: boolean;
   checked_in_at: number | null;
+  voided_at: number | null;
 };
 
 function ms(v: unknown): number | null {
@@ -52,6 +53,7 @@ function toTicket(id: string, d: FirebaseFirestore.DocumentData): TicketRecord {
     qr_token: d.qr_token,
     is_comp: !!d.is_comp,
     checked_in_at: ms(d.checked_in_at),
+    voided_at: ms(d.voided_at),
   };
 }
 
