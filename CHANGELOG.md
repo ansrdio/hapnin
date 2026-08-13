@@ -2,6 +2,18 @@
 
 One line per merged feature, newest first.
 
+## Pre-design — Eventbrite/Posh parity
+- Guest list `/o/events/[id]/guests`: orders joined to buyer/tier/check-in; search; manual check-in, resend, refund.
+- Refunds (`lib/refunds.ts`): full Stripe refund w/ transfer + fee reversal (destination charge), voids tickets, restores inventory + counters; idempotent.
+- Promoter links (`lib/promoters.ts`): `?p=code` attribution through checkout → per-link tickets/gross/owed; refunds back it out.
+- Promo codes (`lib/promos.ts`) + per-tier sale windows: server-computed discounts at checkout; on-sale/off-sale times enforced.
+- Box office (`lib/boxoffice.ts`): cash/external-card door sales at `/scan/[eventId]/sell`, scannable tickets, no Stripe.
+- Ticket transfers (`lib/transfers.ts`): send N tickets to another phone from the ticket page; QR stays valid, source deactivates.
+- Waitlist (`lib/waitlist.ts`): sold-out events collect a waitlist; organizer texts a buy link.
+- Analytics `/o/events/[id]/analytics`: gross/tickets/check-in/refunds + bars by day/tier/channel/source + top promoters.
+- Wallet passes plumbing (`lib/wallet.ts`): signed Apple `.pkpass` + Google save JWT, dormant until creds (`docs/wallet-passes.md`).
+- Deferred to the design pass: reserved tables / bottle service (inherently visual seat map).
+
 ## Phase 2 — the organizer's product
 - Public organizer page `/o/{handle}`: identity + upcoming on-sale events (flyer, date, venue, from-price) linking to each `/e/{slug}`. Private dashboard moved under an `(dashboard)` route group so its auth layout doesn't gate this public page.
 - Shared UI kit (`app/components/ui.tsx`): page shell, cards, buttons, inputs, stats, status badges — one visual language for every product screen.
