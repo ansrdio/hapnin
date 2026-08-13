@@ -72,11 +72,16 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           </span>
         }
         action={
-          event.status === "on_sale" ? (
-            <LinkButton href={`/e/${event.slug}`} variant="secondary" target="_blank">
-              View public page ↗
+          <div className="flex gap-2">
+            <LinkButton href={`/o/events/${event.id}/analytics`} variant="secondary">
+              Analytics
             </LinkButton>
-          ) : undefined
+            {event.status === "on_sale" && (
+              <LinkButton href={`/e/${event.slug}`} variant="secondary" target="_blank">
+                View ↗
+              </LinkButton>
+            )}
+          </div>
         }
       />
 
