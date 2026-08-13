@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
 import { getEventById, getTiers } from "@/lib/events";
+import { getEventAudience } from "@/lib/broadcasts";
 import { setEventStatusAction, setEventFlyerAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/app/components/ui";
 import { ShareLink } from "./ShareLink";
 import { CompForm } from "./CompForm";
+import { BroadcastForm } from "./BroadcastForm";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const event = await getEventById(id);
   if (!event || event.organizer_id !== organizer.id) notFound();
   const tiers = await getTiers(id);
+  const audience = await getEventAudience(id);
 
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
@@ -124,6 +127,15 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             );
           })}
         </div>
+      </Card>
+
+      {/* Broadcast */}
+      <Card className="mb-6">
+        <p className="font-display font-semibold text-cream">Text your buyers</p>
+        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+          A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
+        </p>
+        <BroadcastForm eventId={event.id} audience={audience.length} />
       </Card>
 
       {/* Comps */}

@@ -6,6 +6,7 @@ import { requireOrganizer } from "@/lib/auth";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
+import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
 import { isOneOf, EVENT_STATUS } from "@/lib/enums";
 import { normalizeUsPhone, normalizeEmail, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "@/app/admin/action-state";
@@ -119,5 +120,29 @@ export async function issueCompAction(_prev: ActionState, formData: FormData): P
     if (m === "TIER_NOT_FOUND") return { status: "error", fieldErrors: { tier_id: "Pick a valid tier." } };
     console.error("issueComp error", err);
     return { status: "error", message: "Couldn’t issue the comp. Try again." };
+  }
+}
+
+/** Text the event's opted-in audience. */
+export async function broadcastAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const body = cleanText(String(formData.get("body") ?? ""), BROADCAST_MAX_LEN);
+
+  const event = await getEventById(eventId);
+  if (!event || event.organizer_id !== organizer.id) return { status: "error", message: "Event not found." };
+  if (body.length < 3) return { status: "error", fieldErrors: { body: "Write a message first." } };
+
+  try {
+    const { recipients, sent, failed } = await sendBroadcast({ eventId, organizerId: organizer.id, body });
+    if (recipients === 0) return { status: "error", message: "No opted-in buyers yet — nothing to send." };
+    revalidatePath(`/o/events/${eventId}`);
+    return {
+      status: "success",
+      message: `Sent to ${sent} of ${recipients}${failed ? ` (${failed} failed)` : ""}.`,
+    };
+  } catch (err) {
+    console.error("broadcast error", err);
+    return { status: "error", message: "Couldn’t send the broadcast. Try again." };
   }
 }
