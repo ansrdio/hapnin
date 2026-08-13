@@ -1,4 +1,5 @@
 import "server-only";
+import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 
 export type OrderRecord = {
@@ -72,4 +73,27 @@ export async function getTicketsByOrder(orderId: string): Promise<TicketRecord[]
 export async function getTicketById(id: string): Promise<TicketRecord | null> {
   const snap = await getDb().collection("tickets").doc(id).get();
   return snap.exists ? toTicket(snap.id, snap.data()!) : null;
+}
+
+/**
+ * Manually check in every not-yet-scanned, non-voided ticket of an order (door
+ * fallback when a QR won't scan / a party arrives together). Returns how many
+ * were newly checked in and bumps the event's counter to match.
+ */
+export async function checkInOrder(eventId: string, orderId: string, byId: string): Promise<number> {
+  const db = getDb();
+  const snap = await db.collection("tickets").where("order_id", "==", orderId).get();
+  const batch = db.batch();
+  let count = 0;
+  for (const t of snap.docs) {
+    const d = t.data();
+    if (d.checked_in_at || d.voided_at) continue;
+    batch.update(t.ref, { checked_in_at: FieldValue.serverTimestamp(), checked_in_by: byId });
+    count++;
+  }
+  if (count > 0) {
+    batch.update(db.collection("events").doc(eventId), { checked_in: FieldValue.increment(count) });
+    await batch.commit();
+  }
+  return count;
 }

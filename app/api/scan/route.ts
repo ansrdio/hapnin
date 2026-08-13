@@ -30,6 +30,7 @@ export async function POST(req: Request) {
     const snap = await tx.get(ref);
     if (!snap.exists) return { result: "invalid" as const };
     const d = snap.data()!;
+    if (d.voided_at) return { result: "invalid" as const }; // refunded/void ticket
     if (d.event_id !== eventId) return { result: "wrong_event" as const };
     if (d.checked_in_at) {
       const at = (d.checked_in_at as { toMillis?: () => number }).toMillis?.() ?? null;

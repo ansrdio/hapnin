@@ -163,6 +163,9 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         <p className="mb-4 font-display font-semibold text-cream">Share & run the door</p>
         <ShareLink url={publicUrl} disabled={event.status !== "on_sale"} />
         <div className="mt-4 flex flex-wrap gap-3">
+          <LinkButton href={`/o/events/${event.id}/guests`} variant="secondary">
+            Guest list
+          </LinkButton>
           <LinkButton href={`/scan/${event.id}`} variant="secondary">
             Open door scanner
           </LinkButton>

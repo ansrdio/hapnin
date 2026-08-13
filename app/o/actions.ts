@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireOrganizer, requireOwner } from "@/lib/auth";
+import { requireOrganizer, requireOwner, requireScanAccess } from "@/lib/auth";
 import { addTeamMember, removeTeamMember } from "@/lib/team";
+import { getOrderById, checkInOrder } from "@/lib/orders";
+import { refundOrder } from "@/lib/refunds";
+import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer } from "@/lib/events";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
@@ -146,6 +149,54 @@ export async function broadcastAction(_prev: ActionState, formData: FormData): P
     console.error("broadcast error", err);
     return { status: "error", message: "Couldn’t send the broadcast. Try again." };
   }
+}
+
+// ── Guest list: manual check-in, resend, refund ──────────────────────────────
+
+async function ownedEvent(eventId: string, organizerId: string) {
+  const event = await getEventById(eventId);
+  return event && event.organizer_id === organizerId ? event : null;
+}
+
+/** Manually check in a whole order at the door (owner/manager/door). */
+export async function checkInOrderAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireScanAccess();
+  const eventId = String(formData.get("event_id") ?? "");
+  const orderId = String(formData.get("order_id") ?? "");
+  if (!(await ownedEvent(eventId, organizer.id))) return;
+  const order = await getOrderById(orderId);
+  if (!order || order.event_id !== eventId) return;
+  await checkInOrder(eventId, orderId, organizer.id);
+  revalidatePath(`/o/events/${eventId}/guests`);
+}
+
+/** Re-text a guest their ticket link (owner/manager/door). */
+export async function resendTicketAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireScanAccess();
+  const eventId = String(formData.get("event_id") ?? "");
+  const orderId = String(formData.get("order_id") ?? "");
+  const event = await ownedEvent(eventId, organizer.id);
+  if (!event) return;
+  const order = await getOrderById(orderId);
+  if (!order || order.event_id !== eventId) return;
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+  await sendSMS({ to: order.buyer_id, body: `Your ticket for ${event.title}: ${site}/t/${orderId}` });
+}
+
+/** Refund an order (owner/manager, not door). */
+export async function refundOrderAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const orderId = String(formData.get("order_id") ?? "");
+  if (!(await ownedEvent(eventId, organizer.id))) return;
+  try {
+    await refundOrder(eventId, orderId);
+  } catch (err) {
+    console.error("refund error", err);
+  }
+  revalidatePath(`/o/events/${eventId}/guests`);
+  revalidatePath(`/o/events/${eventId}`);
+  revalidatePath("/o");
 }
 
 /** Add a team member (manager or door). Owner only. */
