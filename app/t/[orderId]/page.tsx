@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { getOrderById, getTicketsByOrder } from "@/lib/orders";
 import { getEventById } from "@/lib/events";
+import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet";
 import { TransferForm } from "./TransferForm";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,9 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
     )
   );
 
+  const appleWallet = isAppleWalletConfigured();
+  const googleWallet = isGoogleWalletConfigured();
+
   return (
     <main className="mx-auto max-w-md px-5 py-10">
       <p className="text-sm font-medium uppercase tracking-[0.24em] text-gold">Your tickets</p>
@@ -77,6 +81,26 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
               // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{ __html: qrs[i] }}
             />
+            {(appleWallet || googleWallet) && !t.checked_in_at && (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {appleWallet && (
+                  <a
+                    href={`/api/wallet/apple/${t.id}`}
+                    className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum"
+                  >
+                     Add to Apple Wallet
+                  </a>
+                )}
+                {googleWallet && (
+                  <a
+                    href={`/api/wallet/google/${t.id}`}
+                    className="rounded-lg border border-plum-hi px-4 py-2 text-sm font-semibold text-cream hover:bg-plum"
+                  >
+                    Save to Google Wallet
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
