@@ -97,6 +97,22 @@ export default async function EventPage({
   const minPrice = (priceable.length ? priceable : tiers).reduce((m, t) => Math.min(m, t.price_cents), Infinity);
   const fromPrice = Number.isFinite(minPrice) ? minPrice : 0;
 
+  // Momentum — counts only, never names. Drives the "is it popping?" read.
+  const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
+  const sold = event.tickets_sold;
+  const left = capacity > 0 ? capacity - sold : null;
+  const scarce = left != null && left > 0 && left <= Math.max(10, Math.round(capacity * 0.1));
+  const momentum: string | null = allSoldOut
+    ? null
+    : scarce
+      ? `Only ${left} left`
+      : sold >= 10
+        ? `${sold} going`
+        : null;
+
+  // Lineup — the headliner + support, pulled from what the organizer entered.
+  const [headliner, ...support] = event.talent;
+
   // Promoter attribution — validate the code so we only forward/celebrate real ones.
   const promoter = p ? await resolvePromoterCode(event.id, p) : null;
   const checkoutHref = promoter ? `/e/${event.slug}/checkout?p=${promoter.code}` : `/e/${event.slug}/checkout`;
@@ -160,6 +176,16 @@ export default async function EventPage({
               {event.title}
             </h1>
 
+            {momentum && (
+              <p className="anim-rise d-1 mt-3 inline-flex items-center gap-1.5 rounded-full bg-coral/15 px-3 py-1 text-sm font-medium text-coral">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-coral" />
+                </span>
+                {momentum}
+              </p>
+            )}
+
             {/* Meta — Posh-style dividers */}
             <div className="anim-rise d-2 mt-6 space-y-3 border-y border-white/10 py-5">
               <div className="flex items-start gap-3">
@@ -176,6 +202,26 @@ export default async function EventPage({
                 </div>
               </div>
             </div>
+
+            {/* Lineup — the headliner billed, support in chips */}
+            {event.talent.length > 0 && (
+              <section className="anim-rise d-2 border-b border-white/10 py-6">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gold">Lineup</h2>
+                <p className="font-display text-2xl font-bold leading-tight text-cream sm:text-3xl">{headliner}</p>
+                {support.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {support.map((a) => (
+                      <span
+                        key={a}
+                        className="rounded-full border border-white/15 bg-white/[0.03] px-3 py-1 text-sm text-mauve-dim"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             {promoter && (
               <div className="anim-rise d-2 flex items-center gap-3 border-b border-white/10 py-4">
@@ -275,7 +321,11 @@ export default async function EventPage({
           <div className="leading-tight">
             {onSale && !allSoldOut ? (
               <>
-                <p className="text-[11px] uppercase tracking-wide text-mauve-dim">From</p>
+                {momentum ? (
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-coral">{momentum}</p>
+                ) : (
+                  <p className="text-[11px] uppercase tracking-wide text-mauve-dim">From</p>
+                )}
                 <p className="font-display text-xl font-semibold tabular-nums text-cream">{usd(fromPrice)}</p>
               </>
             ) : (
