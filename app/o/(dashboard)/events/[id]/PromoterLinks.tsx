@@ -63,9 +63,15 @@ export function PromoterLinks({ eventId, slug, links }: { eventId: string; slug:
               <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
                   <p className="font-medium text-cream">{l.name}</p>
-                  <p className="text-sm text-mauve-dim">
-                    {`${base}?p=${l.code}`}
-                  </p>
+                  <p className="text-sm text-mauve-dim">{`${base}?p=${l.code}`}</p>
+                  <a
+                    href={`/p/${eventId}/${l.code}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-gold hover:underline"
+                  >
+                    Send them their tracker →
+                  </a>
                 </div>
                 <div className="flex items-center gap-5">
                   <div className="text-right">

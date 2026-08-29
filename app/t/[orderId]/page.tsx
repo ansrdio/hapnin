@@ -61,9 +61,16 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
   const googleWallet = isGoogleWalletConfigured();
 
   return (
-    <main className="grain mx-auto max-w-md px-5 py-12">
+    <main className="grain relative mx-auto max-w-md px-5 py-12">
+      {event.flyer_url && (
+        <div className="fixed inset-0 -z-10" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={event.flyer_url} alt="" className="h-full w-full scale-125 object-cover blur-3xl" />
+          <div className="absolute inset-0 bg-ink/88" />
+        </div>
+      )}
       <p className="anim-rise text-xs font-semibold uppercase tracking-[0.24em] text-gold">Your tickets</p>
-      <h1 className="anim-rise d-1 masthead-shadow mt-2 font-display text-3xl font-bold leading-tight text-cream">
+      <h1 className="anim-rise d-1 mt-2 font-display text-3xl font-bold leading-tight text-cream">
         {event.title}
       </h1>
       <p className="anim-rise d-1 mt-3 text-mauve-dim">{fmtDate(event.starts_at, event.timezone)}</p>

@@ -96,7 +96,7 @@ export function CheckoutClient({
   if (clientSecret && options && amounts) {
     return (
       <main className="grain mx-auto max-w-md px-5 py-12">
-        <h1 className="masthead-shadow anim-rise font-display text-3xl font-bold text-cream">Pay</h1>
+        <h1 className="anim-rise font-display text-3xl font-bold text-cream">Pay</h1>
         <p className="anim-rise mt-1 text-mauve-dim">{eventTitle}</p>
         <dl className="mt-6 space-y-1.5 text-sm">
           <div className="flex justify-between text-mauve-dim">
@@ -129,7 +129,7 @@ export function CheckoutClient({
 
   return (
     <main className="grain mx-auto max-w-md px-5 py-12">
-      <h1 className="masthead-shadow anim-rise font-display text-4xl font-bold text-cream">Get tickets</h1>
+      <h1 className="anim-rise font-display text-4xl font-bold text-cream">Get tickets</h1>
       <p className="anim-rise mt-1 text-mauve-dim">{eventTitle}</p>
 
       <form onSubmit={submitDetails} noValidate className="anim-rise d-1 mt-8 space-y-5">

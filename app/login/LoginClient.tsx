@@ -104,7 +104,7 @@ export function LoginClient() {
   if (view === "sent") {
     return (
       <div role="status" className="anim-rise">
-        <h1 className="masthead-shadow font-display text-3xl font-bold text-cream">Check your email.</h1>
+        <h1 className="font-display text-3xl font-bold text-cream">Check your email.</h1>
         <p className="mt-2 leading-relaxed text-mauve-dim">
           We sent a sign-in link to <span className="text-cream">{sentTo}</span>. Open it on this
           device to finish.
@@ -115,7 +115,7 @@ export function LoginClient() {
 
   return (
     <div className="anim-rise">
-      <h1 className="masthead-shadow font-display text-3xl font-bold text-cream">Sign in</h1>
+      <h1 className="font-display text-3xl font-bold text-cream">Sign in</h1>
       <p className="mt-2 text-mauve-dim">We’ll email you a one-time link — no password.</p>
       <form action={action} className="mt-6">
         <label htmlFor="email" className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-gold">

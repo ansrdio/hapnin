@@ -111,7 +111,7 @@ export function PageHeader({
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="masthead-shadow font-display text-2xl font-bold text-cream sm:text-3xl">{title}</h1>
+          <h1 className="font-display text-2xl font-bold text-cream sm:text-3xl">{title}</h1>
           {subtitle && <p className="mt-1.5 text-mauve-dim">{subtitle}</p>}
         </div>
         {action}

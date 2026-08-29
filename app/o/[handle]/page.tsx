@@ -51,7 +51,7 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
         <div className="anim-bloom flex h-20 w-20 items-center justify-center rounded-3xl bg-gold font-display text-3xl font-bold text-ink shadow-lg shadow-gold/20">
           {organizer.name.charAt(0).toUpperCase()}
         </div>
-        <h1 className="masthead-shadow mt-5 font-display text-4xl font-bold text-cream sm:text-5xl">
+        <h1 className="mt-5 font-display text-4xl font-bold text-cream sm:text-5xl">
           {organizer.name}
         </h1>
         <div className="mt-2 flex items-center gap-3 text-mauve-dim">

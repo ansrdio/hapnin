@@ -35,7 +35,7 @@ export default async function ConfirmationPage({
       <div className="anim-bloom mb-8 flex h-16 w-16 items-center justify-center rounded-full border-2 border-gold/30">
         <span className="h-8 w-8 animate-spin rounded-full border-2 border-gold border-t-transparent" />
       </div>
-      <h1 className="anim-rise d-1 masthead-shadow font-display text-4xl font-bold text-cream">You’re in.</h1>
+      <h1 className="anim-rise d-1 font-display text-4xl font-bold text-cream">You’re in.</h1>
       <p className="anim-rise d-2 mt-3 text-mauve-dim">Getting your ticket ready…</p>
       <ConfirmationPoller pi={payment_intent ?? ""} />
     </main>
