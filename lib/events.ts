@@ -150,6 +150,21 @@ export async function setEventFlyer(eventId: string, flyerUrl: string | null): P
   await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl });
 }
 
+/** Delete an event, its tiers, and its slug reservation. Caller guards no-sales. */
+export async function deleteEvent(eventId: string): Promise<void> {
+  const db = getDb();
+  const ref = db.collection(EVENTS).doc(eventId);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const slug = snap.data()!.slug as string | undefined;
+  const tiers = await ref.collection("tiers").get();
+  const batch = db.batch();
+  tiers.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(ref);
+  if (slug) batch.delete(db.collection("event_slugs").doc(slug));
+  await batch.commit();
+}
+
 export type EventDetailsUpdate = {
   title: string;
   description: string | null;

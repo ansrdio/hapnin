@@ -17,10 +17,47 @@ function fmtDate(ms: number): string {
   });
 }
 
+function Step({
+  n,
+  done,
+  title,
+  desc,
+  children,
+}: {
+  n: number;
+  done: boolean;
+  title: string;
+  desc?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4">
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+          done ? "bg-emerald text-ink" : "border border-plum-hi text-mauve-dim"
+        }`}
+      >
+        {done ? "✓" : n}
+      </span>
+      <div className="flex-1">
+        <p className={`font-display font-semibold ${done ? "text-mauve-dim line-through" : "text-cream"}`}>{title}</p>
+        {desc && <p className="mt-0.5 text-sm text-mauve-dim">{desc}</p>}
+        {!done && children && <div className="mt-2.5">{children}</div>}
+      </div>
+    </li>
+  );
+}
+
 export default async function OrganizerHome({ searchParams }: { searchParams: Promise<{ onboarding?: string }> }) {
   const { organizer, role } = await requireOrganizer();
   const { onboarding } = await searchParams;
   const events = await listEventsByOrganizer(organizer.id);
+
+  const payoutsDone = organizer.stripe_onboarded;
+  const createDone = events.length > 0;
+  const publishDone = events.some((e) => e.status === "on_sale");
+  const allSetUp = payoutsDone && createDone && publishDone;
+  const firstToPublish = events.find((e) => e.status === "draft") ?? events[0];
 
   const totals = events.reduce(
     (a, e) => ({ sold: a.sold + e.tickets_sold, gross: a.gross + e.gross_cents }),
@@ -39,41 +76,66 @@ export default async function OrganizerHome({ searchParams }: { searchParams: Pr
         action={<LinkButton href="/o/events/new">+ New event</LinkButton>}
       />
 
-      {!organizer.stripe_onboarded && (
-        <Card className="mb-8 border-gold/40 bg-gold/5">
-          {onboarding === "done" ? (
-            <>
-              <p className="font-display font-semibold text-cream">Back from Stripe — almost there.</p>
-              <p className="mt-1 text-sm text-mauve-dim">Tap refresh to confirm your payouts are live.</p>
-              <form action={refreshOwnStripeStatusAction} className="mt-4">
-                <button className={buttonClass("secondary")}>Refresh status</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <p className="font-display font-semibold text-cream">Connect payouts to start selling.</p>
-              <p className="mt-1 text-sm text-mauve-dim">
-                Build events now — but tickets can’t sell until your Stripe payouts are connected. Takes about
-                two minutes, and money from sales lands straight in your own account.
-              </p>
+      {!allSetUp && (
+        <Card className="mb-8 border-gold/30 bg-gold/[0.04]">
+          <p className="font-display text-lg font-semibold text-cream">Get set up</p>
+          <p className="mt-0.5 text-sm text-mauve-dim">Four steps to your first sale.</p>
+          <ol className="mt-6 space-y-5">
+            <Step
+              n={1}
+              done={payoutsDone}
+              title="Connect payouts"
+              desc="Money from sales lands straight in your own account. ~2 minutes."
+            >
               {role === "owner" ? (
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <form action={startOwnOnboardingAction}>
-                    <button className={buttonClass("primary")}>
-                      {organizer.stripe_account_id ? "Finish connecting Stripe" : "Connect payouts"}
-                    </button>
+                onboarding === "done" ? (
+                  <form action={refreshOwnStripeStatusAction}>
+                    <button className={buttonClass("primary")}>Refresh status</button>
                   </form>
-                  {organizer.stripe_account_id && (
-                    <form action={refreshOwnStripeStatusAction}>
-                      <button className={buttonClass("secondary")}>Refresh status</button>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    <form action={startOwnOnboardingAction}>
+                      <button className={buttonClass("primary")}>
+                        {organizer.stripe_account_id ? "Finish connecting Stripe" : "Connect payouts"}
+                      </button>
                     </form>
-                  )}
-                </div>
+                    {organizer.stripe_account_id && (
+                      <form action={refreshOwnStripeStatusAction}>
+                        <button className={buttonClass("secondary")}>Refresh status</button>
+                      </form>
+                    )}
+                  </div>
+                )
               ) : (
-                <p className="mt-3 text-sm text-mauve-dim">Ask the account owner to connect payouts.</p>
+                <p className="text-sm text-mauve-dim">Ask the account owner to connect payouts.</p>
               )}
-            </>
-          )}
+            </Step>
+
+            <Step n={2} done={createDone} title="Create an event" desc="Add your flyer, tiers, and details.">
+              <LinkButton href="/o/events/new" variant="primary">+ New event</LinkButton>
+            </Step>
+
+            <Step n={3} done={publishDone} title="Publish it" desc="Flip it on sale so people can buy.">
+              {createDone && firstToPublish && (
+                <LinkButton href={`/o/events/${firstToPublish.id}`} variant="secondary">
+                  Open &amp; publish
+                </LinkButton>
+              )}
+            </Step>
+
+            <Step
+              n={4}
+              done={false}
+              title="Share your link"
+              desc={<>Post it everywhere: <span className="text-cream">hapnin.now/o/{organizer.handle}</span></>}
+            >
+              {publishDone && (
+                <Link href={`/o/${organizer.handle}`} target="_blank" className={buttonClass("secondary")}>
+                  View public page ↗
+                </Link>
+              )}
+            </Step>
+          </ol>
         </Card>
       )}
 

@@ -17,6 +17,7 @@ import {
   money,
 } from "@/app/components/ui";
 import { ShareLink } from "./ShareLink";
+import { DeleteEventButton } from "./DeleteEventButton";
 import { CompForm } from "./CompForm";
 import { BroadcastForm } from "./BroadcastForm";
 import { PromoterLinks } from "./PromoterLinks";
@@ -259,6 +260,17 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           )}
         </div>
       </Card>
+
+      {/* Danger zone — delete only allowed before any sales */}
+      {event.tickets_sold === 0 && (
+        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-coral/20 p-5">
+          <div>
+            <p className="font-display font-semibold text-cream">Delete this event</p>
+            <p className="text-sm text-mauve-dim">Only possible before any tickets sell.</p>
+          </div>
+          <DeleteEventButton eventId={event.id} title={event.title} />
+        </div>
+      )}
     </div>
   );
 }

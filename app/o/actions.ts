@@ -12,7 +12,7 @@ import { sellAtDoor } from "@/lib/boxoffice";
 import { notifyWaitlist } from "@/lib/waitlist";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
-import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent } from "@/lib/events";
+import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent, deleteEvent } from "@/lib/events";
 import { updateOrganizerProfile } from "@/lib/organizers";
 import { parsePhoenixLocal } from "@/lib/event-input";
 import { parseEventForm } from "@/lib/event-input";
@@ -338,6 +338,17 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   revalidatePath(`/o/events/${eventId}/edit`);
   revalidatePath(`/e/${event.slug}`);
   return { status: "success", message: "Saved." };
+}
+
+/** Delete an event the organizer owns — only if nothing has sold. */
+export async function deleteEventAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const event = await ownedEvent(eventId, organizer.id);
+  if (!event || event.tickets_sold > 0) return; // safety: never delete an event with sales
+  await deleteEvent(eventId);
+  revalidatePath("/o");
+  redirect("/o");
 }
 
 /** Update the organizer's public profile. Owner only. */
