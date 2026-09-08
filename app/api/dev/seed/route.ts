@@ -23,6 +23,10 @@ const NAMES = [
 ];
 
 export async function GET(req: Request) {
+  // Disabled unless explicitly enabled (keep off in production).
+  if (process.env.ALLOW_DEV_SEED !== "1") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
   await requireAdmin();
   const handle = new URL(req.url).searchParams.get("handle") || "aura";
   const organizer = await getOrganizerByHandle(handle);

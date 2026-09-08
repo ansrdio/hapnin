@@ -22,18 +22,25 @@ export async function sendSMS(opts: { to: string; body: string }): Promise<SendR
   const to = normalizeUsPhone(opts.to);
   if (!to) return { ok: false, mode: "console", error: "invalid_phone" };
 
+  // Prefer a Messaging Service (recommended for US A2P 10DLC); fall back to a
+  // single from-number. Either one enables real sending.
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
   const from = process.env.TWILIO_FROM_NUMBER;
   const tw = getClient();
 
-  // Dev-mode fallback: no Twilio creds yet → log and succeed, so the full loop
-  // is exercisable before A2P 10DLC approval.
-  if (!tw || !from) {
+  // Dev-mode fallback: no Twilio creds/sender yet → log and succeed, so the full
+  // loop is exercisable before A2P 10DLC approval.
+  if (!tw || (!messagingServiceSid && !from)) {
     console.log(`[sendSMS · dev] → ${to}\n${opts.body}`);
     return { ok: true, mode: "console" };
   }
 
   try {
-    const msg = await tw.messages.create({ to, from, body: opts.body });
+    const msg = await tw.messages.create(
+      messagingServiceSid
+        ? { to, body: opts.body, messagingServiceSid }
+        : { to, body: opts.body, from: from! }
+    );
     return { ok: true, sid: msg.sid, mode: "twilio" };
   } catch (err) {
     console.error("sendSMS twilio error", err);
