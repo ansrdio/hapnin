@@ -55,12 +55,12 @@ export default async function Page() {
               <Link href="/pitch" className="hidden transition-colors hover:text-gold sm:inline">
                 For organizers
               </Link>
-              <Link href="/why" className="transition-colors hover:text-gold">
+              <Link href="/why" className="hidden transition-colors hover:text-gold sm:inline">
                 The case
               </Link>
               <Link
                 href="/create"
-                className="rounded-full bg-gold px-4 py-1.5 font-display text-xs font-semibold normal-case tracking-normal text-ink transition-colors hover:bg-gold-hi sm:text-sm"
+                className="whitespace-nowrap rounded-full bg-gold px-4 py-1.5 font-display text-xs font-semibold normal-case tracking-normal text-ink transition-colors hover:bg-gold-hi sm:text-sm"
               >
                 Create event
               </Link>
