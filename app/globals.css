@@ -119,6 +119,14 @@
 .deck-slide[data-dir="1"]  { animation: slide-in-right 440ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .deck-slide[data-dir="-1"] { animation: slide-in-left 440ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* ---- Live flyer marquee (landing) ---- */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 55s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .anim-bloom, .anim-rise, .deck-slide {
@@ -126,4 +134,5 @@
     opacity: 1 !important;
     transform: none !important;
   }
+  .marquee-track { animation: none !important; }
 }

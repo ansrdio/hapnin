@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { AudienceForm } from "./components/AudienceForm";
+import { FlyerMarquee } from "./components/FlyerMarquee";
+import { listOnSaleEvents } from "@/lib/events";
+
+export const revalidate = 60; // refresh the live-events strip periodically
 
 const organizerPoints = [
   {
@@ -20,7 +24,15 @@ const organizerPoints = [
   },
 ];
 
-export default function Page() {
+export default async function Page() {
+  // Degrade gracefully if the data layer is unavailable (e.g. build without creds).
+  let liveEvents: { slug: string; title: string; flyer_url: string | null }[] = [];
+  try {
+    liveEvents = (await listOnSaleEvents(16)).map((e) => ({ slug: e.slug, title: e.title, flyer_url: e.flyer_url }));
+  } catch {
+    liveEvents = [];
+  }
+
   return (
     <main className="grain">
       {/* ===================== HERO ===================== */}
@@ -102,6 +114,18 @@ export default function Page() {
         </div>
       </section>
 
+      {/* ============== LIVE FLYER MARQUEE ============== */}
+      {liveEvents.length > 0 && (
+        <section className="pb-16 sm:pb-24" aria-label="Live events">
+          <FlyerMarquee events={liveEvents} />
+          <div className="mx-auto mt-6 max-w-page px-5 sm:px-8">
+            <Link href="/discover" className="font-display text-sm font-semibold text-gold transition-colors hover:text-gold-hi">
+              See all events →
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* ============== FOR PEOPLE WHO GO OUT ============== */}
       <section className="px-5 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-page">
@@ -179,6 +203,38 @@ export default function Page() {
               audiences are. Not which city, not which crowd, not what they&rsquo;d turn out for.
               Every ticket sold here answers a little of that. We&rsquo;re building the map.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ================== TWO DOORS ================== */}
+      <section className="px-5 pb-16 sm:px-8 sm:pb-24">
+        <div className="mx-auto grid max-w-page gap-4 sm:grid-cols-2 sm:gap-6">
+          <div className="flex flex-col justify-between rounded-3xl border border-plum-hi bg-plum/50 p-8 sm:p-10">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-[0.24em] text-gold">Going out</p>
+              <h3 className="mt-3 font-display text-3xl font-semibold text-cream sm:text-4xl">Find your night.</h3>
+              <p className="mt-2 text-mauve-dim">Browse what&rsquo;s on near you and grab your spot.</p>
+            </div>
+            <Link
+              href="/discover"
+              className="mt-8 inline-block w-fit rounded-xl bg-gold px-7 py-3.5 font-display font-semibold text-ink transition-colors hover:bg-gold-hi"
+            >
+              Explore events
+            </Link>
+          </div>
+          <div className="flex flex-col justify-between rounded-3xl border border-plum-hi bg-plum/50 p-8 sm:p-10">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-[0.24em] text-coral">Throwing one</p>
+              <h3 className="mt-3 font-display text-3xl font-semibold text-cream sm:text-4xl">Fill your room.</h3>
+              <p className="mt-2 text-mauve-dim">Set up an event in minutes — payouts to your own account.</p>
+            </div>
+            <Link
+              href="/create"
+              className="mt-8 inline-block w-fit rounded-xl border border-gold px-7 py-3.5 font-display font-semibold text-gold transition-colors hover:bg-gold hover:text-ink"
+            >
+              Create an event
+            </Link>
           </div>
         </div>
       </section>
