@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { listOnSaleEvents, getTiers, type EventRecord } from "@/lib/events";
 import { money } from "@/app/components/ui";
+import { Filters } from "./Filters";
 
 export const dynamic = "force-dynamic";
 
@@ -26,25 +27,39 @@ async function fromPrice(e: EventRecord): Promise<number | null> {
   return tiers.length ? Math.min(...tiers.map((t) => t.price_cents)) : null;
 }
 
-export default async function DiscoverPage() {
-  const events = await listOnSaleEvents();
+export default async function DiscoverPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ city?: string; type?: string }>;
+}) {
+  const { city = "all", type = "all" } = await searchParams;
+  const all = await listOnSaleEvents();
+  const cities = [...new Set(all.map((e) => e.city))].sort();
+  const events = all.filter(
+    (e) => (city === "all" || e.city === city) && (type === "all" || e.event_type === type)
+  );
   const prices = await Promise.all(events.map(fromPrice));
 
   return (
     <main className="grain min-h-[100svh]">
       <div className="mx-auto max-w-page px-5 py-12 sm:px-8 sm:py-16">
-        <header className="anim-rise mb-10 flex items-end justify-between gap-4">
-          <div>
-            <Link href="/" className="text-sm text-mauve-dim transition-colors hover:text-cream">← Hapnin</Link>
-            <h1 className="mt-2 font-display text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin</h1>
-            <p className="mt-1 text-mauve-dim">African events in Phoenix — and wherever you are next.</p>
-          </div>
+        <header className="anim-rise mb-8">
+          <Link href="/" className="text-sm text-mauve-dim transition-colors hover:text-cream">← Hapnin</Link>
+          <h1 className="mt-2 font-display text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin</h1>
+          <p className="mt-1 text-mauve-dim">African events in Phoenix — and wherever you are next.</p>
         </header>
+
+        <div className="anim-rise d-1 mb-8">
+          <Filters cities={cities} city={city} type={type} />
+        </div>
 
         {events.length === 0 ? (
           <p className="rounded-2xl border border-plum-hi bg-plum/40 p-8 text-mauve-dim">
-            Nothing on sale right now. Check back soon — or{" "}
-            <Link href="/create" className="text-gold hover:underline">throw one yourself</Link>.
+            {all.length === 0 ? (
+              <>Nothing on sale right now. Check back soon — or <Link href="/create" className="text-gold hover:underline">throw one yourself</Link>.</>
+            ) : (
+              <>No events match that. Try a different type or city.</>
+            )}
           </p>
         ) : (
           <ul className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
