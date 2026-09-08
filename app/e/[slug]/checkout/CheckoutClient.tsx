@@ -71,14 +71,12 @@ export function CheckoutClient({
       });
       const data = await res.json();
       if (!res.ok) {
-        setErrors(
-          data.fieldErrors ?? {
-            form:
-              data.error === "sold_out"
-                ? "That just sold out — pick another tier."
-                : "Something went wrong. Try again.",
-          }
-        );
+        const messages: Record<string, string> = {
+          sold_out: "That just sold out — pick another tier.",
+          not_on_sale: "Tickets aren’t on sale right now.",
+          organizer_not_ready: "This event isn’t set up to take payments yet. Try again shortly.",
+        };
+        setErrors(data.fieldErrors ?? { form: messages[data.error] ?? "Something went wrong. Try again." });
         return;
       }
       setAmounts(data.amounts);
