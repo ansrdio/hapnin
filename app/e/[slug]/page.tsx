@@ -92,6 +92,9 @@ export default async function EventPage({
   const tableTiers = tiers.filter((t) => t.kind === "table");
   const onSale = event.status === "on_sale";
   const allSoldOut = tiers.length > 0 && tiers.every((t) => !tierStatus(t).available);
+  // Buyers can only check out once the organizer's payouts are connected.
+  const payoutReady = !!organizer?.stripe_onboarded;
+  const sellable = onSale && !allSoldOut && payoutReady;
 
   const priceable = tiers.filter((t) => tierStatus(t).available);
   const minPrice = (priceable.length ? priceable : tiers).reduce((m, t) => Math.min(m, t.price_cents), Infinity);
@@ -289,7 +292,7 @@ export default async function EventPage({
                           <span className="mt-0.5 font-display text-sm tabular-nums">{usd(t.price_cents)}</span>
                         </div>
                       );
-                      return onSale && st.available ? (
+                      return onSale && payoutReady && st.available ? (
                         <Link key={t.id} href={tableHref(t.id)}>
                           {inner}
                         </Link>
@@ -319,7 +322,7 @@ export default async function EventPage({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-ink/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <div className="leading-tight">
-            {onSale && !allSoldOut ? (
+            {sellable ? (
               <>
                 {momentum ? (
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-coral">{momentum}</p>
@@ -330,11 +333,11 @@ export default async function EventPage({
               </>
             ) : (
               <p className="font-display text-lg font-semibold text-mauve-dim">
-                {allSoldOut ? "Sold out" : "Not on sale"}
+                {allSoldOut ? "Sold out" : "On sale soon"}
               </p>
             )}
           </div>
-          {onSale && !allSoldOut ? (
+          {sellable ? (
             <Link
               href={checkoutHref}
               className="rounded-full bg-gold px-10 py-3.5 font-display text-base font-semibold text-ink shadow-lg shadow-gold/25 transition-colors hover:bg-gold-hi"

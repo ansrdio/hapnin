@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getEventBySlug, getTiers } from "@/lib/events";
+import { getOrganizerById } from "@/lib/organizers";
 import { CHECKOUT_CONSENT_TEXT } from "@/lib/checkout";
 import { CheckoutClient } from "./CheckoutClient";
 
@@ -18,6 +19,9 @@ export default async function CheckoutPage({
   const { p, tier: preselectTierId } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event || event.status !== "on_sale") notFound();
+  // No checkout until the organizer's payouts are connected (money has nowhere to go).
+  const organizer = await getOrganizerById(event.organizer_id);
+  if (!organizer?.stripe_onboarded) notFound();
 
   const now = Date.now();
   const tiers = (await getTiers(event.id)).filter(
