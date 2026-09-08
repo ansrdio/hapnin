@@ -13,6 +13,7 @@ type EventData = {
   description: string;
   venue_name: string;
   venue_address: string;
+  venue_zip: string;
   city: string;
   state: string;
   starts_at: number;
@@ -84,6 +85,9 @@ export function EditEventForm({ event, tiers }: { event: EventData; tiers: Tier[
           </Field>
           <Field label="State" error={err.state}>
             <Input name="state" defaultValue={event.state} />
+          </Field>
+          <Field label="ZIP (optional)">
+            <Input name="venue_zip" inputMode="numeric" defaultValue={event.venue_zip} placeholder="85004" />
           </Field>
           <Field label="Capacity (optional)">
             <Input name="capacity" type="number" min="1" defaultValue={event.capacity ?? ""} />

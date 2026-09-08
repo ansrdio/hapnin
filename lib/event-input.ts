@@ -1,6 +1,6 @@
 import "server-only";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf } from "./enums";
-import { cleanText, type FieldErrors } from "./validation";
+import { cleanText, normalizeZip, type FieldErrors } from "./validation";
 import type { NewTier } from "./events";
 
 // Shared event-form parsing + validation, used by both the admin create form and
@@ -26,6 +26,7 @@ export type ParsedEventValues = {
   flyer_url: string | null;
   venue_name: string;
   venue_address: string;
+  venue_zip: string | null;
   city: string;
   state: string;
   starts_at: number;
@@ -48,6 +49,7 @@ export function parseEventForm(formData: FormData): {
   const slug = slugify(String(formData.get("slug") ?? "") || title);
   const venue_name = cleanText(String(formData.get("venue_name") ?? ""), 160);
   const venue_address = cleanText(String(formData.get("venue_address") ?? ""), 240);
+  const venue_zip = normalizeZip(String(formData.get("venue_zip") ?? ""));
   const city = cleanText(String(formData.get("city") ?? ""), 80);
   const state = cleanText(String(formData.get("state") ?? ""), 40);
   const starts_at = parsePhoenixLocal(String(formData.get("starts_at") ?? ""));
@@ -97,7 +99,7 @@ export function parseEventForm(formData: FormData): {
   return {
     values: {
       title, slug: slug ?? undefined, description, flyer_url,
-      venue_name, venue_address, city, state,
+      venue_name, venue_address, venue_zip, city, state,
       starts_at: starts_at ?? undefined, capacity, talent, is_first_event,
       event_type, community, primary_language, genre, tiers,
     },

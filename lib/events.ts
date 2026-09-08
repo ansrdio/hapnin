@@ -26,6 +26,7 @@ export type EventRecord = {
   flyer_url: string | null;
   venue_name: string;
   venue_address: string;
+  venue_zip: string | null;
   city: string;
   state: string;
   starts_at: number; // epoch ms
@@ -65,6 +66,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     flyer_url: d.flyer_url ?? null,
     venue_name: d.venue_name,
     venue_address: d.venue_address,
+    venue_zip: d.venue_zip ?? null,
     city: d.city,
     state: d.state,
     starts_at: tsToMs(d.starts_at) ?? 0,
@@ -170,6 +172,7 @@ export type EventDetailsUpdate = {
   description: string | null;
   venue_name: string;
   venue_address: string;
+  venue_zip: string | null;
   city: string;
   state: string;
   starts_at: number;
@@ -259,6 +262,7 @@ export async function createEvent(input: {
   flyer_url?: string | null;
   venue_name: string;
   venue_address: string;
+  venue_zip?: string | null;
   city: string;
   state: string;
   starts_at: number;
@@ -293,6 +297,7 @@ export async function createEvent(input: {
     flyer_url: input.flyer_url ?? null,
     venue_name: input.venue_name,
     venue_address: input.venue_address,
+    venue_zip: input.venue_zip ?? null,
     city: input.city,
     state: input.state,
     starts_at: input.starts_at,

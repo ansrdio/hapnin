@@ -67,6 +67,7 @@ export async function createEventGuestAction(_prev: ActionState, formData: FormD
         description: values.description ?? null,
         venue_name: values.venue_name!,
         venue_address: values.venue_address!,
+        venue_zip: values.venue_zip ?? null,
         city: values.city!,
         state: values.state!,
         starts_at: values.starts_at!,

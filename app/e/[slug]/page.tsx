@@ -201,6 +201,7 @@ export default async function EventPage({
                   <p className="font-medium text-cream">{event.venue_name}</p>
                   <p className="text-sm text-mauve-dim">
                     {event.venue_address} · {event.city}, {event.state}
+                    {event.venue_zip ? ` ${event.venue_zip}` : ""}
                   </p>
                 </div>
               </div>

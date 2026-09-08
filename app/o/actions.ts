@@ -19,7 +19,7 @@ import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
 import { isOneOf, EVENT_STATUS, TEAM_ROLE, EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
-import { normalizeUsPhone, normalizeEmail, normalizeInstagram, cleanText, type FieldErrors } from "@/lib/validation";
+import { normalizeUsPhone, normalizeEmail, normalizeInstagram, normalizeZip, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "@/app/admin/action-state";
 
 /** Create an event owned by the signed-in organizer. "publish" → on_sale, else draft. */
@@ -40,6 +40,7 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       flyer_url: values.flyer_url ?? null,
       venue_name: values.venue_name!,
       venue_address: values.venue_address!,
+      venue_zip: values.venue_zip ?? null,
       city: values.city!,
       state: values.state!,
       starts_at: values.starts_at!,
@@ -287,6 +288,7 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   const title = cleanText(String(formData.get("title") ?? ""), 160);
   const venue_name = cleanText(String(formData.get("venue_name") ?? ""), 160);
   const venue_address = cleanText(String(formData.get("venue_address") ?? ""), 240);
+  const venue_zip = normalizeZip(String(formData.get("venue_zip") ?? ""));
   const city = cleanText(String(formData.get("city") ?? ""), 80);
   const state = cleanText(String(formData.get("state") ?? ""), 40);
   const starts_at = parsePhoenixLocal(String(formData.get("starts_at") ?? ""));
@@ -313,7 +315,7 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
 
   await updateEventDetails(eventId, {
-    title, description, venue_name, venue_address, city, state,
+    title, description, venue_name, venue_address, venue_zip, city, state,
     starts_at: starts_at!, capacity,
     event_type: event_type as never, community: community as never,
     primary_language: primary_language as never, genre: genre as never, talent,

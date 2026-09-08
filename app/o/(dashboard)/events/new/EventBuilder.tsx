@@ -78,6 +78,9 @@ export function EventBuilder() {
           <Field label="State" error={err.state}>
             <Input name="state" defaultValue="AZ" />
           </Field>
+          <Field label="ZIP (optional)">
+            <Input name="venue_zip" inputMode="numeric" placeholder="85004" />
+          </Field>
         </div>
 
         <Field label="Description (optional)">

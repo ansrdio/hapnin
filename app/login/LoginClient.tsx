@@ -107,8 +107,17 @@ export function LoginClient() {
         <h1 className="font-display text-3xl font-bold text-cream">Check your email.</h1>
         <p className="mt-2 leading-relaxed text-mauve-dim">
           We sent a sign-in link to <span className="text-cream">{sentTo}</span>. Open it on this
-          device to finish.
+          device to finish. Check spam if it&rsquo;s not there in a minute.
         </p>
+        <button
+          onClick={() => {
+            setView("form");
+            setError("");
+          }}
+          className="mt-5 text-sm text-gold hover:underline"
+        >
+          Wrong email? Use a different one
+        </button>
       </div>
     );
   }
