@@ -39,6 +39,9 @@ export default function Page() {
               <Link href="/why" className="transition-colors hover:text-gold">
                 The case
               </Link>
+              <Link href="/host" className="text-gold transition-colors hover:text-gold-hi">
+                Host
+              </Link>
             </nav>
           </header>
 

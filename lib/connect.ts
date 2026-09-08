@@ -10,10 +10,11 @@ const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
  * returns a fresh one-time onboarding link. `stripe_onboarded` is flipped later
  * by the account.updated webhook — never trusted from the redirect.
  */
-export async function createOnboardingLink(organizerId: string): Promise<string> {
+export async function createOnboardingLink(organizerId: string, returnTo?: string): Promise<string> {
   const stripe = getStripe();
   const organizer = await getOrganizerById(organizerId);
   if (!organizer) throw new Error("ORGANIZER_NOT_FOUND");
+  const back = returnTo ?? `/admin/organizers/${organizer.id}`;
 
   let accountId = organizer.stripe_account_id;
   if (!accountId) {
@@ -32,8 +33,8 @@ export async function createOnboardingLink(organizerId: string): Promise<string>
   const link = await stripe.accountLinks.create({
     account: accountId,
     type: "account_onboarding",
-    refresh_url: `${siteUrl()}/admin/organizers/${organizer.id}?onboarding=refresh`,
-    return_url: `${siteUrl()}/admin/organizers/${organizer.id}?onboarding=done`,
+    refresh_url: `${siteUrl()}${back}?onboarding=refresh`,
+    return_url: `${siteUrl()}${back}?onboarding=done`,
   });
   return link.url;
 }

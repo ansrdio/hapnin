@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireOrganizer } from "@/lib/auth";
 import { listEventsByOrganizer } from "@/lib/events";
-import { PageHeader, LinkButton, Card, Stat, StatusBadge, EmptyState, money } from "@/app/components/ui";
+import { startOwnOnboardingAction, refreshOwnStripeStatusAction } from "@/app/o/actions";
+import { PageHeader, LinkButton, Card, Stat, StatusBadge, EmptyState, buttonClass, money } from "@/app/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,9 @@ function fmtDate(ms: number): string {
   });
 }
 
-export default async function OrganizerHome() {
-  const { organizer } = await requireOrganizer();
+export default async function OrganizerHome({ searchParams }: { searchParams: Promise<{ onboarding?: string }> }) {
+  const { organizer, role } = await requireOrganizer();
+  const { onboarding } = await searchParams;
   const events = await listEventsByOrganizer(organizer.id);
 
   const totals = events.reduce(
@@ -39,11 +41,39 @@ export default async function OrganizerHome() {
 
       {!organizer.stripe_onboarded && (
         <Card className="mb-8 border-gold/40 bg-gold/5">
-          <p className="font-display font-semibold text-cream">Payouts aren’t set up yet.</p>
-          <p className="mt-1 text-sm text-mauve-dim">
-            You can build events, but you can’t sell tickets until Stripe payouts are connected. An admin
-            finishes this from your account setup.
-          </p>
+          {onboarding === "done" ? (
+            <>
+              <p className="font-display font-semibold text-cream">Back from Stripe — almost there.</p>
+              <p className="mt-1 text-sm text-mauve-dim">Tap refresh to confirm your payouts are live.</p>
+              <form action={refreshOwnStripeStatusAction} className="mt-4">
+                <button className={buttonClass("secondary")}>Refresh status</button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="font-display font-semibold text-cream">Connect payouts to start selling.</p>
+              <p className="mt-1 text-sm text-mauve-dim">
+                Build events now — but tickets can’t sell until your Stripe payouts are connected. Takes about
+                two minutes, and money from sales lands straight in your own account.
+              </p>
+              {role === "owner" ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <form action={startOwnOnboardingAction}>
+                    <button className={buttonClass("primary")}>
+                      {organizer.stripe_account_id ? "Finish connecting Stripe" : "Connect payouts"}
+                    </button>
+                  </form>
+                  {organizer.stripe_account_id && (
+                    <form action={refreshOwnStripeStatusAction}>
+                      <button className={buttonClass("secondary")}>Refresh status</button>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-mauve-dim">Ask the account owner to connect payouts.</p>
+              )}
+            </>
+          )}
         </Card>
       )}
 

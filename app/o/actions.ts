@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganizer, requireOwner, requireScanAccess } from "@/lib/auth";
+import { createOnboardingLink, refreshOnboardingStatus } from "@/lib/connect";
 import { addTeamMember, removeTeamMember } from "@/lib/team";
 import { getOrderById, checkInOrder } from "@/lib/orders";
 import { createPromoterLink } from "@/lib/promoters";
@@ -329,6 +330,20 @@ export async function createPromoCodeAction(_prev: ActionState, formData: FormDa
     console.error("createPromoCode error", err);
     return { status: "error", message: "Couldn’t create the code." };
   }
+}
+
+/** Organizer connects their own Stripe payouts (self-serve). Owner only. */
+export async function startOwnOnboardingAction(): Promise<void> {
+  const { organizer } = await requireOwner();
+  const url = await createOnboardingLink(organizer.id, "/o");
+  redirect(url); // → Stripe-hosted Express onboarding, returns to /o
+}
+
+/** Pull the latest Stripe onboarding status after returning from Stripe. */
+export async function refreshOwnStripeStatusAction(): Promise<void> {
+  const { organizer } = await requireOwner();
+  await refreshOnboardingStatus(organizer.id);
+  revalidatePath("/o");
 }
 
 /** Add a team member (manager or door). Owner only. */

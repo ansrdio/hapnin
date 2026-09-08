@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chopcal",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/abolajifilani/CascadeProjects/chopcal", "--", "-p", "3210"],
+      "port": 3210
+    }
+  ]
+}

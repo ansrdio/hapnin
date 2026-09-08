@@ -14,7 +14,7 @@ export function LoginClient() {
   const next = params.get("next") || "";
   const denied = params.get("denied");
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.get("email") || "");
   const [view, setView] = useState<"form" | "sent" | "completing">("form");
   const [sentTo, setSentTo] = useState("");
   const [error, setError] = useState(denied ? "That account isn’t set up for this area." : "");
@@ -140,6 +140,12 @@ export function LoginClient() {
         </button>
       </form>
       {error && <p className="mt-4 text-sm text-coral">{error}</p>}
+      <p className="mt-6 text-sm text-mauve-dim">
+        New here?{" "}
+        <a href="/host" className="text-gold hover:underline">
+          Host on Hapnin
+        </a>
+      </p>
     </div>
   );
 }
