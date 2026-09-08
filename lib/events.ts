@@ -150,6 +150,64 @@ export async function setEventFlyer(eventId: string, flyerUrl: string | null): P
   await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl });
 }
 
+export type EventDetailsUpdate = {
+  title: string;
+  description: string | null;
+  venue_name: string;
+  venue_address: string;
+  city: string;
+  state: string;
+  starts_at: number;
+  capacity: number | null;
+  event_type: EventType;
+  community: Community;
+  primary_language: LanguageCode;
+  genre: Genre;
+  talent: string[];
+};
+
+/** Update an event's editable details (slug + status + counters are untouched). */
+export async function updateEventDetails(eventId: string, d: EventDetailsUpdate): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).update({ ...d });
+}
+
+/** Update an existing GA tier. quantity_total can't drop below what's sold. */
+export async function updateTier(
+  eventId: string,
+  tierId: string,
+  d: { name: string; price_cents: number; quantity_total: number; is_active: boolean }
+): Promise<void> {
+  const ref = getDb().collection(EVENTS).doc(eventId).collection("tiers").doc(tierId);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const sold = snap.data()!.quantity_sold ?? 0;
+  await ref.update({
+    name: d.name,
+    price_cents: d.price_cents,
+    quantity_total: Math.max(d.quantity_total, sold),
+    is_active: d.is_active,
+  });
+}
+
+/** Append a new GA tier to an existing event. */
+export async function addTierToEvent(
+  eventId: string,
+  d: { name: string; price_cents: number; quantity_total: number }
+): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).collection("tiers").doc().set({
+    name: d.name,
+    price_cents: d.price_cents,
+    quantity_total: d.quantity_total,
+    quantity_sold: 0,
+    sales_start_at: null,
+    sales_end_at: null,
+    is_active: true,
+    sort_order: 999,
+    kind: "ga",
+    seats: null,
+  });
+}
+
 /** Add a reserved table / bottle-service booth (a tier with kind="table"). */
 export async function createTable(
   eventId: string,

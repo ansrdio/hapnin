@@ -12,12 +12,14 @@ import { sellAtDoor } from "@/lib/boxoffice";
 import { notifyWaitlist } from "@/lib/waitlist";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
-import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable } from "@/lib/events";
+import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent } from "@/lib/events";
+import { updateOrganizerProfile } from "@/lib/organizers";
+import { parsePhoenixLocal } from "@/lib/event-input";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
-import { isOneOf, EVENT_STATUS, TEAM_ROLE } from "@/lib/enums";
-import { normalizeUsPhone, normalizeEmail, cleanText, type FieldErrors } from "@/lib/validation";
+import { isOneOf, EVENT_STATUS, TEAM_ROLE, EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
+import { normalizeUsPhone, normalizeEmail, normalizeInstagram, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "@/app/admin/action-state";
 
 /** Create an event owned by the signed-in organizer. "publish" → on_sale, else draft. */
@@ -273,6 +275,94 @@ export async function notifyWaitlistAction(formData: FormData): Promise<void> {
     console.error("notifyWaitlist error", err);
   }
   revalidatePath(`/o/events/${eventId}`);
+}
+
+/** Edit an event's details + GA tiers (add new / update existing). */
+export async function editEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const event = await ownedEvent(eventId, organizer.id);
+  if (!event) return { status: "error", message: "Event not found." };
+
+  const title = cleanText(String(formData.get("title") ?? ""), 160);
+  const venue_name = cleanText(String(formData.get("venue_name") ?? ""), 160);
+  const venue_address = cleanText(String(formData.get("venue_address") ?? ""), 240);
+  const city = cleanText(String(formData.get("city") ?? ""), 80);
+  const state = cleanText(String(formData.get("state") ?? ""), 40);
+  const starts_at = parsePhoenixLocal(String(formData.get("starts_at") ?? ""));
+  const capRaw = String(formData.get("capacity") ?? "").trim();
+  const capacity = capRaw ? parseInt(capRaw, 10) : null;
+  const description = cleanText(String(formData.get("description") ?? ""), 2000) || null;
+  const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const event_type = String(formData.get("event_type") ?? "");
+  const community = String(formData.get("community") ?? "");
+  const primary_language = String(formData.get("primary_language") ?? "");
+  const genre = String(formData.get("genre") ?? "");
+
+  const fieldErrors: FieldErrors = {};
+  if (!title) fieldErrors.title = "Required.";
+  if (!venue_name) fieldErrors.venue_name = "Required.";
+  if (!venue_address) fieldErrors.venue_address = "Required.";
+  if (!city) fieldErrors.city = "Required.";
+  if (!state) fieldErrors.state = "Required.";
+  if (!starts_at) fieldErrors.starts_at = "Pick a date and time.";
+  if (!isOneOf(EVENT_TYPE, event_type)) fieldErrors.event_type = "Pick one.";
+  if (!isOneOf(COMMUNITY, community)) fieldErrors.community = "Pick one.";
+  if (!isOneOf(LANGUAGE_CODE, primary_language)) fieldErrors.primary_language = "Pick one.";
+  if (!isOneOf(GENRE, genre)) fieldErrors.genre = "Pick one.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  await updateEventDetails(eventId, {
+    title, description, venue_name, venue_address, city, state,
+    starts_at: starts_at!, capacity,
+    event_type: event_type as never, community: community as never,
+    primary_language: primary_language as never, genre: genre as never, talent,
+  });
+
+  // GA tiers — arrays are index-aligned (every row emits all fields incl. hidden id + active).
+  const ids = formData.getAll("tier_id").map(String);
+  const names = formData.getAll("tier_name").map(String);
+  const prices = formData.getAll("tier_price").map(String);
+  const qtys = formData.getAll("tier_qty").map(String);
+  const actives = formData.getAll("tier_active").map(String);
+  for (let i = 0; i < names.length; i++) {
+    const name = cleanText(names[i], 80);
+    const price_cents = Math.round(parseFloat(prices[i] || "0") * 100);
+    const quantity_total = parseInt(qtys[i] || "0", 10);
+    if (!name || quantity_total <= 0) continue;
+    if (ids[i]) await updateTier(eventId, ids[i], { name, price_cents, quantity_total, is_active: actives[i] === "1" });
+    else await addTierToEvent(eventId, { name, price_cents, quantity_total });
+  }
+
+  revalidatePath(`/o/events/${eventId}`);
+  revalidatePath(`/o/events/${eventId}/edit`);
+  revalidatePath(`/e/${event.slug}`);
+  return { status: "success", message: "Saved." };
+}
+
+/** Update the organizer's public profile. Owner only. */
+export async function updateProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOwner();
+  const name = cleanText(String(formData.get("name") ?? ""), 120);
+  const bio = cleanText(String(formData.get("bio") ?? ""), 500) || null;
+  const instagram = normalizeInstagram(String(formData.get("instagram") ?? ""));
+  const avatarRaw = String(formData.get("avatar_url") ?? "").trim();
+  const avatar_url = /^https:\/\/\S{1,600}$/.test(avatarRaw) ? avatarRaw : null;
+
+  const fieldErrors: FieldErrors = {};
+  if (!name) fieldErrors.name = "Required.";
+  if (instagram === null) fieldErrors.instagram = "Handle only, e.g. auracollective.";
+  if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
+
+  await updateOrganizerProfile(organizer.id, {
+    name,
+    bio,
+    instagram_handle: instagram ?? null,
+    avatar_url,
+  });
+  revalidatePath("/o/profile");
+  revalidatePath(`/o/${organizer.handle}`);
+  return { status: "success", message: "Profile updated." };
 }
 
 /** Add a reserved table / bottle-service booth to an event the organizer owns. */

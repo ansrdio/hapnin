@@ -48,12 +48,22 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
     <main className="grain mx-auto max-w-3xl px-5 py-14 sm:py-20">
       {/* Identity */}
       <header className="anim-rise mb-12">
-        <div className="anim-bloom flex h-20 w-20 items-center justify-center rounded-3xl bg-gold font-display text-3xl font-bold text-ink shadow-lg shadow-gold/20">
-          {organizer.name.charAt(0).toUpperCase()}
-        </div>
+        {organizer.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={organizer.avatar_url}
+            alt=""
+            className="anim-bloom h-20 w-20 rounded-3xl object-cover shadow-lg shadow-black/30"
+          />
+        ) : (
+          <div className="anim-bloom flex h-20 w-20 items-center justify-center rounded-3xl bg-gold font-display text-3xl font-bold text-ink shadow-lg shadow-gold/20">
+            {organizer.name.charAt(0).toUpperCase()}
+          </div>
+        )}
         <h1 className="mt-5 font-display text-4xl font-bold text-cream sm:text-5xl">
           {organizer.name}
         </h1>
+        {organizer.bio && <p className="mt-3 max-w-lg leading-relaxed text-mauve-dim">{organizer.bio}</p>}
         <div className="mt-2 flex items-center gap-3 text-mauve-dim">
           {organizer.marketing_approved && (
             <span className="inline-flex items-center gap-1 text-sm text-gold">

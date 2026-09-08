@@ -8,6 +8,8 @@ export type Organizer = {
   name: string;
   handle: string;
   instagram_handle: string | null;
+  bio: string | null;
+  avatar_url: string | null;
   email: string;
   phone: string;
   stripe_account_id: string | null;
@@ -24,6 +26,8 @@ function toOrganizer(id: string, d: FirebaseFirestore.DocumentData): Organizer {
     name: d.name,
     handle: d.handle,
     instagram_handle: d.instagram_handle ?? null,
+    bio: d.bio ?? null,
+    avatar_url: d.avatar_url ?? null,
     email: d.email,
     phone: d.phone,
     stripe_account_id: d.stripe_account_id ?? null,
@@ -64,6 +68,14 @@ export async function createOrganizer(input: {
   };
   await ref.set(data);
   return toOrganizer(ref.id, data);
+}
+
+/** Update an organizer's public profile (name, bio, IG, avatar). */
+export async function updateOrganizerProfile(
+  id: string,
+  d: { name: string; bio: string | null; instagram_handle: string | null; avatar_url: string | null }
+): Promise<void> {
+  await getDb().collection(COLL).doc(id).update({ ...d });
 }
 
 export async function getOrganizerById(id: string): Promise<Organizer | null> {

@@ -76,6 +76,9 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         }
         action={
           <div className="flex gap-2">
+            <LinkButton href={`/o/events/${event.id}/edit`} variant="secondary">
+              Edit
+            </LinkButton>
             <LinkButton href={`/o/events/${event.id}/analytics`} variant="secondary">
               Analytics
             </LinkButton>

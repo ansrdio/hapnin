@@ -18,9 +18,14 @@ export default async function OrganizerLayout({ children }: { children: React.Re
               Events
             </Link>
             {role === "owner" && (
-              <Link href="/o/team" className="text-mauve-dim transition-colors hover:text-cream">
-                Team
-              </Link>
+              <>
+                <Link href="/o/profile" className="text-mauve-dim transition-colors hover:text-cream">
+                  Profile
+                </Link>
+                <Link href="/o/team" className="text-mauve-dim transition-colors hover:text-cream">
+                  Team
+                </Link>
+              </>
             )}
             <form action={signOutAction}>
               <button className="text-mauve-dim underline decoration-plum-hi underline-offset-4 hover:text-cream">
