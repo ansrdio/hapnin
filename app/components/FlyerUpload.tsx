@@ -6,7 +6,15 @@ import { buttonClass } from "@/app/components/ui";
 // Reusable flyer picker. Uploads to /api/upload/flyer on select, previews the
 // result, and keeps the resulting URL in a hidden input named `flyer_url` so the
 // surrounding form submits it. Used by the event builder and the manage page.
-export function FlyerUpload({ name = "flyer_url", initialUrl = "" }: { name?: string; initialUrl?: string }) {
+export function FlyerUpload({
+  name = "flyer_url",
+  initialUrl = "",
+  endpoint = "/api/upload/flyer",
+}: {
+  name?: string;
+  initialUrl?: string;
+  endpoint?: string;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
@@ -20,7 +28,7 @@ export function FlyerUpload({ name = "flyer_url", initialUrl = "" }: { name?: st
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/upload/flyer", { method: "POST", body });
+      const res = await fetch(endpoint, { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed.");
       setUrl(data.url);

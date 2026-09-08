@@ -121,6 +121,17 @@ export async function getTier(eventId: string, tierId: string): Promise<Tier | n
   return snap.exists ? toTier(snap.id, snap.data()!) : null;
 }
 
+/** All on-sale events across organizers, upcoming first — the public finder feed. */
+export async function listOnSaleEvents(max = 60): Promise<EventRecord[]> {
+  const snap = await getDb().collection(EVENTS).where("status", "==", "on_sale").get();
+  const cutoff = Date.now() - 12 * 60 * 60 * 1000; // keep events until ~12h after start
+  return snap.docs
+    .map((d) => toEvent(d.id, d.data()))
+    .filter((e) => e.starts_at >= cutoff)
+    .sort((a, b) => a.starts_at - b.starts_at)
+    .slice(0, max);
+}
+
 export async function listEventsByOrganizer(organizerId: string): Promise<EventRecord[]> {
   // Equality-only query so Firestore auto-indexes it (a `where` + `orderBy` on a
   // different field would need a composite index). An organizer has few events,

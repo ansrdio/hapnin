@@ -32,7 +32,10 @@ export default function Page() {
               Hapnin
             </p>
             <nav aria-label="Primary" className="flex items-center gap-4 text-xs font-medium uppercase tracking-[0.16em] text-mauve-dim sm:gap-7 sm:text-sm sm:tracking-[0.18em]">
-              <Link href="/pitch" className="transition-colors hover:text-gold">
+              <Link href="/discover" className="transition-colors hover:text-gold">
+                Events
+              </Link>
+              <Link href="/pitch" className="hidden transition-colors hover:text-gold sm:inline">
                 For organizers
               </Link>
               <Link href="/why" className="transition-colors hover:text-gold">
@@ -82,7 +85,18 @@ export default function Page() {
             </p>
           </div>
 
+          <div className="anim-rise d-5 mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/discover"
+              className="rounded-xl bg-gold px-8 py-3.5 font-display font-semibold text-ink transition-colors hover:bg-gold-hi"
+            >
+              See what&rsquo;s on
+            </Link>
+            <span className="text-sm text-mauve-dim">Live in Phoenix now</span>
+          </div>
+
           <div className="anim-rise d-5 mt-8 max-w-xl">
+            <p className="mb-3 text-sm text-mauve-dim">Or get a text when new ones drop near you:</p>
             <AudienceForm />
           </div>
         </div>

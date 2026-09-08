@@ -6,6 +6,7 @@ import { createEventGuestAction } from "./actions";
 import { initialActionState } from "@/app/admin/action-state";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
 import { Card, Field, Input, Textarea, Select, buttonClass } from "@/app/components/ui";
+import { FlyerUpload } from "@/app/components/FlyerUpload";
 
 type TierRow = { key: number; name: string; price: string; qty: string };
 let nextKey = 2;
@@ -64,6 +65,11 @@ export function GuestEventBuilder() {
         <Field label="Description (optional)">
           <Textarea name="description" rows={3} placeholder="What’s the night about?" />
         </Field>
+      </Card>
+
+      <Card className="space-y-4">
+        <p className="font-display font-semibold text-cream">Flyer</p>
+        <FlyerUpload endpoint="/api/upload/flyer-public" />
       </Card>
 
       <Card className="space-y-5">
