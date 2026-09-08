@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AudienceForm } from "./components/AudienceForm";
-import { OrganizerForm } from "./components/OrganizerForm";
 
 const organizerPoints = [
   {
@@ -127,12 +126,20 @@ export default function Page() {
               ))}
             </ul>
 
-            <div className="mt-12 border-t border-plum-hi pt-10">
-              <p className="mb-6 max-w-md text-lg text-cream">
-                Get on the organizer list. We&rsquo;ll set you up for your next event.
+            <div className="mt-12 flex flex-col gap-5 border-t border-plum-hi pt-10 sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-md text-lg text-cream">
+                Set up your next event in minutes. Free to start — payouts land in your own account.
               </p>
-              <div className="max-w-2xl">
-                <OrganizerForm />
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  href="/host"
+                  className="rounded-xl bg-gold px-7 py-3.5 font-display font-semibold text-ink transition-colors hover:bg-gold-hi"
+                >
+                  Start hosting — free
+                </Link>
+                <Link href="/login?next=/o" className="text-sm text-mauve-dim transition-colors hover:text-cream">
+                  Already host? Sign in
+                </Link>
               </div>
             </div>
           </div>
