@@ -48,9 +48,13 @@ function Step({
   );
 }
 
-export default async function OrganizerHome({ searchParams }: { searchParams: Promise<{ onboarding?: string }> }) {
+export default async function OrganizerHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ onboarding?: string; payout_error?: string }>;
+}) {
   const { organizer, role } = await requireOrganizer();
-  const { onboarding } = await searchParams;
+  const { onboarding, payout_error } = await searchParams;
   const events = await listEventsByOrganizer(organizer.id);
 
   const payoutsDone = organizer.stripe_onboarded;
@@ -75,6 +79,13 @@ export default async function OrganizerHome({ searchParams }: { searchParams: Pr
         }
         action={<LinkButton href="/o/events/new">+ New event</LinkButton>}
       />
+
+      {payout_error && (
+        <Card className="mb-6 border-coral/50 bg-coral/10">
+          <p className="font-display font-semibold text-cream">Couldn’t start Stripe onboarding.</p>
+          <p className="mt-1 break-words text-sm text-mauve-dim">Stripe said: {payout_error}</p>
+        </Card>
+      )}
 
       {!allSetUp && (
         <Card className="mb-8 border-gold/30 bg-gold/[0.04]">

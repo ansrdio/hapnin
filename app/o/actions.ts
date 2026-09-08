@@ -438,14 +438,25 @@ export async function createPromoCodeAction(_prev: ActionState, formData: FormDa
 /** Organizer connects their own Stripe payouts (self-serve). Owner only. */
 export async function startOwnOnboardingAction(): Promise<void> {
   const { organizer } = await requireOwner();
-  const url = await createOnboardingLink(organizer.id, "/o");
-  redirect(url); // → Stripe-hosted Express onboarding, returns to /o
+  let url: string | null = null;
+  try {
+    url = await createOnboardingLink(organizer.id, "/o");
+  } catch (err) {
+    console.error("startOwnOnboarding error", err);
+    const reason = (err as { code?: string }).code || (err as Error).message || "unknown";
+    redirect(`/o?payout_error=${encodeURIComponent(String(reason).slice(0, 160))}`);
+  }
+  redirect(url!); // → Stripe-hosted Express onboarding, returns to /o
 }
 
 /** Pull the latest Stripe onboarding status after returning from Stripe. */
 export async function refreshOwnStripeStatusAction(): Promise<void> {
   const { organizer } = await requireOwner();
-  await refreshOnboardingStatus(organizer.id);
+  try {
+    await refreshOnboardingStatus(organizer.id);
+  } catch (err) {
+    console.error("refreshOwnStripeStatus error", err);
+  }
   revalidatePath("/o");
 }
 
