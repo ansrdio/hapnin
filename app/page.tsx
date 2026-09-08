@@ -26,9 +26,14 @@ const organizerPoints = [
 
 export default async function Page() {
   // Degrade gracefully if the data layer is unavailable (e.g. build without creds).
-  let liveEvents: { slug: string; title: string; flyer_url: string | null }[] = [];
+  let liveEvents: { slug: string; title: string; flyer_url: string | null; starts_at: number }[] = [];
   try {
-    liveEvents = (await listOnSaleEvents(16)).map((e) => ({ slug: e.slug, title: e.title, flyer_url: e.flyer_url }));
+    liveEvents = (await listOnSaleEvents(16)).map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      flyer_url: e.flyer_url,
+      starts_at: e.starts_at,
+    }));
   } catch {
     liveEvents = [];
   }

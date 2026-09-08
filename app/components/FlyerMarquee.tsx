@@ -1,6 +1,17 @@
 import Link from "next/link";
 
-type Item = { slug: string; title: string; flyer_url: string | null };
+type Item = { slug: string; title: string; flyer_url: string | null; starts_at: number };
+
+function fmtDate(ms: number): string {
+  return new Date(ms).toLocaleString("en-US", {
+    timeZone: "America/Phoenix",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 // A seamless scrolling strip of live event flyers. The track holds the list
 // twice and slides -50%, so the loop is continuous. Pauses on hover and for
@@ -29,15 +40,22 @@ export function FlyerMarquee({ events }: { events: Item[] }) {
               />
             ) : (
               <div
-                className="flex h-full w-full items-end p-3"
+                className="h-full w-full"
                 style={{
                   backgroundImage:
                     "radial-gradient(80% 80% at 50% 20%, rgba(244,178,76,0.30), rgba(242,89,63,0.16) 55%, transparent 85%)",
                 }}
-              >
-                <span className="font-display text-sm font-semibold text-cream">{e.title}</span>
-              </div>
+              />
             )}
+            {/* Title + date — always shown for flyerless cards, on hover for flyers */}
+            <div
+              className={`pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent p-3 transition-opacity duration-300 ${
+                e.flyer_url ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+              }`}
+            >
+              <p className="line-clamp-2 font-display text-sm font-semibold leading-tight text-cream">{e.title}</p>
+              <p className="mt-0.5 text-xs text-mauve-dim">{fmtDate(e.starts_at)}</p>
+            </div>
           </Link>
         ))}
       </div>
