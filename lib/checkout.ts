@@ -416,19 +416,23 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
         counts.kept++;
         continue;
       }
+      // Release FIRST, then cancel. Cancelling emits payment_intent.canceled,
+      // whose webhook also calls releaseHold on this same hold ~1s later. With
+      // the hold already released that's a guaranteed no-op; done the other way
+      // round it's two releases racing on one tier's transaction — which
+      // surfaced as spurious "errors" on the first production sweep.
+      await releaseHold(doc.id);
+      counts.released++;
       if (pi && status && status !== "canceled" && status !== "missing") {
         try {
           await stripe.paymentIntents.cancel(pi);
         } catch (err) {
-          // Raced to succeeded/processing between retrieve and cancel — keep
-          // the hold; the next sweep (or the webhook) will fulfil it.
-          console.warn("sweepExpiredHolds: cancel refused, keeping hold", { pending: doc.id, pi, err: (err as Error).message });
-          counts.kept++;
-          continue;
+          // The payment raced to succeeded/processing after we released. Safe:
+          // the succeeded webhook / reconcile re-reserves a released hold and
+          // fulfils it. Just make it visible.
+          console.warn("sweepExpiredHolds: cancel refused after release (payment raced through?)", { pending: doc.id, pi, err: (err as Error).message });
         }
       }
-      await releaseHold(doc.id);
-      counts.released++;
     } catch (err) {
       counts.errors++;
       counts.problems.push({ pending: doc.id, pi: pi ?? null, error: (err as Error).message });
