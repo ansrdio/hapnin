@@ -28,6 +28,7 @@ const appearance: Appearance = {
 export function CheckoutClient({
   slug,
   eventTitle,
+  refundPolicyLabel,
   consentText,
   tiers,
   promoterCode,
@@ -35,6 +36,7 @@ export function CheckoutClient({
 }: {
   slug: string;
   eventTitle: string;
+  refundPolicyLabel?: string;
   consentText: string;
   tiers: Tier[];
   promoterCode?: string | null;
@@ -118,7 +120,7 @@ export function CheckoutClient({
         </dl>
         <div className="mt-6">
           <Elements stripe={getStripeClient()} options={options}>
-            <PayStep slug={slug} total={amounts.total_cents} />
+            <PayStep slug={slug} total={amounts.total_cents} refundPolicyLabel={refundPolicyLabel} />
           </Elements>
         </div>
       </main>
@@ -267,7 +269,7 @@ export function CheckoutClient({
   );
 }
 
-function PayStep({ slug, total }: { slug: string; total: number }) {
+function PayStep({ slug, total, refundPolicyLabel }: { slug: string; total: number; refundPolicyLabel?: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [busy, setBusy] = useState(false);
@@ -319,6 +321,9 @@ function PayStep({ slug, total }: { slug: string; total: number }) {
       >
         {busy ? "Processing…" : `Pay ${usd(total)}`}
       </button>
+      {refundPolicyLabel && (
+        <p className="text-center text-xs text-mauve-dim">{refundPolicyLabel}</p>
+      )}
     </form>
   );
 }

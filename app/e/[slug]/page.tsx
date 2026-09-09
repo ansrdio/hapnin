@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getEventBySlug, getTiers, type Tier } from "@/lib/events";
+import { getEventBySlug, getTiers, REFUND_POLICY_LABELS, type Tier } from "@/lib/events";
 import { getOrganizerById } from "@/lib/organizers";
 import { resolvePromoterCode } from "@/lib/promoters";
 import { WaitlistForm } from "./WaitlistForm";
@@ -59,6 +59,14 @@ function PinIcon() {
     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0 text-gold" aria-hidden="true">
       <path d="M12 21s7-5.686 7-11a7 7 0 10-14 0c0 5.314 7 11 7 11z" stroke="currentColor" strokeWidth="1.6" />
       <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+function RefundIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0 text-gold" aria-hidden="true">
+      <path d="M4 12a8 8 0 108-8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 5v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -204,6 +212,10 @@ export default async function EventPage({
                     {event.venue_zip ? ` ${event.venue_zip}` : ""}
                   </p>
                 </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <RefundIcon />
+                <p className="text-sm text-mauve-dim">{REFUND_POLICY_LABELS[event.refund_policy]}</p>
               </div>
             </div>
 

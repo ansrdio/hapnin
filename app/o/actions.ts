@@ -12,7 +12,7 @@ import { sellAtDoor } from "@/lib/boxoffice";
 import { notifyWaitlist } from "@/lib/waitlist";
 import { refundOrder } from "@/lib/refunds";
 import { sendSMS } from "@/lib/sms";
-import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent, deleteEvent } from "@/lib/events";
+import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent, deleteEvent, isRefundPolicy } from "@/lib/events";
 import { updateOrganizerProfile } from "@/lib/organizers";
 import { parsePhoenixLocal } from "@/lib/event-input";
 import { parseEventForm } from "@/lib/event-input";
@@ -46,6 +46,7 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       starts_at: values.starts_at!,
       status,
       capacity: values.capacity ?? null,
+      refund_policy: values.refund_policy as never,
       event_type: values.event_type as never,
       community: values.community as never,
       primary_language: values.primary_language as never,
@@ -294,6 +295,8 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   const starts_at = parsePhoenixLocal(String(formData.get("starts_at") ?? ""));
   const capRaw = String(formData.get("capacity") ?? "").trim();
   const capacity = capRaw ? parseInt(capRaw, 10) : null;
+  const refundRaw = String(formData.get("refund_policy") ?? "none");
+  const refund_policy = isRefundPolicy(refundRaw) ? refundRaw : "none";
   const description = cleanText(String(formData.get("description") ?? ""), 2000) || null;
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const event_type = String(formData.get("event_type") ?? "");
@@ -316,7 +319,7 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
 
   await updateEventDetails(eventId, {
     title, description, venue_name, venue_address, venue_zip, city, state,
-    starts_at: starts_at!, capacity,
+    starts_at: starts_at!, capacity, refund_policy,
     event_type: event_type as never, community: community as never,
     primary_language: primary_language as never, genre: genre as never, talent,
   });

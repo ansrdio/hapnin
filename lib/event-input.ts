@@ -1,7 +1,7 @@
 import "server-only";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf } from "./enums";
 import { cleanText, normalizeZip, type FieldErrors } from "./validation";
-import type { NewTier } from "./events";
+import { isRefundPolicy, type NewTier } from "./events";
 
 // Shared event-form parsing + validation, used by both the admin create form and
 // the organizer's event builder so the rules never drift between them.
@@ -31,6 +31,7 @@ export type ParsedEventValues = {
   state: string;
   starts_at: number;
   capacity: number | null;
+  refund_policy: string;
   talent: string[];
   is_first_event: boolean;
   event_type: string;
@@ -61,6 +62,8 @@ export function parseEventForm(formData: FormData): {
   const flyer_url = /^https:\/\/\S{1,600}$/.test(flyerRaw) ? flyerRaw : null;
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const is_first_event = formData.get("is_first_event") === "on";
+  const refundRaw = String(formData.get("refund_policy") ?? "none");
+  const refund_policy = isRefundPolicy(refundRaw) ? refundRaw : "none";
 
   const event_type = String(formData.get("event_type") ?? "");
   const community = String(formData.get("community") ?? "");
@@ -100,7 +103,7 @@ export function parseEventForm(formData: FormData): {
     values: {
       title, slug: slug ?? undefined, description, flyer_url,
       venue_name, venue_address, venue_zip, city, state,
-      starts_at: starts_at ?? undefined, capacity, talent, is_first_event,
+      starts_at: starts_at ?? undefined, capacity, refund_policy, talent, is_first_event,
       event_type, community, primary_language, genre, tiers,
     },
     fieldErrors,

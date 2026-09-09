@@ -74,6 +74,7 @@ export async function createEventGuestAction(_prev: ActionState, formData: FormD
         status: "draft",
         capacity: values.capacity ?? null,
         event_type: values.event_type as never,
+        refund_policy: values.refund_policy as never,
         community: values.community as never,
         primary_language: values.primary_language as never,
         genre: values.genre as never,

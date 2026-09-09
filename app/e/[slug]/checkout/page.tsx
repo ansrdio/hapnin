@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getEventBySlug, getTiers } from "@/lib/events";
+import { getEventBySlug, getTiers, REFUND_POLICY_LABELS } from "@/lib/events";
 import { getOrganizerById } from "@/lib/organizers";
 import { CHECKOUT_CONSENT_TEXT } from "@/lib/checkout";
 import { CheckoutClient } from "./CheckoutClient";
@@ -37,6 +37,7 @@ export default async function CheckoutPage({
     <CheckoutClient
       slug={slug}
       eventTitle={event.title}
+      refundPolicyLabel={REFUND_POLICY_LABELS[event.refund_policy]}
       consentText={CHECKOUT_CONSENT_TEXT}
       promoterCode={p ?? null}
       preselectTierId={preselectTierId ?? null}

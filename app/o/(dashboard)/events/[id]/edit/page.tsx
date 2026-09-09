@@ -28,6 +28,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
           state: event.state,
           starts_at: event.starts_at,
           capacity: event.capacity,
+          refund_policy: event.refund_policy,
           event_type: event.event_type,
           community: event.community,
           primary_language: event.primary_language,

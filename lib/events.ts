@@ -17,6 +17,12 @@ export type Tier = {
   seats: number | null; // guests a table admits
 };
 
+// Refund policy the organizer sets per event; shown to buyers before they pay.
+// Values + labels live in the client-safe module so forms can share them.
+export { REFUND_POLICIES, REFUND_POLICY_LABELS, REFUND_POLICY_SHORT, isRefundPolicy } from "./refund-policy";
+export type { RefundPolicy } from "./refund-policy";
+import type { RefundPolicy } from "./refund-policy";
+
 export type EventRecord = {
   id: string;
   organizer_id: string;
@@ -34,6 +40,7 @@ export type EventRecord = {
   timezone: string;
   status: EventStatus;
   capacity: number | null;
+  refund_policy: RefundPolicy;
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -74,6 +81,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     timezone: d.timezone ?? "America/Phoenix",
     status: d.status,
     capacity: d.capacity ?? null,
+    refund_policy: (d.refund_policy ?? "none") as RefundPolicy,
     event_type: d.event_type,
     community: d.community,
     primary_language: d.primary_language,
@@ -177,6 +185,7 @@ export type EventDetailsUpdate = {
   state: string;
   starts_at: number;
   capacity: number | null;
+  refund_policy: RefundPolicy;
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -270,6 +279,7 @@ export async function createEvent(input: {
   timezone?: string;
   status?: EventStatus;
   capacity?: number | null;
+  refund_policy?: RefundPolicy;
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -305,6 +315,7 @@ export async function createEvent(input: {
     timezone: input.timezone ?? "America/Phoenix",
     status: input.status ?? "draft",
     capacity: input.capacity ?? null,
+    refund_policy: input.refund_policy ?? "none",
     event_type: input.event_type,
     community: input.community,
     primary_language: input.primary_language,

@@ -5,7 +5,8 @@ import { useFormStatus } from "react-dom";
 import { editEventAction } from "@/app/o/actions";
 import { initialActionState } from "@/app/admin/action-state";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
-import { Card, Field, Input, Textarea, Select, buttonClass } from "@/app/components/ui";
+import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
+import { Card, Field, Input, Textarea, Select, inputClass, buttonClass } from "@/app/components/ui";
 
 type EventData = {
   id: string;
@@ -18,6 +19,7 @@ type EventData = {
   state: string;
   starts_at: number;
   capacity: number | null;
+  refund_policy: string;
   event_type: string;
   community: string;
   primary_language: string;
@@ -91,6 +93,13 @@ export function EditEventForm({ event, tiers }: { event: EventData; tiers: Tier[
           </Field>
           <Field label="Capacity (optional)">
             <Input name="capacity" type="number" min="1" defaultValue={event.capacity ?? ""} />
+          </Field>
+          <Field label="Refund policy" hint="Shown to buyers before they pay.">
+            <select name="refund_policy" defaultValue={event.refund_policy || "none"} className={`${inputClass} [color-scheme:dark]`}>
+              {REFUND_POLICIES.map((p) => (
+                <option key={p} value={p}>{REFUND_POLICY_SHORT[p]}</option>
+              ))}
+            </select>
           </Field>
         </div>
         <Field label="Description (optional)">

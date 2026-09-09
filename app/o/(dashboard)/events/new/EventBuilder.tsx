@@ -5,7 +5,8 @@ import { useFormStatus } from "react-dom";
 import { createOrganizerEventAction } from "@/app/o/actions";
 import { initialActionState } from "@/app/admin/action-state";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
-import { Card, Field, Input, Textarea, Select, buttonClass } from "@/app/components/ui";
+import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
+import { Card, Field, Input, Textarea, Select, inputClass, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 
 type TierRow = { key: number; name: string; price: string; qty: string; start: string; end: string };
@@ -65,6 +66,13 @@ export function EventBuilder() {
           </Field>
           <Field label="Capacity (optional)">
             <Input name="capacity" type="number" min="1" placeholder="300" />
+          </Field>
+          <Field label="Refund policy" hint="Shown to buyers before they pay.">
+            <select name="refund_policy" defaultValue="none" className={`${inputClass} [color-scheme:dark]`}>
+              {REFUND_POLICIES.map((p) => (
+                <option key={p} value={p}>{REFUND_POLICY_SHORT[p]}</option>
+              ))}
+            </select>
           </Field>
           <Field label="Venue name" error={err.venue_name}>
             <Input name="venue_name" placeholder="The Van Buren" />

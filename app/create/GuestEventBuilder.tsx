@@ -5,7 +5,8 @@ import { useFormStatus } from "react-dom";
 import { createEventGuestAction } from "./actions";
 import { initialActionState } from "@/app/admin/action-state";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
-import { Card, Field, Input, Textarea, Select, buttonClass } from "@/app/components/ui";
+import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
+import { Card, Field, Input, Textarea, Select, inputClass, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 
 type TierRow = { key: number; name: string; price: string; qty: string };
@@ -67,6 +68,13 @@ export function GuestEventBuilder() {
         </div>
         <Field label="Description (optional)">
           <Textarea name="description" rows={3} placeholder="What’s the night about?" />
+        </Field>
+        <Field label="Refund policy" hint="Shown to buyers before they pay.">
+          <select name="refund_policy" defaultValue="none" className={`${inputClass} [color-scheme:dark]`}>
+            {REFUND_POLICIES.map((p) => (
+              <option key={p} value={p}>{REFUND_POLICY_SHORT[p]}</option>
+            ))}
+          </select>
         </Field>
       </Card>
 
