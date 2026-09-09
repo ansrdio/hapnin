@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Appearance } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, ExpressCheckoutElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { getStripeClient } from "@/lib/stripe-client";
 
 type Tier = { id: string; name: string; price_cents: number; remaining: number; kind: "ga" | "table"; seats: number | null };
@@ -272,9 +272,10 @@ function PayStep({ slug, total }: { slug: string; total: number }) {
   const elements = useElements();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [hasWallet, setHasWallet] = useState(false);
 
-  async function pay(e: React.FormEvent) {
-    e.preventDefault();
+  // Shared confirm — used by both the wallet buttons and the card form.
+  async function confirm() {
     if (!stripe || !elements) return;
     setBusy(true);
     setErr("");
@@ -289,8 +290,25 @@ function PayStep({ slug, total }: { slug: string; total: number }) {
     // On success Stripe redirects to the confirmation page.
   }
 
+  async function pay(e: React.FormEvent) {
+    e.preventDefault();
+    await confirm();
+  }
+
   return (
     <form onSubmit={pay} className="mt-6 space-y-5">
+      {/* Apple Pay / Google Pay / Link — one-tap. Renders only when a wallet is available. */}
+      <ExpressCheckoutElement
+        onReady={({ availablePaymentMethods }) => setHasWallet(!!availablePaymentMethods)}
+        onConfirm={confirm}
+      />
+      {hasWallet && (
+        <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-mauve-dim">
+          <span className="h-px flex-1 bg-plum-hi" />
+          or pay with card
+          <span className="h-px flex-1 bg-plum-hi" />
+        </div>
+      )}
       <p className="text-sm text-mauve-dim">Card processing is included — the organizer keeps the face value.</p>
       <PaymentElement />
       {err && <p className="text-sm text-coral">{err}</p>}
