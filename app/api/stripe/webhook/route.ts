@@ -52,7 +52,13 @@ export async function POST(req: Request) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
         const pendingId = pi.metadata?.pending_order_id;
-        if (pendingId) await fulfillPaidOrder(pendingId, pi.id);
+        if (pendingId) {
+          await fulfillPaidOrder(pendingId, pi.id);
+        } else {
+          // A succeeded PI we can't tie to a pending order = paid but unfulfillable.
+          // Loud, because it would otherwise 200 silently.
+          console.warn("webhook: payment_intent.succeeded without pending_order_id metadata", { pi: pi.id, amount: pi.amount });
+        }
         break;
       }
       case "payment_intent.payment_failed":

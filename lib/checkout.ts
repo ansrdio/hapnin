@@ -173,12 +173,24 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
 
   const pendingRef = db.collection("pending_orders").doc(pendingOrderId);
   const pendingSnap = await pendingRef.get();
-  if (!pendingSnap.exists) return;
+  // Every early exit below is a silent no-op to the webhook (it still returns
+  // 200), so log the reason — otherwise a paid-but-unfulfilled order leaves no
+  // trace to debug from.
+  if (!pendingSnap.exists) {
+    console.warn("fulfillPaidOrder: pending order missing", { pendingOrderId, paymentIntentId });
+    return;
+  }
   const p = pendingSnap.data()!;
-  if (p.status !== "reserved") return; // #2: already handled
+  if (p.status !== "reserved") {
+    console.warn("fulfillPaidOrder: pending not reserved, skipping", { pendingOrderId, paymentIntentId, status: p.status });
+    return; // #2: already handled
+  }
 
   const event = await getEventById(p.event_id);
-  if (!event) return;
+  if (!event) {
+    console.warn("fulfillPaidOrder: event missing", { pendingOrderId, eventId: p.event_id });
+    return;
+  }
 
   await findOrCreateBuyer({
     phone: p.buyer.phone,
