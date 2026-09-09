@@ -252,7 +252,16 @@ export function CheckoutClient({
 
         <label className="flex items-start gap-3 text-sm leading-relaxed text-mauve-dim">
           <input type="checkbox" checked={optIn} onChange={(e) => setOptIn(e.target.checked)} className="mt-1 accent-gold" />
-          <span>{consentText}</span>
+          <span>
+            {consentText}{" "}
+            <a href="/privacy" target="_blank" rel="noopener" className="text-gold hover:underline">
+              Privacy
+            </a>
+            {" · "}
+            <a href="/terms" target="_blank" rel="noopener" className="text-gold hover:underline">
+              Terms
+            </a>
+          </span>
         </label>
 
         {errors.form && <p className="text-sm text-coral">{errors.form}</p>}

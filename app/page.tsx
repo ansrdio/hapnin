@@ -250,7 +250,12 @@ export default async function Page() {
           <p className="font-display text-lg font-semibold text-cream">
             Hapnin <span className="text-mauve-dim">— hapnin.now</span>
           </p>
-          <p className="text-sm text-mauve-dim">Starting in Phoenix, Arizona.</p>
+          <p className="text-sm text-mauve-dim">
+            Starting in Phoenix, Arizona. ·{" "}
+            <Link href="/terms" className="hover:text-cream">Terms</Link> ·{" "}
+            <Link href="/privacy" className="hover:text-cream">Privacy</Link> ·{" "}
+            <a href="mailto:jii@hapnin.now" className="hover:text-cream">jii@hapnin.now</a>
+          </p>
         </div>
       </footer>
     </main>
