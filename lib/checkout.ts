@@ -181,9 +181,25 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     return;
   }
   const p = pendingSnap.data()!;
-  if (p.status !== "reserved") {
-    console.warn("fulfillPaidOrder: pending not reserved, skipping", { pendingOrderId, paymentIntentId, status: p.status });
-    return; // #2: already handled
+  if (p.status === "fulfilled") return; // #2: already handled
+
+  // A PaymentIntent can fail once and then succeed on retry (a declined card,
+  // an Apple Pay re-tap). If a payment_failed webhook released the hold in
+  // between, the money has still been captured by the time we're here — the
+  // buyer must get their ticket. Re-take the inventory and carry on; only give
+  // up if the tier genuinely sold out in the gap (then it needs a refund).
+  if (p.status === "released") {
+    try {
+      await reserveInventory(p.event_id, p.tier_id, p.quantity);
+      await pendingRef.update({ status: "reserved" });
+      console.warn("fulfillPaidOrder: re-reserved a released hold for a succeeded payment", { pendingOrderId, paymentIntentId });
+    } catch (err) {
+      console.error("fulfillPaidOrder: PAID BUT SOLD OUT — needs refund", { pendingOrderId, paymentIntentId, err });
+      return;
+    }
+  } else if (p.status !== "reserved") {
+    console.warn("fulfillPaidOrder: unexpected pending status, skipping", { pendingOrderId, paymentIntentId, status: p.status });
+    return;
   }
 
   const event = await getEventById(p.event_id);

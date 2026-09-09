@@ -61,7 +61,20 @@ export async function POST(req: Request) {
         }
         break;
       }
-      case "payment_intent.payment_failed":
+      case "payment_intent.payment_failed": {
+        // NOT terminal. The PaymentIntent stays alive (requires_payment_method)
+        // and the buyer can retry — a declined card, an Apple Pay re-tap. If we
+        // released the hold here, a success seconds later would find nothing to
+        // fulfil (that exact bug stranded a paid buyer). Keep the reservation;
+        // it's bounded by the pending order's expires_at. Release only on cancel.
+        const pi = event.data.object as Stripe.PaymentIntent;
+        console.warn("webhook: payment_failed (retryable) — keeping hold", {
+          pi: pi.id,
+          pending: pi.metadata?.pending_order_id,
+          reason: pi.last_payment_error?.message ?? null,
+        });
+        break;
+      }
       case "payment_intent.canceled": {
         const pi = event.data.object as Stripe.PaymentIntent;
         const pendingId = pi.metadata?.pending_order_id;
