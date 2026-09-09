@@ -93,7 +93,20 @@ Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org
 `BREVO_API_KEY` / `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` ·
 pending: `TWILIO_*` · optional: `CRON_SECRET`.
 
+## Legal pages
+- `/terms` and `/privacy` are live, linked from the landing footer, beside the
+  checkout consent line, and in the sitemap. Both read from `lib/legal.ts`:
+  operator name (`LEGAL_NAME`, currently the trade name "Hapnin" — swap in the
+  LLC name if one exists), support email (`jii@hapnin.now`), governing state
+  (Arizona), and the fee text (mirrors `lib/checkout.ts`).
+- **Terms publish the platform fee** (3% + $0.50 per paid ticket, first event
+  waived) — terms must disclose fees. `/host` does not yet state pricing.
+- They are careful plain-language drafts, **not legal advice** — have a lawyer
+  review before scale.
+
 ## Before opening to the public
+- **Monitor `jii@hapnin.now`** — it is now the public support/contact address on
+  the legal pages and the landing footer.
 - Keep a small **platform balance** in Stripe (or enable bank debit for
   negative balances): refunds are paid from the platform balance and Stripe
   keeps its processing fee, so a $0 balance refuses refunds.
