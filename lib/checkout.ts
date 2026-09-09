@@ -106,6 +106,13 @@ export async function createCheckoutIntent(
   // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
   const promoterLink = input.promoter_code ? await resolvePromoterCode(event.id, input.promoter_code) : null;
 
+  // Free any abandoned holds on this event first (each one reconciled against
+  // Stripe), so a walked-away checkout never blocks a real buyer. Best-effort:
+  // a sweep failure must never stop a sale.
+  await sweepExpiredHolds({ eventId: event.id, limit: 25 }).catch((err) =>
+    console.warn("pre-checkout sweep failed", err)
+  );
+
   // Reserve BEFORE creating the intent.
   await reserveInventory(event.id, tier.id, qty);
 
@@ -330,7 +337,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   }
 }
 
-/** Release the hold when a PaymentIntent fails or is canceled. */
+/** Release the hold when a PaymentIntent is canceled (or a hold has expired). */
 export async function releaseHold(pendingOrderId: string): Promise<void> {
   const db = getDb();
   const ref = db.collection("pending_orders").doc(pendingOrderId);
@@ -340,4 +347,72 @@ export async function releaseHold(pendingOrderId: string): Promise<void> {
   if (p.status !== "reserved") return;
   await releaseInventory(p.event_id, p.tier_id, p.quantity);
   await ref.update({ status: "released" });
+}
+
+export type SweepCounts = { scanned: number; fulfilled: number; released: number; kept: number; errors: number };
+
+/**
+ * Sweep abandoned holds: pending orders still "reserved" past their expires_at.
+ *
+ * Naively releasing them would recreate the decline-then-retry bug in another
+ * costume — a hold can expire while the buyer is still paying. So every expired
+ * hold is reconciled against Stripe first:
+ *   succeeded  → fulfil it (they paid; the ticket must exist)
+ *   processing → keep it (money in flight)
+ *   otherwise  → cancel the PaymentIntent, so a late payment can't land on a
+ *                hold we've given back, THEN release the inventory
+ *
+ * Scoped to one event when called before a new reservation (the only moment an
+ * abandoned hold actually hurts); unscoped from the cron/admin backstop. The
+ * query is equality-only (status, event_id) so it needs no composite index;
+ * expiry is filtered in code — the "reserved" set is just live + abandoned
+ * checkouts, so it stays small.
+ */
+export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number } = {}): Promise<SweepCounts> {
+  const db = getDb();
+  const stripe = getStripe();
+  const now = Date.now();
+  const counts: SweepCounts = { scanned: 0, fulfilled: 0, released: 0, kept: 0, errors: 0 };
+
+  let q: FirebaseFirestore.Query = db.collection("pending_orders").where("status", "==", "reserved");
+  if (opts.eventId) q = q.where("event_id", "==", opts.eventId);
+  const snap = await q.limit(opts.limit ?? 200).get();
+
+  for (const doc of snap.docs) {
+    const p = doc.data();
+    if (typeof p.expires_at !== "number" || p.expires_at > now) continue; // still live
+    counts.scanned++;
+    const pi: string | undefined = p.payment_intent_id;
+    try {
+      let status: string | null = null;
+      if (pi) status = (await stripe.paymentIntents.retrieve(pi)).status;
+
+      if (status === "succeeded") {
+        await fulfillPaidOrder(doc.id, pi!);
+        counts.fulfilled++;
+        continue;
+      }
+      if (status === "processing") {
+        counts.kept++;
+        continue;
+      }
+      if (pi && status && status !== "canceled") {
+        try {
+          await stripe.paymentIntents.cancel(pi);
+        } catch (err) {
+          // Raced to succeeded/processing between retrieve and cancel — keep
+          // the hold; the next sweep (or the webhook) will fulfil it.
+          console.warn("sweepExpiredHolds: cancel refused, keeping hold", { pending: doc.id, pi, err: (err as Error).message });
+          counts.kept++;
+          continue;
+        }
+      }
+      await releaseHold(doc.id);
+      counts.released++;
+    } catch (err) {
+      counts.errors++;
+      console.error("sweepExpiredHolds error", { pending: doc.id, pi }, err);
+    }
+  }
+  return counts;
 }
