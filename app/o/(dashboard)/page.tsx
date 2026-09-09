@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireOrganizer } from "@/lib/auth";
 import { listEventsByOrganizer } from "@/lib/events";
+import { refreshOnboardingStatus } from "@/lib/connect";
 import { startOwnOnboardingAction, refreshOwnStripeStatusAction } from "@/app/o/actions";
 import { PageHeader, LinkButton, Card, Stat, StatusBadge, EmptyState, buttonClass, money } from "@/app/components/ui";
 
@@ -57,6 +58,24 @@ export default async function OrganizerHome({
   const { onboarding, payout_error } = await searchParams;
   const events = await listEventsByOrganizer(organizer.id);
 
+  // Returning from Stripe onboarding: pull the live status so the indicator
+  // flips to ✓ automatically instead of making the owner click "Refresh status".
+  let justConnected = false;
+  let stillVerifying = false;
+  if (onboarding === "done" && role === "owner" && !organizer.stripe_onboarded && organizer.stripe_account_id) {
+    try {
+      const ready = await refreshOnboardingStatus(organizer.id);
+      if (ready) {
+        organizer.stripe_onboarded = true;
+        justConnected = true;
+      } else {
+        stillVerifying = true;
+      }
+    } catch (err) {
+      console.error("dashboard auto-refresh stripe status", err);
+    }
+  }
+
   const payoutsDone = organizer.stripe_onboarded;
   const createDone = events.length > 0;
   const publishDone = events.some((e) => e.status === "on_sale");
@@ -80,10 +99,40 @@ export default async function OrganizerHome({
         action={<LinkButton href="/o/events/new">+ New event</LinkButton>}
       />
 
+      {payoutsDone && (
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald/40 bg-emerald/10 px-3.5 py-1.5 text-sm">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald text-[10px] text-ink">✓</span>
+          <span className="font-medium text-cream">Payouts connected</span>
+          <span className="text-mauve-dim">· sales pay out to your account</span>
+        </div>
+      )}
+
       {payout_error && (
         <Card className="mb-6 border-coral/50 bg-coral/10">
           <p className="font-display font-semibold text-cream">Couldn’t start Stripe onboarding.</p>
           <p className="mt-1 break-words text-sm text-mauve-dim">Stripe said: {payout_error}</p>
+        </Card>
+      )}
+
+      {justConnected && (
+        <Card className="mb-6 flex items-center gap-3 border-emerald/50 bg-emerald/10">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald text-ink">✓</span>
+          <div>
+            <p className="font-display font-semibold text-cream">Payouts connected.</p>
+            <p className="mt-0.5 text-sm text-mauve-dim">
+              Sales now land straight in your account. You’re ready to publish and sell.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {stillVerifying && (
+        <Card className="mb-6 border-gold/40 bg-gold/[0.06]">
+          <p className="font-display font-semibold text-cream">Stripe is verifying your details.</p>
+          <p className="mt-1 text-sm text-mauve-dim">
+            This usually takes a minute. Hit “Refresh status” below once it’s done — you may also need to
+            finish a step Stripe asked for.
+          </p>
         </Card>
       )}
 
