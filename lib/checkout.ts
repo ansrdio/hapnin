@@ -349,7 +349,16 @@ export async function releaseHold(pendingOrderId: string): Promise<void> {
   await ref.update({ status: "released" });
 }
 
-export type SweepCounts = { scanned: number; fulfilled: number; released: number; kept: number; errors: number };
+export type SweepCounts = {
+  scanned: number;
+  fulfilled: number;
+  released: number;
+  kept: number;
+  errors: number;
+  // Surfaced in the endpoint response so an admin can see *which* holds failed
+  // and why without needing server logs.
+  problems: { pending: string; pi: string | null; error: string }[];
+};
 
 /**
  * Sweep abandoned holds: pending orders still "reserved" past their expires_at.
@@ -372,7 +381,7 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
   const db = getDb();
   const stripe = getStripe();
   const now = Date.now();
-  const counts: SweepCounts = { scanned: 0, fulfilled: 0, released: 0, kept: 0, errors: 0 };
+  const counts: SweepCounts = { scanned: 0, fulfilled: 0, released: 0, kept: 0, errors: 0, problems: [] };
 
   let q: FirebaseFirestore.Query = db.collection("pending_orders").where("status", "==", "reserved");
   if (opts.eventId) q = q.where("event_id", "==", opts.eventId);
@@ -385,7 +394,18 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
     const pi: string | undefined = p.payment_intent_id;
     try {
       let status: string | null = null;
-      if (pi) status = (await stripe.paymentIntents.retrieve(pi)).status;
+      if (pi) {
+        try {
+          status = (await stripe.paymentIntents.retrieve(pi)).status;
+        } catch (err) {
+          if ((err as { code?: string }).code !== "resource_missing") throw err;
+          // The PI doesn't exist on this Stripe account / mode — e.g. a hold
+          // created before the account swap, or in sandbox. It can never be
+          // paid here, so the hold is safe to release; nothing to cancel.
+          console.warn("sweepExpiredHolds: PI not found on this account, releasing hold", { pending: doc.id, pi });
+          status = "missing";
+        }
+      }
 
       if (status === "succeeded") {
         await fulfillPaidOrder(doc.id, pi!);
@@ -396,7 +416,7 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
         counts.kept++;
         continue;
       }
-      if (pi && status && status !== "canceled") {
+      if (pi && status && status !== "canceled" && status !== "missing") {
         try {
           await stripe.paymentIntents.cancel(pi);
         } catch (err) {
@@ -411,6 +431,7 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
       counts.released++;
     } catch (err) {
       counts.errors++;
+      counts.problems.push({ pending: doc.id, pi: pi ?? null, error: (err as Error).message });
       console.error("sweepExpiredHolds error", { pending: doc.id, pi }, err);
     }
   }
