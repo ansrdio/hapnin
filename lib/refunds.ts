@@ -2,26 +2,39 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getStripe } from "./stripe";
-import { releaseInventory } from "./events";
+import { getEventById, releaseInventory } from "./events";
 import { adjustPromoterStats } from "./promoters";
 import { adjustPromoRedemption } from "./promos";
+import { sendRefundEmail } from "./email";
+import { sendSMS } from "./sms";
 
 /**
  * Full refund of an order. For online orders this refunds the PaymentIntent and,
  * because it's a destination charge, also reverses the transfer to the connected
- * account and refunds the platform application fee — so everyone nets back to
- * zero. Then it voids the tickets (scanner rejects them), returns the held
- * inventory, and reverses the event counters. Comps skip Stripe. Idempotent.
+ * account (and the platform fee, when one was charged) — so everyone nets back
+ * to zero. Then it voids the tickets (scanner rejects them), returns the held
+ * inventory, reverses the event counters, and tells the buyer. Comps skip Stripe.
+ *
+ * Exactly-once: the order is CLAIMED paid→"refunding" in a transaction before
+ * anything else, so a double click or two concurrent requests can't both
+ * reverse inventory and counters. If Stripe refuses, the claim is released so
+ * the organizer can retry.
  */
 export async function refundOrder(eventId: string, orderId: string): Promise<void> {
   const db = getDb();
   const orderRef = db.collection("orders").doc(orderId);
-  const snap = await orderRef.get();
-  if (!snap.exists) throw new Error("ORDER_NOT_FOUND");
-  const o = snap.data()!;
-  if (o.event_id !== eventId) throw new Error("WRONG_EVENT");
-  if (o.status === "refunded") return; // already done
-  if (o.status !== "paid") throw new Error("NOT_REFUNDABLE");
+
+  const o = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(orderRef);
+    if (!snap.exists) throw new Error("ORDER_NOT_FOUND");
+    const d = snap.data()!;
+    if (d.event_id !== eventId) throw new Error("WRONG_EVENT");
+    if (d.status === "refunded" || d.status === "refunding") return null; // done / in progress elsewhere
+    if (d.status !== "paid") throw new Error("NOT_REFUNDABLE");
+    tx.update(orderRef, { status: "refunding" });
+    return d;
+  });
+  if (!o) return;
 
   const qty = o.quantity ?? 0;
 
@@ -32,16 +45,23 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
     // non-existent application fee is a 400. reverse_transfer always applies —
     // it claws the funds back from the organizer's connected account.
     const hadFee = (o.fee_cents ?? 0) > 0;
-    await getStripe().refunds.create(
-      {
-        payment_intent: o.stripe_payment_intent_id as string,
-        reverse_transfer: true,
-        ...(hadFee ? { refund_application_fee: true } : {}),
-      },
-      // v2: the original `refund_${orderId}` key cached the pre-fix 400 in
-      // Stripe; bump it so corrected requests aren't replayed as that error.
-      { idempotencyKey: `refund_${orderId}_v2` }
-    );
+    try {
+      await getStripe().refunds.create(
+        {
+          payment_intent: o.stripe_payment_intent_id as string,
+          reverse_transfer: true,
+          ...(hadFee ? { refund_application_fee: true } : {}),
+        },
+        // v2: the original `refund_${orderId}` key cached a pre-fix 400 in
+        // Stripe; bumped so corrected requests aren't replayed as that error.
+        { idempotencyKey: `refund_${orderId}_v2` }
+      );
+    } catch (err) {
+      // Give the claim back so the organizer can retry once the cause is fixed
+      // (e.g. an insufficient platform balance).
+      await orderRef.update({ status: "paid" }).catch(() => {});
+      throw err;
+    }
   }
 
   await orderRef.update({ status: "refunded", refunded_at: FieldValue.serverTimestamp() });
@@ -65,8 +85,32 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
 
   // Reverse promoter attribution.
   if (o.promoter_link_id) {
-    await adjustPromoterStats(o.promoter_link_id, { orders: -1, tickets: -(o.quantity ?? 0), gross: -(o.subtotal_cents ?? 0) });
+    await adjustPromoterStats(o.promoter_link_id, { orders: -1, tickets: -qty, gross: -(o.subtotal_cents ?? 0) });
   }
   // Return the promo redemption.
   if (o.promo_code_id) await adjustPromoRedemption(o.promo_code_id, -1);
+
+  // Tell the buyer. Best-effort — a notification failure never undoes a
+  // completed refund. Buyers are keyed by phone (order.buyer_id).
+  if (o.channel !== "comp") {
+    try {
+      const [event, buyer] = await Promise.all([
+        getEventById(eventId),
+        db.collection("buyers").doc(String(o.buyer_id)).get(),
+      ]);
+      const b = buyer.exists ? buyer.data()! : null;
+      const amountCents = o.total_cents ?? 0;
+      if (event && b?.email) {
+        await sendRefundEmail({ to: b.email, firstName: b.first_name ?? null, eventTitle: event.title, amountCents });
+      }
+      if (event && o.buyer_id) {
+        await sendSMS({
+          to: String(o.buyer_id),
+          body: `Refund issued — ${event.title}: $${(amountCents / 100).toFixed(2)} returns to your card in 5–10 business days.`,
+        });
+      }
+    } catch (err) {
+      console.error("refund notify error", { orderId }, err);
+    }
+  }
 }

@@ -81,6 +81,34 @@ export async function sendTicketEmail(opts: {
   });
 }
 
+/** Buyer's refund notice — sent after the Stripe refund succeeds. */
+export async function sendRefundEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  eventTitle: string;
+  amountCents: number;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const amount = `$${(opts.amountCents / 100).toFixed(2)}`;
+  const hi = opts.firstName ? `Hi ${escapeHtml(opts.firstName)},` : "Hi,";
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">Refund issued</p>
+      <h1 style="margin:0 0 16px;font-size:26px;color:#F6EEE1">${escapeHtml(opts.eventTitle)}</h1>
+      <p style="margin:0 0 12px;color:#F6EEE1">${hi} we've refunded <strong>${amount}</strong> for your ticket.</p>
+      <p style="margin:0 0 12px;color:#C9B8D8">It goes back to the card you paid with. Banks usually post it within 5–10 business days.</p>
+      <p style="margin:0;color:#C9B8D8">Your ticket for this event is no longer valid.</p>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">Hapnin · events for the culture</p>
+  </div>`;
+  return sendEmail({
+    to: opts.to,
+    toName: opts.firstName ?? undefined,
+    subject: `Refund issued — ${opts.eventTitle}`,
+    html,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

@@ -179,35 +179,55 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   if (!existing.empty) return;
 
   const pendingRef = db.collection("pending_orders").doc(pendingOrderId);
-  const pendingSnap = await pendingRef.get();
-  // Every early exit below is a silent no-op to the webhook (it still returns
-  // 200), so log the reason — otherwise a paid-but-unfulfilled order leaves no
-  // trace to debug from.
-  if (!pendingSnap.exists) {
-    console.warn("fulfillPaidOrder: pending order missing", { pendingOrderId, paymentIntentId });
-    return;
-  }
-  const p = pendingSnap.data()!;
-  if (p.status === "fulfilled") return; // #2: already handled
 
-  // A PaymentIntent can fail once and then succeed on retry (a declined card,
-  // an Apple Pay re-tap). If a payment_failed webhook released the hold in
-  // between, the money has still been captured by the time we're here — the
-  // buyer must get their ticket. Re-take the inventory and carry on; only give
-  // up if the tier genuinely sold out in the gap (then it needs a refund).
-  if (p.status === "released") {
-    try {
-      await reserveInventory(p.event_id, p.tier_id, p.quantity);
-      await pendingRef.update({ status: "reserved" });
-      console.warn("fulfillPaidOrder: re-reserved a released hold for a succeeded payment", { pendingOrderId, paymentIntentId });
-    } catch (err) {
-      console.error("fulfillPaidOrder: PAID BUT SOLD OUT — needs refund", { pendingOrderId, paymentIntentId, err });
-      return;
-    }
-  } else if (p.status !== "reserved") {
-    console.warn("fulfillPaidOrder: unexpected pending status, skipping", { pendingOrderId, paymentIntentId, status: p.status });
+  // CLAIM the pending order in one transaction. Fulfilment can now be
+  // triggered by the webhook, the confirmation page's reconcile, and the
+  // sweeper at the same time; without a lock two of them could each create an
+  // order (duplicate tickets). Only the caller that flips reserved→fulfilling
+  // proceeds. A claim older than CLAIM_STALE_MS is treated as a crashed
+  // attempt and may be re-taken (the order-exists guard above prevents dupes).
+  //
+  // The claim also handles a hold that a payment_failed webhook released: a
+  // PaymentIntent can fail once and succeed on retry (declined card, Apple Pay
+  // re-tap), and the money has still been captured by the time we're here —
+  // so re-take the inventory in the SAME transaction, or give up loudly if the
+  // tier sold out in the gap (that one needs a refund).
+  const CLAIM_STALE_MS = 2 * 60 * 1000;
+  type Claim = { ok: true; p: FirebaseFirestore.DocumentData } | { ok: false; reason: string; quiet?: boolean };
+  let claim: Claim;
+  try {
+    claim = await db.runTransaction<Claim>(async (tx) => {
+      const snap = await tx.get(pendingRef);
+      if (!snap.exists) return { ok: false, reason: "pending order missing" };
+      const p = snap.data()!;
+      if (p.status === "fulfilled") return { ok: false, reason: "already fulfilled", quiet: true };
+      if (p.status === "fulfilling" && Date.now() - (p.fulfilling_at ?? 0) < CLAIM_STALE_MS) {
+        return { ok: false, reason: "fulfilment in progress elsewhere", quiet: true };
+      }
+      if (p.status === "released") {
+        const tierRef = db.collection("events").doc(p.event_id).collection("tiers").doc(p.tier_id);
+        const tier = await tx.get(tierRef); // reads before writes
+        if (!tier.exists) throw new Error("TIER_NOT_FOUND");
+        const d = tier.data()!;
+        const sold = d.quantity_sold ?? 0;
+        if (d.is_active === false || sold + p.quantity > d.quantity_total) throw new Error("SOLD_OUT");
+        tx.update(tierRef, { quantity_sold: sold + p.quantity });
+      } else if (p.status !== "reserved" && p.status !== "fulfilling") {
+        return { ok: false, reason: `unexpected status ${p.status}` };
+      }
+      tx.update(pendingRef, { status: "fulfilling", fulfilling_at: Date.now() });
+      return { ok: true, p };
+    });
+  } catch (err) {
+    console.error("fulfillPaidOrder: PAID BUT SOLD OUT — needs refund", { pendingOrderId, paymentIntentId, err });
     return;
   }
+  if (!claim.ok) {
+    // Silent no-ops still return 200 to the webhook, so log the non-benign ones.
+    if (!claim.quiet) console.warn("fulfillPaidOrder: skipping", { pendingOrderId, paymentIntentId, reason: claim.reason });
+    return;
+  }
+  const p = claim.p;
 
   const event = await getEventById(p.event_id);
   if (!event) {
@@ -337,16 +357,33 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   }
 }
 
-/** Release the hold when a PaymentIntent is canceled (or a hold has expired). */
-export async function releaseHold(pendingOrderId: string): Promise<void> {
+/**
+ * Release the hold when a PaymentIntent is canceled (or a hold has expired).
+ * Returns true if THIS call did the release.
+ *
+ * The "still reserved?" check, the inventory decrement, and the status flip
+ * happen in ONE transaction. Done as three separate steps, two concurrent
+ * releases (sweep + canceled-webhook, a webhook retry, a double click) both
+ * passed the check and both decremented — that double-released a General
+ * hold on Dance Sundays and left the tier under-counted by one.
+ */
+export async function releaseHold(pendingOrderId: string): Promise<boolean> {
   const db = getDb();
   const ref = db.collection("pending_orders").doc(pendingOrderId);
-  const snap = await ref.get();
-  if (!snap.exists) return;
-  const p = snap.data()!;
-  if (p.status !== "reserved") return;
-  await releaseInventory(p.event_id, p.tier_id, p.quantity);
-  await ref.update({ status: "released" });
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return false;
+    const p = snap.data()!;
+    if (p.status !== "reserved") return false;
+    const tierRef = db.collection("events").doc(p.event_id).collection("tiers").doc(p.tier_id);
+    const tier = await tx.get(tierRef); // all reads before any write
+    if (tier.exists) {
+      const sold = tier.data()!.quantity_sold ?? 0;
+      tx.update(tierRef, { quantity_sold: Math.max(0, sold - (p.quantity ?? 0)) });
+    }
+    tx.update(ref, { status: "released" });
+    return true;
+  });
 }
 
 export type SweepCounts = {
@@ -421,8 +458,8 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
       // the hold already released that's a guaranteed no-op; done the other way
       // round it's two releases racing on one tier's transaction — which
       // surfaced as spurious "errors" on the first production sweep.
-      await releaseHold(doc.id);
-      counts.released++;
+      if (await releaseHold(doc.id)) counts.released++;
+      else counts.kept++; // someone else released it first — nothing to do
       if (pi && status && status !== "canceled" && status !== "missing") {
         try {
           await stripe.paymentIntents.cancel(pi);
