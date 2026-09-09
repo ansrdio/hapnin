@@ -30,6 +30,9 @@ export async function GET(req: Request) {
   const handle = url.searchParams.get("handle");
   const apply = url.searchParams.get("apply") === "1";
   const confirm = url.searchParams.get("confirm");
+  // &org=1 also removes the organizer shell itself (doc, handle reservation,
+  // team memberships) once its events are gone — for retiring test orgs.
+  const removeOrg = url.searchParams.get("org") === "1";
   if (!handle) return NextResponse.json({ error: "pass ?handle=..." }, { status: 400 });
 
   const organizer = await getOrganizerByHandle(handle);
@@ -60,15 +63,31 @@ export async function GET(req: Request) {
     plan.push({ eventId: ev.id, title: d.title, slug: d.slug ?? null, counts });
   }
 
+  // The org shell — only on request, and only after its events are in the
+  // same delete list (so a partial run can't leave events without an owner).
+  let orgShell: Record<string, number> | null = null;
+  if (removeOrg) {
+    const team = await db.collection("team_members").where("organizer_id", "==", organizer.id).get();
+    toDelete.push(...team.docs.map((t) => t.ref));
+    toDelete.push(db.collection("handles").doc(organizer.handle));
+    toDelete.push(db.collection("organizers").doc(organizer.id));
+    orgShell = { team_members: team.size, handle: 1, organizer: 1 };
+  }
+
   if (apply) await deleteAll(toDelete);
 
   return NextResponse.json({
     handle,
     organizerId: organizer.id,
     events: plan,
+    orgShell: orgShell ?? "kept (add &org=1 to remove the organizer doc, handle, and team)",
     documents: toDelete.length,
     applied: apply,
-    hint: apply ? undefined : `dry run — nothing deleted. To delete: &apply=1&confirm=${handle}`,
-    untouched: ["organizer doc", "team_members", "buyers (shared, keyed by phone)"],
+    hint: apply ? undefined : `dry run — nothing deleted. To delete: &apply=1&confirm=${handle}${removeOrg ? "&org=1" : ""}`,
+    untouched: [
+      ...(removeOrg ? [] : ["organizer doc", "team_members"]),
+      "buyers (shared, keyed by phone)",
+      "the Stripe connected account, if any (remove in Stripe → Connected accounts)",
+    ],
   });
 }

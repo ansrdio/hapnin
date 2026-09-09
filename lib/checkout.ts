@@ -478,3 +478,45 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
   }
   return counts;
 }
+
+/**
+ * Re-send an existing ticket link to its buyer: email when we have an address
+ * (the reliable channel until Twilio lands), SMS best-effort. Used by the guest
+ * list's Resend button. Buyers are keyed by phone. Never throws.
+ */
+export async function deliverTicket(input: {
+  orderId: string;
+  quantity: number;
+  phone: string;
+  event: { title: string; starts_at: number; venue_name: string; venue_address: string };
+}): Promise<{ emailed: boolean }> {
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+  const ticketUrl = `${site}/t/${input.orderId}`;
+  let emailed = false;
+  try {
+    const buyer = await getDb().collection("buyers").doc(input.phone).get();
+    const b = buyer.exists ? buyer.data()! : null;
+    if (b?.email) {
+      const r = await sendTicketEmail({
+        to: b.email,
+        firstName: b.first_name ?? undefined,
+        eventTitle: input.event.title,
+        whenText: new Date(input.event.starts_at).toLocaleString("en-US", {
+          timeZone: "America/Phoenix", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+        }),
+        venue: [input.event.venue_name, input.event.venue_address].filter(Boolean).join(" · "),
+        quantity: input.quantity,
+        ticketUrl,
+      });
+      emailed = r.ok;
+    }
+  } catch (err) {
+    console.error("deliverTicket email error", { orderId: input.orderId }, err);
+  }
+  try {
+    await sendSMS({ to: input.phone, body: `Your ticket for ${input.event.title}: ${ticketUrl}` });
+  } catch (err) {
+    console.error("deliverTicket sms error", { orderId: input.orderId }, err);
+  }
+  return { emailed };
+}

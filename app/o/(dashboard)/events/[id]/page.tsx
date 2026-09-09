@@ -5,6 +5,7 @@ import { getEventAudience } from "@/lib/broadcasts";
 import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
 import { waitlistCount } from "@/lib/waitlist";
+import { isSmsConfigured } from "@/lib/sms";
 import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
@@ -65,6 +66,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
   const publicUrl = `https://hapnin.now/e/${event.slug}`;
+  const smsOff = !isSmsConfigured();
 
   return (
     <div className="max-w-3xl">
@@ -266,7 +268,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
               A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
             </p>
-            <BroadcastForm eventId={event.id} audience={audience.length} />
+            <BroadcastForm eventId={event.id} audience={audience.length} smsOff={smsOff} />
           </Card>
         </TabPanel>
 
@@ -295,9 +297,15 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           <Card className="mb-6">
             <p className="font-display font-semibold text-cream">Issue comps</p>
             <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-              Free passes for guest list, press, or artist plus-ones. They text to the guest and scan at the door
-              like any ticket — no charge, but they count toward capacity.
+              Free passes for guest list, press, or artist plus-ones. They scan at the door like any ticket — no
+              charge, but they count toward capacity.
             </p>
+            {smsOff && (
+              <p className="mb-4 rounded-xl border border-gold/30 bg-gold/[0.06] px-4 py-3 text-sm text-mauve-dim">
+                <span className="font-medium text-cream">Texting isn’t switched on yet</span> — the pass is emailed
+                if you enter an email. You can also send the link yourself from the guest list.
+              </p>
+            )}
             <CompForm eventId={event.id} tiers={tiers.map((t) => ({ id: t.id, name: t.name }))} />
           </Card>
         </TabPanel>

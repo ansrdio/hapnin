@@ -2,6 +2,7 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getEventById, getTier, reserveInventory, releaseInventory } from "./events";
+import { sendTicketEmail } from "./email";
 import { findOrCreateBuyer } from "./buyers";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
@@ -85,9 +86,29 @@ export async function issueComp(input: {
     });
 
     const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+    const ticketUrl = `${site}/t/${orderRef.id}`;
+    // Email when we have an address (the reliable channel until Twilio lands);
+    // SMS best-effort. Neither may undo an issued comp.
+    if (input.buyer.email) {
+      try {
+        await sendTicketEmail({
+          to: input.buyer.email,
+          firstName: input.buyer.first_name,
+          eventTitle: event.title,
+          whenText: new Date(event.starts_at).toLocaleString("en-US", {
+            timeZone: "America/Phoenix", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+          }),
+          venue: [event.venue_name, event.venue_address].filter(Boolean).join(" · "),
+          quantity: qty,
+          ticketUrl,
+        });
+      } catch (err) {
+        console.error("comp email error", err);
+      }
+    }
     await sendSMS({
       to: input.buyer.phone,
-      body: `You’re on the list — ${qty} ${qty > 1 ? "passes" : "pass"} for ${event.title}. ${site}/t/${orderRef.id}`,
+      body: `You’re on the list — ${qty} ${qty > 1 ? "passes" : "pass"} for ${event.title}. ${ticketUrl}`,
     });
 
     return { orderId: orderRef.id };

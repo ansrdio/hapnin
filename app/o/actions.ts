@@ -15,6 +15,7 @@ import { sendSMS } from "@/lib/sms";
 import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, updateEventDetails, updateTier, addTierToEvent, deleteEvent, isRefundPolicy } from "@/lib/events";
 import { updateOrganizerProfile } from "@/lib/organizers";
 import { parsePhoenixLocal } from "@/lib/event-input";
+import { deliverTicket } from "@/lib/checkout";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -188,8 +189,8 @@ export async function resendTicketAction(formData: FormData): Promise<void> {
   if (!event) return;
   const order = await getOrderById(orderId);
   if (!order || order.event_id !== eventId) return;
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
-  await sendSMS({ to: order.buyer_id, body: `Your ticket for ${event.title}: ${site}/t/${orderId}` });
+  // Email (when we have one) + best-effort SMS — Resend must work before Twilio lands.
+  await deliverTicket({ orderId, quantity: order.quantity ?? 1, phone: order.buyer_id, event });
 }
 
 /** Refund an order (owner/manager, not door). */

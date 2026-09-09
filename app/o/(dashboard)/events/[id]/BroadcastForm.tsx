@@ -18,10 +18,24 @@ function Submit({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function BroadcastForm({ eventId, audience }: { eventId: string; audience: number }) {
+export function BroadcastForm({ eventId, audience, smsOff = false }: { eventId: string; audience: number; smsOff?: boolean }) {
   const [state, action] = useActionState(broadcastAction, initialActionState);
   const [len, setLen] = useState(0);
   const err = state.fieldErrors ?? {};
+
+  // Never show a form that would "send" to nowhere. Until texting is switched
+  // on, say so plainly rather than let an organizer believe buyers were reached.
+  if (smsOff) {
+    return (
+      <div className="rounded-xl border border-gold/30 bg-gold/[0.06] px-4 py-3 text-sm">
+        <p className="font-medium text-cream">Texting isn’t switched on yet.</p>
+        <p className="mt-0.5 text-mauve-dim">
+          Broadcasts go out by SMS, and carrier approval for Hapnin’s number is still in progress. You have{" "}
+          {audience} opted-in {audience === 1 ? "buyer" : "buyers"} ready for when it is.
+        </p>
+      </div>
+    );
+  }
 
   if (audience === 0) {
     return <p className="text-sm text-mauve-dim">No opted-in buyers yet. Once people buy and opt in, you can text them here.</p>;

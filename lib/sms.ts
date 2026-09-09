@@ -18,6 +18,19 @@ function getClient() {
   return client;
 }
 
+/**
+ * True once real texting is possible (creds + a sender). The UI uses this to
+ * stop promising texts we can't send yet — a broadcast that "sends" to a
+ * console log would let an organizer believe their buyers were reached.
+ */
+export function isSmsConfigured(): boolean {
+  return !!(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    (process.env.TWILIO_MESSAGING_SERVICE_SID || process.env.TWILIO_FROM_NUMBER)
+  );
+}
+
 export async function sendSMS(opts: { to: string; body: string }): Promise<SendResult> {
   const to = normalizeUsPhone(opts.to);
   if (!to) return { ok: false, mode: "console", error: "invalid_phone" };
