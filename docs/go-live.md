@@ -1,53 +1,102 @@
 # Go-live checklist
 
-Moving Hapnin from test/sandbox to real money + real texts. Work top to bottom;
-each Vercel env change needs a **redeploy** to take effect.
+Status as of **2026-09-09**. Real money has moved end to end in production
+(card + Apple Pay purchases, ticket email, refund). Each Vercel env change
+needs a **redeploy** to take effect.
 
-## 1. Stripe — switch to LIVE mode
-Test and live are separate worlds; nothing carries over.
+## ✅ Done — verified with live transactions
 
-1. Stripe Dashboard → toggle to **Live mode** → **Developers → API keys**:
-   - `STRIPE_SECRET_KEY` = `sk_live_…`
-   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = `pk_live_…`
-2. Create a **live webhook** (Developers → Webhooks → Add endpoint):
-   - URL `https://www.hapnin.now/api/stripe/webhook`, scope **Your account**
-   - events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `account.updated`
-   - copy its signing secret → `STRIPE_WEBHOOK_SECRET` = `whsec_…`
-   - (Or send me the live secret key and I'll create it via API, like we did in test.)
-3. **Connected accounts don't transfer.** Any organizer who onboarded in test has a
-   test `stripe_account_id` that's invalid under live keys. For a clean launch,
-   onboard **fresh** organizers in live. To reuse a test organizer, clear their
-   `stripe_account_id` + `stripe_onboarded` in Firestore so they re-connect.
-4. Redeploy. Then each organizer clicks **Connect payouts** on their dashboard and
-   completes real Stripe onboarding (bank details, identity).
+### Stripe (LIVE)
+- Dedicated **Hapnin** Stripe account (`acct_1UDYjUJiGJhulN5H`). The old shared
+  "Philists" account was restricted and is not used.
+- Connect **platform profile** completed: destination charges, Stripe-hosted
+  Express onboarding, platform liable for refunds/chargebacks.
+- Vercel Production: `STRIPE_SECRET_KEY` (`sk_live_…`),
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_live_…`), `STRIPE_WEBHOOK_SECRET`.
+- Live webhook → `https://www.hapnin.now/api/stripe/webhook`, events:
+  `payment_intent.succeeded`, `payment_intent.payment_failed`,
+  `payment_intent.canceled`, `account.updated`.
+- **Apple Pay / Google Pay / Link** at checkout (Express Checkout Element).
+  Apple verifies the exact hostname: `www.hapnin.now` is registered under
+  Settings → Payment method domains, and the association file is served at
+  `public/.well-known/apple-developer-merchantid-domain-association`.
+- Money model: buyer pays face value + card processing; the organizer's own
+  connected account is the settlement merchant (`on_behalf_of`); Hapnin's
+  `application_fee` (3% + 50¢, **$0 on an organizer's first event**) is the
+  only thing that lands on the platform.
 
-## 2. Twilio — real SMS
-Ticket links, broadcasts, and waitlist texts only *log* until this is set.
+### Email (Brevo)
+- `hapnin.now` authenticated (brevo-code TXT, DKIM, DMARC). Sender
+  `tickets@hapnin.now` / `Hapnin`. `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`,
+  `BREVO_SENDER_NAME` set.
+- **Keep Brevo's "Authorized IPs" DEACTIVATED for API keys** — Vercel's rotating
+  IPs can't be allowlisted; when it was on, every send silently fell back to
+  Firebase's unbranded email.
+- Emails in use: sign-in link, ticket (purchase, comp, resend), refund notice.
 
-1. Create a Twilio account, buy a US number (or a **Messaging Service**).
-2. **Register A2P 10DLC** (US carrier requirement for app-to-person SMS) — a brand +
-   campaign registration inside Twilio. Sending at scale without it gets filtered.
-3. Set in Vercel:
-   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
-   - **either** `TWILIO_MESSAGING_SERVICE_SID` (recommended) **or** `TWILIO_FROM_NUMBER`
-4. Redeploy. `sendSMS()` starts delivering automatically — no code change.
-5. (Recommended before marketing texts: wire **STOP** auto-unsubscribe — not built yet.)
+### Payment robustness
+- `payment_failed` is **retryable** — the hold is kept; only `canceled` releases.
+- A released hold whose payment then succeeds is re-reserved and fulfilled.
+- `/api/order-status` reconciles against Stripe on read, so a lost or late
+  webhook can't strand a paid buyer.
+- Hold release, fulfilment, and refund each **claim state in one transaction**
+  (no double-release, no duplicate orders, no double refunds).
+- Abandoned holds are swept (Stripe-reconciled) before every new reservation
+  and via `/api/cron/sweep-holds`.
 
-## 3. Email — login/signup deliverability (Brevo)
-Sign-in links must land in inboxes, not spam.
+## ⏳ Pending — safe to launch without, gated in the UI
 
-1. In Brevo, **verify your sending domain** (add the SPF, DKIM, DMARC DNS records).
-2. `BREVO_SENDER_EMAIL` = an address on that verified domain (e.g. `hey@hapnin.now`);
-   `BREVO_SENDER_NAME` = `Hapnin`. Confirm `BREVO_API_KEY` is set.
-3. Send yourself a login link and confirm inbox delivery.
+### Twilio — real SMS
+Until this is set, `sendSMS()` only logs. The product is honest about it:
+the broadcast form shows "Texting isn't switched on yet"; tickets, comps,
+resend, and refunds all go by **email**. Nothing in the UI changes when
+Twilio lands — the gate lifts itself.
 
-## 4. Turn off the dev seed
-- The `/api/dev/seed` route is now disabled unless `ALLOW_DEV_SEED=1` is set.
-- **For testing:** add `ALLOW_DEV_SEED=1` in Vercel to keep seeding.
-- **For launch:** remove `ALLOW_DEV_SEED` (or set to `0`) so the route 404s.
+1. Twilio account + a **Messaging Service** (recommended) or a US number.
+2. **Register A2P 10DLC** (brand + campaign). Takes days; sending at scale
+   without it gets filtered.
+3. Vercel: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either
+   `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`. Redeploy.
+4. Before marketing texts: wire STOP auto-unsubscribe (not built yet).
 
-## 5. Final checks
-- `NEXT_PUBLIC_SITE_URL` = `https://hapnin.now`.
-- Do one **real** end-to-end: a live card purchase (small amount, then refund),
-  confirm the ticket text arrives and the payout shows on the organizer's Stripe.
-- Consider Stripe's live-mode radar/fraud rules and a real support email.
+### Sweeper schedule (optional)
+`/api/cron/sweep-holds` accepts `Authorization: Bearer $CRON_SECRET`. Set
+`CRON_SECRET` in Vercel and add a schedule in `vercel.json` — on the **Pro**
+plan (Hobby caps cron frequency and a rejected schedule can fail the deploy).
+Not required: the per-event sweep already runs before every reservation.
+
+## 🔧 Admin ops tools (admin session required — `ADMIN_EMAILS`)
+| Route | Use |
+|---|---|
+| `/admin` | organizers list, create organizer |
+| `/api/admin/recount?eventId=…` (`&apply=1` to write) | recompute tier/event counters from paid orders + live holds; repairs drift |
+| `/api/admin/order-debug?pi=pi_…` | for a paid-but-missing order: Stripe status/metadata, event sequence, whether our webhook saw each, pending-order state |
+| `/api/cron/sweep-holds` | run a full abandoned-hold sweep on demand |
+
+Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org`.
+`ALLOW_DEV_SEED` can be deleted from Vercel.
+
+## Accounts & access
+- **Admin** = emails in `ADMIN_EMAILS` (comma-separated). Currently
+  `filanabolaji@gmail.com`. Adding one needs a redeploy.
+- **Organizer** dashboards are matched by the organizer's own login email —
+  the live org `/o/abolajifilani` signs in as `abolaji.filani@ansrd.io`.
+  The admin email is not an organizer; add it as a team member if one login
+  for both is wanted.
+- Test organizers (`aura`, `done`, `philists`) and all seeded data were purged
+  2026-09-09. Only `/o/abolajifilani` remains.
+
+## Env summary (Vercel · Production)
+`NEXT_PUBLIC_SITE_URL=https://hapnin.now` · `ADMIN_EMAILS` ·
+`FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` ·
+`STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` ·
+`BREVO_API_KEY` / `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` ·
+pending: `TWILIO_*` · optional: `CRON_SECRET`.
+
+## Before opening to the public
+- Keep a small **platform balance** in Stripe (or enable bank debit for
+  negative balances): refunds are paid from the platform balance and Stripe
+  keeps its processing fee, so a $0 balance refuses refunds.
+- Review Stripe **Radar** rules for live mode; set a real support email.
+- Times are Phoenix-only (`America/Phoenix`, no DST) — fine for launch,
+  generalize before events outside Arizona.
