@@ -27,13 +27,20 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
 
   // Money reversal — skip for comps / anything without a charge.
   if (o.channel !== "comp" && o.stripe_payment_intent_id) {
+    // Only refund the application fee if one was actually charged. First/launch
+    // events carry no platform fee (fee_cents === 0); asking Stripe to refund a
+    // non-existent application fee is a 400. reverse_transfer always applies —
+    // it claws the funds back from the organizer's connected account.
+    const hadFee = (o.fee_cents ?? 0) > 0;
     await getStripe().refunds.create(
       {
         payment_intent: o.stripe_payment_intent_id as string,
         reverse_transfer: true,
-        refund_application_fee: true,
+        ...(hadFee ? { refund_application_fee: true } : {}),
       },
-      { idempotencyKey: `refund_${orderId}` }
+      // v2: the original `refund_${orderId}` key cached the pre-fix 400 in
+      // Stripe; bump it so corrected requests aren't replayed as that error.
+      { idempotencyKey: `refund_${orderId}_v2` }
     );
   }
 
