@@ -4,8 +4,21 @@ import { listEventsByOrganizer } from "@/lib/events";
 import { refreshOnboardingStatus } from "@/lib/connect";
 import { startOwnOnboardingAction, refreshOwnStripeStatusAction } from "@/app/o/actions";
 import { PageHeader, LinkButton, Card, Stat, StatusBadge, EmptyState, buttonClass, money } from "@/app/components/ui";
+import { EventList, CopyLinkButton } from "./EventList";
 
 export const dynamic = "force-dynamic";
+
+const PAST_GRACE_MS = 6 * 60 * 60 * 1000; // matches EventList: "upcoming" until 6h after doors
+
+/** "today" / "tomorrow" / "in 12 days" / "happening now" for the Next-up card. */
+function whenLabel(startsAt: number): string {
+  const diff = startsAt - Date.now();
+  if (diff <= 0) return "happening now";
+  const days = diff / 86_400_000;
+  if (days < 1) return "today";
+  if (days < 2) return "tomorrow";
+  return `in ${Math.ceil(days)} days`;
+}
 
 function fmtDate(ms: number): string {
   return new Date(ms).toLocaleString("en-US", {
@@ -86,6 +99,13 @@ export default async function OrganizerHome({
     (a, e) => ({ sold: a.sold + e.tickets_sold, gross: a.gross + e.gross_cents }),
     { sold: 0, gross: 0 }
   );
+
+  // "Next up": the soonest upcoming event — prefer one that's actually on sale.
+  const now = Date.now();
+  const upcoming = events
+    .filter((e) => e.starts_at + PAST_GRACE_MS >= now && e.status !== "cancelled")
+    .sort((a, b) => a.starts_at - b.starts_at);
+  const next = upcoming.find((e) => e.status === "on_sale") ?? upcoming[0] ?? null;
 
   return (
     <div>
@@ -199,8 +219,55 @@ export default async function OrganizerHome({
         </Card>
       )}
 
-      {events.length > 0 && (
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      {/* Next up — the one event an organizer checks every day, with the
+          numbers and actions that matter right now. */}
+      {next && (
+        <Card className="mb-8 border-gold/30 bg-gold/[0.04]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              {next.flyer_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={next.flyer_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-plum text-2xl">🎟️</div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Next up · {whenLabel(next.starts_at)}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2.5">
+                  <Link href={`/o/events/${next.id}`} className="font-display text-2xl font-bold text-cream hover:text-gold">
+                    {next.title}
+                  </Link>
+                  <StatusBadge status={next.status} />
+                </div>
+                <p className="mt-0.5 text-sm text-mauve-dim">
+                  {fmtDate(next.starts_at)} · {next.venue_name}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {next.status === "on_sale" ? (
+                <CopyLinkButton slug={next.slug} label="Copy event link" className={buttonClass("primary")} />
+              ) : (
+                <LinkButton href={`/o/events/${next.id}`} variant="primary">Publish</LinkButton>
+              )}
+              <LinkButton href={`/o/events/${next.id}/guests`} variant="secondary">Guest list</LinkButton>
+              <LinkButton href={`/o/events/${next.id}`} variant="secondary">Manage</LinkButton>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-4">
+            <Stat
+              label="Sold"
+              value={next.capacity != null ? `${next.tickets_sold}/${next.capacity}` : next.tickets_sold}
+              sub={next.capacity != null ? `${Math.max(0, next.capacity - next.tickets_sold)} left` : undefined}
+            />
+            <Stat label="Gross" value={money(next.gross_cents)} />
+            <Stat label="Checked in" value={next.checked_in} sub={`of ${next.tickets_sold}`} />
+          </div>
+        </Card>
+      )}
+
+      {events.length > 1 && (
+        <div className="mb-8 grid grid-cols-3 gap-4">
           <Stat label="Events" value={events.length} />
           <Stat label="Tickets sold" value={totals.sold} />
           <Stat label="Gross" value={money(totals.gross)} />
@@ -216,54 +283,20 @@ export default async function OrganizerHome({
           </div>
         </EmptyState>
       ) : (
-        <ul className="space-y-3">
-          {events.map((e) => {
-            const cap = e.capacity ?? null;
-            return (
-              <li key={e.id}>
-                <Link
-                  href={`/o/events/${e.id}`}
-                  className="block rounded-2xl border border-plum-hi bg-plum/40 p-5 transition-colors hover:border-gold"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-start gap-3.5">
-                      {e.flyer_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={e.flyer_url}
-                          alt=""
-                          className="h-14 w-14 shrink-0 rounded-lg object-cover"
-                        />
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-display text-lg font-semibold text-cream">{e.title}</span>
-                          <StatusBadge status={e.status} />
-                        </div>
-                        <p className="mt-0.5 text-sm text-mauve-dim">
-                          {fmtDate(e.starts_at)} · {e.venue_name}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-6 text-right">
-                      <div>
-                        <div className="font-display text-lg font-semibold tabular-nums text-cream">
-                          {e.tickets_sold}
-                          {cap != null && <span className="text-mauve-dim">/{cap}</span>}
-                        </div>
-                        <div className="text-[11px] uppercase tracking-wide text-mauve-dim">Sold</div>
-                      </div>
-                      <div>
-                        <div className="font-display text-lg font-semibold tabular-nums text-cream">{money(e.gross_cents)}</div>
-                        <div className="text-[11px] uppercase tracking-wide text-mauve-dim">Gross</div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <EventList
+          events={events.map((e) => ({
+            id: e.id,
+            title: e.title,
+            slug: e.slug,
+            status: e.status,
+            starts_at: e.starts_at,
+            venue_name: e.venue_name,
+            tickets_sold: e.tickets_sold,
+            gross_cents: e.gross_cents,
+            capacity: e.capacity,
+            flyer_url: e.flyer_url,
+          }))}
+        />
       )}
     </div>
   );

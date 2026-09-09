@@ -23,6 +23,7 @@ import { BroadcastForm } from "./BroadcastForm";
 import { PromoterLinks } from "./PromoterLinks";
 import { PromoCodes } from "./PromoCodes";
 import { TableManager } from "./TableManager";
+import { SectionTabs, TabPanel } from "./SectionTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         </Card>
       )}
 
-      {/* Publish controls */}
+      {/* Publish controls — always visible, above the tabs */}
       <Card className="mb-6">
         <div className="flex flex-wrap items-center gap-3">
           {event.status === "draft" && (
@@ -131,146 +132,176 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         </div>
       </Card>
 
-      {/* Live numbers */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Sold" value={event.tickets_sold} sub={`${remaining} left`} />
-        <Stat label="Gross" value={money(event.gross_cents)} />
-        <Stat label="Checked in" value={event.checked_in} sub={`of ${event.tickets_sold}`} />
-        <Stat label="Capacity" value={capacity} />
-      </div>
+      <SectionTabs
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "tickets", label: "Tickets & tables", count: gaTiers.length + tableTiers.length },
+          { id: "promotion", label: "Promotion", count: promoCodes.length + promoterLinks.length },
+          { id: "guests", label: "Guests", count: event.tickets_sold },
+        ]}
+      >
+        {/* ── Overview: the numbers, the link, the flyer ─────────────────── */}
+        <TabPanel id="overview">
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Stat label="Sold" value={event.tickets_sold} sub={`${remaining} left`} />
+            <Stat label="Gross" value={money(event.gross_cents)} />
+            <Stat label="Checked in" value={event.checked_in} sub={`of ${event.tickets_sold}`} />
+            <Stat label="Capacity" value={capacity} />
+          </div>
 
-      {/* Tiers */}
-      <Card className="mb-6">
-        <p className="mb-4 font-display font-semibold text-cream">Tiers</p>
-        <div className="divide-y divide-plum-hi">
-          {gaTiers.map((t) => {
-            const left = Math.max(0, t.quantity_total - t.quantity_sold);
-            return (
-              <div key={t.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                <div>
-                  <p className="font-medium text-cream">{t.name}</p>
-                  <p className="text-sm text-mauve-dim">{money(t.price_cents)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-display font-semibold tabular-nums text-cream">
-                    {t.quantity_sold}
-                    <span className="text-mauve-dim">/{t.quantity_total}</span>
-                  </p>
-                  <p className="text-sm text-mauve-dim">{left} left</p>
-                </div>
+          <Card className="mb-6">
+            <p className="mb-1 font-display font-semibold text-cream">Your event link</p>
+            <p className="mb-4 text-sm text-mauve-dim">
+              {event.status === "on_sale" ? "Post it everywhere — this is where people buy." : "Goes live when you publish."}
+            </p>
+            <ShareLink url={publicUrl} disabled={event.status !== "on_sale"} />
+            {event.status === "on_sale" && (
+              <div className="mt-3">
+                <LinkButton href={`/e/${event.slug}`} variant="ghost" target="_blank">
+                  Preview the event page ↗
+                </LinkButton>
               </div>
-            );
-          })}
-        </div>
-      </Card>
+            )}
+          </Card>
 
-      {/* Tables / bottle service */}
-      <Card className="mb-6">
-        <p className="font-display font-semibold text-cream">Tables & bottle service</p>
-        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-          Reserved tables sell as one unit and admit their whole party. Buyers pick them from a map on the event page.
-        </p>
-        <TableManager eventId={event.id} tables={tableTiers} />
-      </Card>
-
-      {/* Waitlist */}
-      {waitlist > 0 && (
-        <Card className="mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-display font-semibold text-cream">Waitlist</p>
-              <p className="mt-0.5 text-sm text-mauve-dim">
-                {waitlist} {waitlist === 1 ? "person is" : "people are"} waiting. Text them a buy link when seats open.
-              </p>
-            </div>
-            <form action={notifyWaitlistAction}>
+          <Card className="mb-6">
+            <p className="mb-4 font-display font-semibold text-cream">Flyer</p>
+            <form action={setEventFlyerAction} className="space-y-4">
               <input type="hidden" name="event_id" value={event.id} />
-              <button className={buttonClass("secondary")}>Notify waitlist</button>
+              <FlyerUpload initialUrl={event.flyer_url ?? ""} />
+              <button className={buttonClass("secondary")}>Save flyer</button>
             </form>
-          </div>
-        </Card>
-      )}
+          </Card>
 
-      {/* Promo codes */}
-      <Card className="mb-6">
-        <p className="font-display font-semibold text-cream">Promo codes</p>
-        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-          Discounts buyers enter at checkout — percentage or flat amount, with an optional cap on uses.
-        </p>
-        <PromoCodes eventId={event.id} codes={promoCodes} />
-      </Card>
-
-      {/* Promoters */}
-      <Card className="mb-6">
-        <p className="font-display font-semibold text-cream">Promoter links</p>
-        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-          Give each promoter their own link. Sales through it are tracked to them — set a commission per order
-          to see what you owe.
-        </p>
-        <PromoterLinks eventId={event.id} slug={event.slug} links={promoterLinks} />
-      </Card>
-
-      {/* Broadcast */}
-      <Card className="mb-6">
-        <p className="font-display font-semibold text-cream">Text your buyers</p>
-        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-          A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
-        </p>
-        <BroadcastForm eventId={event.id} audience={audience.length} />
-      </Card>
-
-      {/* Comps */}
-      <Card className="mb-6">
-        <p className="font-display font-semibold text-cream">Issue comps</p>
-        <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-          Free passes for guest list, press, or artist plus-ones. They text to the guest and scan at the door
-          like any ticket — no charge, but they count toward capacity.
-        </p>
-        <CompForm eventId={event.id} tiers={tiers.map((t) => ({ id: t.id, name: t.name }))} />
-      </Card>
-
-      {/* Flyer */}
-      <Card className="mb-6">
-        <p className="mb-4 font-display font-semibold text-cream">Flyer</p>
-        <form action={setEventFlyerAction} className="space-y-4">
-          <input type="hidden" name="event_id" value={event.id} />
-          <FlyerUpload initialUrl={event.flyer_url ?? ""} />
-          <button className={buttonClass("secondary")}>Save flyer</button>
-        </form>
-      </Card>
-
-      {/* Share + door */}
-      <Card>
-        <p className="mb-4 font-display font-semibold text-cream">Share & run the door</p>
-        <ShareLink url={publicUrl} disabled={event.status !== "on_sale"} />
-        <div className="mt-4 flex flex-wrap gap-3">
-          <LinkButton href={`/o/events/${event.id}/guests`} variant="secondary">
-            Guest list
-          </LinkButton>
-          <LinkButton href={`/scan/${event.id}`} variant="secondary">
-            Open door scanner
-          </LinkButton>
-          <LinkButton href={`/scan/${event.id}/sell`} variant="secondary">
-            Box office
-          </LinkButton>
-          {event.status === "on_sale" && (
-            <LinkButton href={`/e/${event.slug}`} variant="ghost" target="_blank">
-              Preview ↗
-            </LinkButton>
+          {/* Danger zone — delete only allowed before any sales */}
+          {event.tickets_sold === 0 && (
+            <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-coral/20 p-5">
+              <div>
+                <p className="font-display font-semibold text-cream">Delete this event</p>
+                <p className="text-sm text-mauve-dim">Only possible before any tickets sell.</p>
+              </div>
+              <DeleteEventButton eventId={event.id} title={event.title} />
+            </div>
           )}
-        </div>
-      </Card>
+        </TabPanel>
 
-      {/* Danger zone — delete only allowed before any sales */}
-      {event.tickets_sold === 0 && (
-        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-coral/20 p-5">
-          <div>
-            <p className="font-display font-semibold text-cream">Delete this event</p>
-            <p className="text-sm text-mauve-dim">Only possible before any tickets sell.</p>
-          </div>
-          <DeleteEventButton eventId={event.id} title={event.title} />
-        </div>
-      )}
+        {/* ── Tickets & tables ───────────────────────────────────────────── */}
+        <TabPanel id="tickets">
+          <Card className="mb-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="font-display font-semibold text-cream">Tiers</p>
+              <LinkButton href={`/o/events/${event.id}/edit`} variant="ghost">
+                Edit tiers
+              </LinkButton>
+            </div>
+            <div className="divide-y divide-plum-hi">
+              {gaTiers.map((t) => {
+                const left = Math.max(0, t.quantity_total - t.quantity_sold);
+                return (
+                  <div key={t.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                    <div>
+                      <p className="font-medium text-cream">{t.name}</p>
+                      <p className="text-sm text-mauve-dim">{money(t.price_cents)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display font-semibold tabular-nums text-cream">
+                        {t.quantity_sold}
+                        <span className="text-mauve-dim">/{t.quantity_total}</span>
+                      </p>
+                      <p className="text-sm text-mauve-dim">{left} left</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Tables & bottle service</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              Reserved tables sell as one unit and admit their whole party. Buyers pick them from a map on the event page.
+            </p>
+            <TableManager eventId={event.id} tables={tableTiers} />
+          </Card>
+
+          {waitlist > 0 && (
+            <Card className="mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-display font-semibold text-cream">Waitlist</p>
+                  <p className="mt-0.5 text-sm text-mauve-dim">
+                    {waitlist} {waitlist === 1 ? "person is" : "people are"} waiting. Text them a buy link when seats open.
+                  </p>
+                </div>
+                <form action={notifyWaitlistAction}>
+                  <input type="hidden" name="event_id" value={event.id} />
+                  <button className={buttonClass("secondary")}>Notify waitlist</button>
+                </form>
+              </div>
+            </Card>
+          )}
+        </TabPanel>
+
+        {/* ── Promotion ──────────────────────────────────────────────────── */}
+        <TabPanel id="promotion">
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Promo codes</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              Discounts buyers enter at checkout — percentage or flat amount, with an optional cap on uses.
+            </p>
+            <PromoCodes eventId={event.id} codes={promoCodes} />
+          </Card>
+
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Promoter links</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              Give each promoter their own link. Sales through it are tracked to them — set a commission per order
+              to see what you owe.
+            </p>
+            <PromoterLinks eventId={event.id} slug={event.slug} links={promoterLinks} />
+          </Card>
+
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Text your buyers</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
+            </p>
+            <BroadcastForm eventId={event.id} audience={audience.length} />
+          </Card>
+        </TabPanel>
+
+        {/* ── Guests: the door ───────────────────────────────────────────── */}
+        <TabPanel id="guests">
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Run the door</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              {event.tickets_sold > 0
+                ? `${event.tickets_sold} ${event.tickets_sold === 1 ? "ticket" : "tickets"} sold · ${event.checked_in} checked in.`
+                : "No tickets yet — the guest list fills as people buy."}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <LinkButton href={`/o/events/${event.id}/guests`} variant="primary">
+                Guest list
+              </LinkButton>
+              <LinkButton href={`/scan/${event.id}`} variant="secondary">
+                Open door scanner
+              </LinkButton>
+              <LinkButton href={`/scan/${event.id}/sell`} variant="secondary">
+                Box office
+              </LinkButton>
+            </div>
+          </Card>
+
+          <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Issue comps</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              Free passes for guest list, press, or artist plus-ones. They text to the guest and scan at the door
+              like any ticket — no charge, but they count toward capacity.
+            </p>
+            <CompForm eventId={event.id} tiers={tiers.map((t) => ({ id: t.id, name: t.name }))} />
+          </Card>
+        </TabPanel>
+      </SectionTabs>
     </div>
   );
 }
