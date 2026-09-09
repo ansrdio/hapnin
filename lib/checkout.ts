@@ -9,6 +9,7 @@ import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
 import { resolvePromo, promoDiscountCents, adjustPromoRedemption } from "./promos";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
+import { sendTicketEmail } from "./email";
 
 // ── Money ────────────────────────────────────────────────────────────────────
 // Every amount is computed HERE, server-side, from the tier price in Firestore —
@@ -263,11 +264,42 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
 
   await pendingRef.update({ status: "fulfilled", order_id: orderRef.id });
 
+  // Deliver the ticket. Email is the reliable channel (Brevo is live); SMS is
+  // best-effort and only really sends once Twilio creds land. Neither should
+  // ever throw and undo a paid, fulfilled order.
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
-  await sendSMS({
-    to: p.buyer.phone,
-    body: `You’re in — ${p.quantity} ticket${p.quantity > 1 ? "s" : ""} for ${event.title}. ${site}/t/${orderRef.id}`,
+  const ticketUrl = `${site}/t/${orderRef.id}`;
+  const whenText = new Date(event.starts_at).toLocaleString("en-US", {
+    timeZone: "America/Phoenix",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
+  try {
+    if (p.buyer.email) {
+      await sendTicketEmail({
+        to: p.buyer.email,
+        firstName: p.buyer.first_name,
+        eventTitle: event.title,
+        whenText,
+        venue: [event.venue_name, event.venue_address].filter(Boolean).join(" · "),
+        quantity: p.quantity,
+        ticketUrl,
+      });
+    }
+  } catch (err) {
+    console.error("ticket email error", err);
+  }
+  try {
+    await sendSMS({
+      to: p.buyer.phone,
+      body: `You’re in — ${p.quantity} ticket${p.quantity > 1 ? "s" : ""} for ${event.title}. ${ticketUrl}`,
+    });
+  } catch (err) {
+    console.error("ticket sms error", err);
+  }
 }
 
 /** Release the hold when a PaymentIntent fails or is canceled. */
