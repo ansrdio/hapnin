@@ -59,11 +59,19 @@ Twilio lands — the gate lifts itself.
    `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`. Redeploy.
 4. Before marketing texts: wire STOP auto-unsubscribe (not built yet).
 
-### Sweeper schedule (optional)
-`/api/cron/sweep-holds` accepts `Authorization: Bearer $CRON_SECRET`. Set
-`CRON_SECRET` in Vercel and add a schedule in `vercel.json` — on the **Pro**
-plan (Hobby caps cron frequency and a rejected schedule can fail the deploy).
-Not required: the per-event sweep already runs before every reservation.
+### Daily cron — lifecycle emails + sweeper (one env var to switch on)
+`vercel.json` schedules two **daily** jobs (daily is allowed on Hobby as well as Pro):
+- `/api/cron/lifecycle` at 16:00 UTC (9am Phoenix) — ticket-holder reminders
+  the day before ("Tomorrow: …") and the day of ("Tonight: …"), and a
+  thank-you to opted-in buyers the morning after (skipped if the organizer
+  already sent a post-event message). Each stage is claimed once per event
+  in `lifecycle_sends`, so retries can't double-send.
+- `/api/cron/sweep-holds` at 15:00 UTC — backstop sweep of abandoned holds.
+
+**To switch it on:** set `CRON_SECRET` in Vercel → Production to any long random
+string and redeploy. Vercel sends it as `Authorization: Bearer …`; until it's
+set, cron hits are rejected (307 to login) and nothing sends. Preview what the
+next run would do, as admin: `/api/cron/lifecycle?dry=1`.
 
 ## 🔧 Admin ops tools (admin session required — `ADMIN_EMAILS`)
 | Route | Use |

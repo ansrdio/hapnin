@@ -251,6 +251,43 @@ export async function sendAnnouncementEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: opts.subject, html });
 }
 
+/**
+ * Ticket-holder reminder — the day before ("Tomorrow") or the day of
+ * ("Tonight"). Transactional: it goes to everyone holding a ticket.
+ */
+export async function sendReminderEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  kind: "tomorrow" | "today";
+  eventTitle: string;
+  whenText: string;
+  venue: string;
+  address: string;
+  ticketUrl: string;
+  flyerUrl?: string | null;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const lead = opts.kind === "today" ? "Tonight" : "Tomorrow";
+  const hi = opts.firstName ? `Hi ${escapeHtml(opts.firstName)},` : "Hi,";
+  const flyer = opts.flyerUrl
+    ? `<img src="${opts.flyerUrl}" alt="" style="display:block;width:100%;max-width:480px;border-radius:12px;margin:0 0 18px">`
+    : "";
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">${lead}</p>
+      <h1 style="margin:0 0 16px;font-size:26px;color:#F6EEE1">${escapeHtml(opts.eventTitle)}</h1>
+      ${flyer}
+      <p style="margin:0 0 2px;color:#C9B8D8">${escapeHtml(opts.whenText)}</p>
+      <p style="margin:0 0 18px;color:#C9B8D8">${escapeHtml(opts.venue)}${opts.address ? ` · ${escapeHtml(opts.address)}` : ""}</p>
+      <p style="margin:0 0 20px;color:#F6EEE1">${hi} your QR code is one tap away — screenshot it in case the signal's bad at the door.</p>
+      <a href="${opts.ticketUrl}" style="display:inline-block;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:12px">Open my ticket</a>
+      <p style="margin:18px 0 0;font-size:13px;color:#9A87AC"><a href="${opts.ticketUrl}/calendar.ics" style="color:#C9B8D8">Add to calendar</a></p>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">You're getting this because you hold a ticket to this event on Hapnin.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: `${lead}: ${opts.eventTitle}`, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
