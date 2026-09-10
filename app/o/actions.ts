@@ -16,6 +16,9 @@ import { createEvent, getEventById, setEventStatus, setEventFlyer, createTable, 
 import { updateOrganizerProfile } from "@/lib/organizers";
 import { parsePhoenixLocal } from "@/lib/event-input";
 import { deliverTicket } from "@/lib/checkout";
+import { getTiers } from "@/lib/events";
+import { slugify } from "@/lib/event-input";
+import { createExpressLoginLink } from "@/lib/connect";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -467,6 +470,88 @@ export async function refreshOwnStripeStatusAction(): Promise<void> {
     console.error("refreshOwnStripeStatus error", err);
   }
   revalidatePath("/o");
+}
+
+/**
+ * Copy an event — details, flyer, refund policy, GA tiers (sale windows shifted),
+ * tables — as a new DRAFT one week later, then open it for editing. Built for
+ * the weekly night: one click instead of re-entering everything.
+ */
+export async function duplicateEventAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const source = await ownedEvent(eventId, organizer.id);
+  if (!source) return;
+  const tiers = await getTiers(eventId);
+
+  // Next week from the source date, or from now if the source is already past.
+  const WEEK = 7 * 86_400_000;
+  const base = source.starts_at > Date.now() ? source.starts_at : Date.now();
+  const delta = base + WEEK - source.starts_at;
+  const shift = (ms: number | null) => (ms == null ? null : ms + delta);
+  const stem = slugify(source.title) ?? "event";
+
+  let created: { id: string } | null = null;
+  for (let attempt = 0; attempt < 3 && !created; attempt++) {
+    const slug = `${stem}-${Math.random().toString(36).slice(2, 7)}`;
+    try {
+      created = await createEvent({
+        organizer_id: organizer.id,
+        title: source.title,
+        slug,
+        description: source.description,
+        flyer_url: source.flyer_url,
+        venue_name: source.venue_name,
+        venue_address: source.venue_address,
+        venue_zip: source.venue_zip,
+        city: source.city,
+        state: source.state,
+        starts_at: source.starts_at + delta,
+        doors_at: shift(source.doors_at),
+        timezone: source.timezone,
+        status: "draft",
+        capacity: source.capacity,
+        refund_policy: source.refund_policy,
+        event_type: source.event_type,
+        community: source.community,
+        primary_language: source.primary_language,
+        genre: source.genre,
+        talent: source.talent,
+        is_first_event: false,
+        tiers: tiers
+          .filter((t) => t.kind !== "table")
+          .map((t) => ({
+            name: t.name,
+            price_cents: t.price_cents,
+            quantity_total: t.quantity_total,
+            sales_start_at: shift(t.sales_start_at),
+            sales_end_at: shift(t.sales_end_at),
+          })),
+      });
+    } catch (err) {
+      if ((err as Error).message !== "SLUG_TAKEN") throw err; // else try another suffix
+    }
+  }
+  if (!created) return;
+
+  for (const t of tiers.filter((t) => t.kind === "table")) {
+    await createTable(created.id, { name: t.name, seats: t.seats ?? 1, price_cents: t.price_cents });
+  }
+
+  revalidatePath("/o");
+  redirect(`/o/events/${created.id}/edit?duplicated=1`);
+}
+
+/** Open the organizer's Stripe Express dashboard (balance, payouts). Owner only. */
+export async function openStripeDashboardAction(): Promise<void> {
+  const { organizer } = await requireOwner();
+  let url: string | null = null;
+  try {
+    url = await createExpressLoginLink(organizer.id);
+  } catch (err) {
+    console.error("stripe login link error", err);
+  }
+  redirect(url ?? `/o?payout_error=${encodeURIComponent("Couldn’t open your Stripe dashboard — connect payouts first.")}`);
 }
 
 /** Add a team member (manager or door). Owner only. */

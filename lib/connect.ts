@@ -52,3 +52,15 @@ export async function refreshOnboardingStatus(organizerId: string): Promise<bool
   await setStripeOnboarded(organizer.stripe_account_id, ready);
   return ready;
 }
+
+/**
+ * A fresh, single-use link into the organizer's Stripe Express dashboard —
+ * balance, payouts, bank details. Minted on demand because login links expire
+ * within minutes. Null if the organizer hasn't connected Stripe yet.
+ */
+export async function createExpressLoginLink(organizerId: string): Promise<string | null> {
+  const organizer = await getOrganizerById(organizerId);
+  if (!organizer?.stripe_account_id) return null;
+  const link = await getStripe().accounts.createLoginLink(organizer.stripe_account_id);
+  return link.url;
+}

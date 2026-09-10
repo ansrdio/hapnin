@@ -6,7 +6,7 @@ import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
 import { waitlistCount } from "@/lib/waitlist";
 import { isSmsConfigured } from "@/lib/sms";
-import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction } from "@/app/o/actions";
+import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
   PageHeader,
@@ -85,6 +85,9 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             </LinkButton>
             <LinkButton href={`/o/events/${event.id}/analytics`} variant="secondary">
               Analytics
+            </LinkButton>
+            <LinkButton href={`/o/events/${event.id}/earnings`} variant="secondary">
+              Earnings
             </LinkButton>
             {event.status === "on_sale" && (
               <LinkButton href={`/e/${event.slug}`} variant="secondary" target="_blank">
@@ -173,6 +176,23 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
               <FlyerUpload initialUrl={event.flyer_url ?? ""} />
               <button className={buttonClass("secondary")}>Save flyer</button>
             </form>
+          </Card>
+
+          {/* Run it again — the weekly-night button */}
+          <Card className="mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="font-display font-semibold text-cream">Run it again</p>
+                <p className="mt-0.5 text-sm text-mauve-dim">
+                  Copy this event — flyer, tiers, tables, refund policy — as a new draft one week later. You set
+                  the date, then publish.
+                </p>
+              </div>
+              <form action={duplicateEventAction}>
+                <input type="hidden" name="event_id" value={event.id} />
+                <button className={buttonClass("secondary")}>Duplicate event</button>
+              </form>
+            </div>
           </Card>
 
           {/* Danger zone — delete only allowed before any sales */}

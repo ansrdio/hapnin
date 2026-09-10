@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StatusBadge, money } from "@/app/components/ui";
+import { duplicateEventAction } from "@/app/o/actions";
 
 // The organizer's event list. Client-side so search and the Upcoming/Past split
 // are instant, and so each card carries the jobs an organizer actually does
@@ -125,6 +126,12 @@ function EventRow({ e }: { e: EventCard }) {
         <Link href={`/o/events/${e.id}`} className={actionClass}>
           Manage
         </Link>
+        <form action={duplicateEventAction}>
+          <input type="hidden" name="event_id" value={e.id} />
+          <button type="submit" className={actionClass} title="Copy as a new draft one week later">
+            Duplicate
+          </button>
+        </form>
       </div>
     </li>
   );

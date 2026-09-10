@@ -6,8 +6,15 @@ import { EditEventForm } from "./EditEventForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditEventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ duplicated?: string }>;
+}) {
   const { id } = await params;
+  const { duplicated } = await searchParams;
   const { organizer } = await requireOrganizer();
   const event = await getEventById(id);
   if (!event || event.organizer_id !== organizer.id) notFound();
@@ -16,6 +23,16 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   return (
     <div className="max-w-2xl">
       <PageHeader title="Edit event" back={{ href: `/o/events/${id}`, label: event.title }} />
+
+      {duplicated === "1" && (
+        <div className="mb-6 rounded-2xl border border-gold/40 bg-gold/[0.06] px-5 py-4">
+          <p className="font-display font-semibold text-cream">Copied — this is a new draft.</p>
+          <p className="mt-0.5 text-sm text-mauve-dim">
+            Set the real date, check the tiers and flyer, then publish from the event page. Nothing is live
+            until you do.
+          </p>
+        </div>
+      )}
       <EditEventForm
         event={{
           id: event.id,
