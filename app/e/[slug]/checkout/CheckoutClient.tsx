@@ -33,6 +33,7 @@ export function CheckoutClient({
   tiers,
   promoterCode,
   preselectTierId,
+  friendCode,
 }: {
   slug: string;
   eventTitle: string;
