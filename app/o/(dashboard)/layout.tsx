@@ -20,6 +20,9 @@ export default async function OrganizerLayout({ children }: { children: React.Re
             <Link href="/o/audience" className="text-mauve-dim transition-colors hover:text-cream">
               Audience
             </Link>
+            <Link href="/o/reviews" className="text-mauve-dim transition-colors hover:text-cream">
+              Reviews
+            </Link>
             {role === "owner" && (
               <>
                 <Link href="/o/profile" className="text-mauve-dim transition-colors hover:text-cream">

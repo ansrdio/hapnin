@@ -5,6 +5,7 @@ import { getOrganizerByHandle } from "@/lib/organizers";
 import { listEventsByOrganizer, getTiers, type EventRecord } from "@/lib/events";
 import { money } from "@/app/components/ui";
 import { FollowForm } from "@/app/components/FollowForm";
+import { getOrganizerRating, listOrganizerReviews } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,11 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
 
   const all = await listEventsByOrganizer(organizer.id);
   const live = all.filter((e) => e.status === "on_sale").sort((a, b) => a.starts_at - b.starts_at);
+  // Earned social proof: ratings from people who held a ticket, after the night.
+  const [rating, quotes] = await Promise.all([
+    getOrganizerRating(organizer.id),
+    listOrganizerReviews(organizer.id, 12).then((rs) => rs.filter((r) => r.text).slice(0, 3)),
+  ]);
   const prices = await Promise.all(live.map(fromPrice));
 
   return (
@@ -65,6 +71,12 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
           {organizer.name}
         </h1>
         {organizer.bio && <p className="mt-3 max-w-lg leading-relaxed text-mauve-dim">{organizer.bio}</p>}
+        {rating.count > 0 && (
+          <p className="mt-3 text-sm">
+            <span className="font-semibold text-gold">★ {rating.avg.toFixed(1)}</span>
+            <span className="text-mauve-dim"> · {rating.count} rating{rating.count === 1 ? "" : "s"} from people who went</span>
+          </p>
+        )}
         <div className="mt-2 flex items-center gap-3 text-mauve-dim">
           {organizer.marketing_approved && (
             <span className="inline-flex items-center gap-1 text-sm text-gold">
@@ -86,6 +98,23 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
           )}
         </div>
       </header>
+
+      {quotes.length > 0 && (
+        <section className="anim-rise d-1 mb-10">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gold">What people said</h2>
+          <ul className="space-y-3">
+            {quotes.map((r) => (
+              <li key={r.id} className="rounded-2xl border border-plum-hi bg-plum/40 p-4">
+                <p className="text-sm text-gold">{"★".repeat(r.rating)}<span className="text-plum-hi">{"★".repeat(5 - r.rating)}</span></p>
+                <p className="mt-1.5 leading-relaxed text-cream">“{r.text}”</p>
+                <p className="mt-1.5 text-xs text-mauve-dim">
+                  {r.first_name ?? "A guest"} · {r.event_title}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Follow — the buyer's own opt-in to this organizer's announcements */}
       <div className="anim-rise d-1 mb-10">

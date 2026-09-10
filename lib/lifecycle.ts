@@ -136,7 +136,8 @@ export async function runLifecycle(opts: { dryRun?: boolean; now?: number } = {}
         seen.add(h.email);
         const token = await getOrCreateUnsubToken(h.phone);
         const r = await sendBroadcastEmail({
-          to: h.email, firstName: h.first_name, organizerName, eventTitle: e.title, subject, body,
+          to: h.email, firstName: h.first_name, organizerName, eventTitle: e.title, subject,
+          body: `${body}\n\nHow was it? Rate your night: ${site}/r/${h.orderId}`,
           eventUrl: `${site}/e/${e.slug}`, unsubscribeUrl: `${site}/unsubscribe/${token ?? "unknown"}`,
         }).catch(() => ({ ok: false }));
         r.ok ? send.sent++ : send.failed++;

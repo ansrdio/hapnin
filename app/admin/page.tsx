@@ -1,14 +1,33 @@
 import Link from "next/link";
 import { listOrganizers } from "@/lib/organizers";
+import { getFounderMetrics } from "@/lib/metrics";
+import { Stat, money } from "@/app/components/ui";
 import { CreateOrganizerForm } from "./CreateOrganizerForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  const organizers = await listOrganizers();
+  const [organizers, m] = await Promise.all([listOrganizers(), getFounderMetrics().catch(() => null)]);
 
   return (
     <div className="space-y-10">
+      {m && (
+        <section>
+          <h1 className="font-display text-2xl font-semibold text-cream">Business</h1>
+          <p className="mt-1 text-mauve-dim">Paid tickets only — comps and transfers excluded. GMV is face value; fees are Hapnin’s cut.</p>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Stat label="GMV · 30 days" value={money(m.last30.gmv_cents)} sub={`${m.last30.tickets} tickets · ${m.last30.orders} orders`} />
+            <Stat label="Hapnin fees · 30 days" value={money(m.last30.fees_cents)} sub={m.last30.gmv_cents ? `${((m.last30.fees_cents / m.last30.gmv_cents) * 100).toFixed(1)}% take` : "—"} />
+            <Stat label="GMV · all time" value={money(m.all.gmv_cents)} sub={`${m.all.tickets} tickets · ${m.all.orders} orders`} />
+            <Stat label="Hapnin fees · all time" value={money(m.all.fees_cents)} sub={m.all.gmv_cents ? `${((m.all.fees_cents / m.all.gmv_cents) * 100).toFixed(1)}% take` : "—"} />
+            <Stat label="Organizers" value={m.organizers.total} sub={`${m.organizers.onboarded} taking payments`} />
+            <Stat label="Events" value={m.events.total} sub={`${m.events.upcoming} upcoming on sale`} />
+            <Stat label="Buyers" value={m.buyers} sub="distinct people" />
+            <Stat label="Refunds" value={m.refunds.count} sub={money(m.refunds.amount_cents)} />
+          </div>
+        </section>
+      )}
+
       <section>
         <h1 className="font-display text-2xl font-semibold text-cream">Organizers</h1>
         <p className="mt-1 text-mauve-dim">Create an organizer, then walk them through Stripe onboarding.</p>

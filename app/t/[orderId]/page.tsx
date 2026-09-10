@@ -59,6 +59,9 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
     )
   );
 
+  // After the night: invite a rating (one per ticket, first name only shown).
+  const ended = event.starts_at + 6 * 60 * 60 * 1000 < Date.now();
+
   // Bring-a-friend: only when the organizer turned it on and this is an online order.
   const referral = event.referral_off_cents > 0 && order.ref_code ? { code: order.ref_code, count: await countReferrals(orderId) } : null;
 
@@ -157,6 +160,18 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
       <p className="mt-8 text-center text-sm text-mauve-dim">
         Show this at the door. Screenshot it in case you lose signal.
       </p>
+
+      {ended && (
+        <div className="anim-rise d-2 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold/5 px-5 py-4">
+          <div>
+            <p className="font-display font-semibold text-cream">How was the night?</p>
+            <p className="text-sm text-mauve-dim">Your rating helps the next person decide.</p>
+          </div>
+          <a href={`/r/${orderId}`} className="rounded-xl bg-gold px-4 py-2.5 font-display text-sm font-semibold text-ink hover:bg-gold-hi">
+            Rate it
+          </a>
+        </div>
+      )}
 
       <TransferForm orderId={orderId} transferable={transferable} />
 

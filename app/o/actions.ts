@@ -20,6 +20,7 @@ import { getTiers } from "@/lib/events";
 import { slugify } from "@/lib/event-input";
 import { createExpressLoginLink } from "@/lib/connect";
 import { parseContacts, importContacts, announceEvent, deleteContact, IMPORT_MAX_ROWS, ANNOUNCE_MAX_RECIPIENTS } from "@/lib/contacts";
+import { setReviewHidden } from "@/lib/reviews";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -624,6 +625,16 @@ export async function deleteContactAction(formData: FormData): Promise<void> {
   const { organizer } = await requireOrganizer();
   await deleteContact(organizer.id, String(formData.get("contact_id") ?? ""));
   revalidatePath("/o/audience");
+}
+
+/** Hide or show one of the organizer's reviews on their public page. Never edits it. */
+export async function setReviewHiddenAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const reviewId = String(formData.get("review_id") ?? "");
+  const hidden = String(formData.get("hidden") ?? "0") === "1";
+  if (reviewId) await setReviewHidden(organizer.id, reviewId, hidden);
+  revalidatePath("/o/reviews");
+  revalidatePath(`/o/${organizer.handle}`);
 }
 
 /** Add a team member (manager or door). Owner only. */
