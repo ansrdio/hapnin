@@ -2,7 +2,8 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getStripe } from "./stripe";
-import { getEventById, releaseInventory } from "./events";
+import { getEventById, getTier, releaseInventory } from "./events";
+import { notifyWaitlist } from "./waitlist";
 import { adjustPromoterStats } from "./promoters";
 import { adjustPromoRedemption } from "./promos";
 import { sendRefundEmail } from "./email";
@@ -76,12 +77,25 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
   }
   if (!tickets.empty) await batch.commit();
 
-  // Return inventory + reverse the event counters.
+  // Return inventory + reverse the event counters. Note whether the tier was
+  // full first — a refund on a full tier is what the waitlist is waiting for.
+  const tierBefore = await getTier(eventId, o.tier_id);
+  const wasFull = !!tierBefore && tierBefore.quantity_sold >= tierBefore.quantity_total;
   await releaseInventory(eventId, o.tier_id, qty);
   const eventUpdate: Record<string, unknown> = { tickets_sold: FieldValue.increment(-qty) };
   if (o.channel !== "comp") eventUpdate.gross_cents = FieldValue.increment(-(o.subtotal_cents ?? 0));
   if (wereCheckedIn > 0) eventUpdate.checked_in = FieldValue.increment(-wereCheckedIn);
   await db.collection("events").doc(eventId).update(eventUpdate);
+
+  // Seats just freed on a full tier → tell the waitlist automatically.
+  // Best-effort; notifyWaitlist de-dupes to once per person per 24h.
+  if (wasFull) {
+    try {
+      await notifyWaitlist(eventId);
+    } catch (err) {
+      console.error("waitlist auto-notify error", { eventId }, err);
+    }
+  }
 
   // Reverse promoter attribution.
   if (o.promoter_link_id) {

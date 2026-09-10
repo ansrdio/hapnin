@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
-import { getEventById, getTiers } from "@/lib/events";
+import { getEventById, getTiers, listEventsByOrganizer } from "@/lib/events";
 import { audienceSummary, listBroadcasts } from "@/lib/broadcasts";
 import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
-import { waitlistCount } from "@/lib/waitlist";
+import { waitlistSummary } from "@/lib/waitlist";
 import { isSmsConfigured } from "@/lib/sms";
 import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
@@ -61,12 +61,29 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const [audience, broadcastHistory] = await Promise.all([audienceSummary(id), listBroadcasts(id)]);
   const promoterLinks = await listPromoterLinks(id);
   const promoCodes = await listPromoCodes(id);
-  const waitlist = await waitlistCount(id);
+  const waitlist = await waitlistSummary(id);
 
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const remaining = Math.max(0, capacity - event.tickets_sold);
   const publicUrl = `https://hapnin.now/e/${event.slug}`;
   const smsOff = !isSmsConfigured();
+
+  // Post-event: the broadcast card becomes "Thank your guests", prefilled with
+  // a thank-you and the organizer's next on-sale event if there is one.
+  const ended = event.starts_at + 6 * 60 * 60 * 1000 < Date.now();
+  const nextUp = ended
+    ? ((await listEventsByOrganizer(organizer.id))
+        .filter((e) => e.id !== event.id && e.status === "on_sale" && e.starts_at > Date.now())
+        .sort((a, b) => a.starts_at - b.starts_at)[0] ?? null)
+    : null;
+  const thanksSubject = `Thank you for coming to ${event.title}`;
+  const thanksBody = ended
+    ? `Thank you for coming out to ${event.title} — you made the night.\n\n${
+        nextUp
+          ? `Next up: ${nextUp.title}, ${fmtDate(nextUp.starts_at)}. Tickets: https://hapnin.now/e/${nextUp.slug}`
+          : "We’ll let you know the moment the next one drops."
+      }\n\n— ${organizer.name}`
+    : undefined;
 
   return (
     <div className="max-w-3xl">
@@ -246,26 +263,21 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             <TableManager eventId={event.id} tables={tableTiers} />
           </Card>
 
-          {waitlist > 0 && (
+          {waitlist.total > 0 && (
             <Card className="mb-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-display font-semibold text-cream">Waitlist</p>
-                  <p className="mt-0.5 text-sm text-mauve-dim">
-                    {waitlist} {waitlist === 1 ? "person is" : "people are"} waiting. Text them a buy link when seats open.
+                  <p className="mt-0.5 max-w-md text-sm text-mauve-dim">
+                    {waitlist.total} waiting · {waitlist.withEmail} reachable by email
+                    {smsOff ? " · texts once carrier approval lands" : ` · ${waitlist.total} by text`}. A refund on a
+                    full tier tells them automatically; you can also nudge them now (once per person per day).
                   </p>
                 </div>
-                {smsOff ? (
-                  <p className="max-w-xs text-sm text-mauve-dim">
-                    <span className="font-medium text-cream">Texting isn’t switched on yet</span> — the waitlist is
-                    notified by text; this button wakes up when carrier approval lands.
-                  </p>
-                ) : (
-                  <form action={notifyWaitlistAction}>
-                    <input type="hidden" name="event_id" value={event.id} />
-                    <button className={buttonClass("secondary")}>Notify waitlist</button>
-                  </form>
-                )}
+                <form action={notifyWaitlistAction}>
+                  <input type="hidden" name="event_id" value={event.id} />
+                  <button className={buttonClass("secondary")}>Notify waitlist</button>
+                </form>
               </div>
             </Card>
           )}
@@ -291,12 +303,21 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           </Card>
 
           <Card className="mb-6">
-            <p className="font-display font-semibold text-cream">Message your buyers</p>
+            <p className="font-display font-semibold text-cream">{ended ? "Thank your guests" : "Message your buyers"}</p>
             <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
-              A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
+              {ended
+                ? "The night’s done — a thank-you now is what brings people back. Prefilled below; edit anything, then send."
+                : "A quick update to everyone who bought and opted in — reminders, set times, last-minute changes."}{" "}
               Goes out by email now{smsOff ? "; texts join once carrier approval lands" : " and by text"}.
             </p>
-            <BroadcastForm eventId={event.id} audience={audience} smsOff={smsOff} history={broadcastHistory} />
+            <BroadcastForm
+              eventId={event.id}
+              audience={audience}
+              smsOff={smsOff}
+              history={broadcastHistory}
+              defaultSubject={ended ? thanksSubject : undefined}
+              defaultBody={thanksBody}
+            />
           </Card>
         </TabPanel>
 

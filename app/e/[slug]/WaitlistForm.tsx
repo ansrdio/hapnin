@@ -47,6 +47,8 @@ export function WaitlistForm({ slug }: { slug: string }) {
       <input name="name" className={field} placeholder="Your name (optional)" />
       <input name="phone" type="tel" className={field} placeholder="Your mobile number" />
       {err.phone && <p className="text-sm text-coral">{err.phone}</p>}
+      <input name="email" type="email" inputMode="email" className={field} placeholder="Email — so we can tell you the moment seats open" />
+      {err.email && <p className="text-sm text-coral">{err.email}</p>}
       {state.status === "error" && state.message && <p className="text-sm text-coral">{state.message}</p>}
       <Submit />
     </form>

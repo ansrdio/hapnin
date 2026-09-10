@@ -30,14 +30,19 @@ export function BroadcastForm({
   audience,
   smsOff = false,
   history = [],
+  defaultSubject,
+  defaultBody,
 }: {
   eventId: string;
   audience: AudienceSummary;
   smsOff?: boolean;
   history?: BroadcastRecord[];
+  // Prefill (e.g. the post-event "Thank your guests" template). Still editable.
+  defaultSubject?: string;
+  defaultBody?: string;
 }) {
   const [state, action] = useActionState(broadcastAction, initialActionState);
-  const [len, setLen] = useState(0);
+  const [len, setLen] = useState(defaultBody?.length ?? 0);
   const err = state.fieldErrors ?? {};
 
   return (
@@ -49,11 +54,17 @@ export function BroadcastForm({
       ) : (
         <form action={action} className="space-y-3">
           <input type="hidden" name="event_id" value={eventId} />
-          <Input name="subject" placeholder="Subject (optional) — e.g. Set times for Sunday" maxLength={120} />
+          <Input
+            name="subject"
+            placeholder="Subject (optional) — e.g. Set times for Sunday"
+            maxLength={120}
+            defaultValue={defaultSubject}
+          />
           <Textarea
             name="body"
-            rows={5}
+            rows={defaultBody ? 7 : 5}
             maxLength={MAX}
+            defaultValue={defaultBody}
             onChange={(e) => setLen(e.target.value.length)}
             placeholder={"Doors at 9 — come early, the opener starts at 9:30.\n\nSee you tonight!"}
           />

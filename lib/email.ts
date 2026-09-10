@@ -178,6 +178,29 @@ export async function sendMyTicketsEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: "Your Hapnin tickets", html });
 }
 
+/** Waitlist: a seat opened up. Requested by the reader, sent at most once per opening. */
+export async function sendWaitlistEmail(opts: {
+  to: string;
+  name?: string | null;
+  eventTitle: string;
+  whenText: string;
+  eventUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const hi = opts.name ? `Hi ${escapeHtml(opts.name)},` : "Hi,";
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">A spot opened up</p>
+      <h1 style="margin:0 0 16px;font-size:26px;color:#F6EEE1">${escapeHtml(opts.eventTitle)}</h1>
+      <p style="margin:0 0 6px;color:#C9B8D8">${escapeHtml(opts.whenText)}</p>
+      <p style="margin:0 0 20px;color:#F6EEE1">${hi} tickets just came back for this one. They tend to go fast — grab yours.</p>
+      <a href="${opts.eventUrl}" style="display:inline-block;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:12px">Get tickets</a>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">You asked to be told when tickets came back for this event. You'll hear from us at most once a day about it.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.name ?? undefined, subject: `Tickets just opened — ${opts.eventTitle}`, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

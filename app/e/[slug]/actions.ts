@@ -19,10 +19,22 @@ export async function joinWaitlistAction(_prev: ActionState, formData: FormData)
   const quantity = parseInt(String(formData.get("quantity") ?? "1"), 10) || 1;
 
   if (!phone) return { status: "error", fieldErrors: { phone: "Enter a US mobile number." } };
+  // Email is optional but is the channel that works today (texting waits on
+  // carrier approval). Light validation; normalized to lowercase.
+  const rawEmail = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+    return { status: "error", fieldErrors: { email: "That email doesn’t look right." } };
+  }
+  const email = rawEmail || null;
 
   const event = await getEventBySlug(slug);
   if (!event) return { status: "error", message: "Event not found." };
 
-  await joinWaitlist({ eventId: event.id, phone, name, quantity });
-  return { status: "success", message: "You’re on the list — we’ll text you if tickets open up." };
+  await joinWaitlist({ eventId: event.id, phone, email, name, quantity });
+  return {
+    status: "success",
+    message: email
+      ? "You’re on the list — we’ll email you the moment tickets open up."
+      : "You’re on the list — we’ll text you if tickets open up. Add an email next time to hear sooner.",
+  };
 }
