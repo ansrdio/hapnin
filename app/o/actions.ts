@@ -21,6 +21,7 @@ import { slugify } from "@/lib/event-input";
 import { createExpressLoginLink } from "@/lib/connect";
 import { parseContacts, importContacts, announceEvent, deleteContact, IMPORT_MAX_ROWS, ANNOUNCE_MAX_RECIPIENTS } from "@/lib/contacts";
 import { setReviewHidden } from "@/lib/reviews";
+import { createSeries, type Cadence } from "@/lib/series";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -625,6 +626,33 @@ export async function deleteContactAction(formData: FormData): Promise<void> {
   const { organizer } = await requireOrganizer();
   await deleteContact(organizer.id, String(formData.get("contact_id") ?? ""));
   revalidatePath("/o/audience");
+}
+
+/** Recurring series: clone this event N times on a cadence (drafts, or published straight away). */
+export async function createSeriesAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const cadenceRaw = String(formData.get("cadence") ?? "weekly");
+  const cadence: Cadence = cadenceRaw === "biweekly" || cadenceRaw === "monthly" ? cadenceRaw : "weekly";
+  const count = Math.max(1, Math.min(12, parseInt(String(formData.get("count") ?? "4"), 10) || 4));
+  const publish = formData.get("publish") === "on";
+  const source = await ownedEvent(eventId, organizer.id);
+  if (!source) return { status: "error", message: "Event not found." };
+  if (publish && !organizer.stripe_onboarded) {
+    return { status: "error", message: "Connect payouts before publishing a series — tickets can’t sell without it." };
+  }
+  try {
+    const ids = await createSeries({ source, organizerId: organizer.id, cadence, count, publish });
+    revalidatePath("/o");
+    const label = cadence === "weekly" ? "weekly" : cadence === "biweekly" ? "every two weeks" : "monthly";
+    return {
+      status: "success",
+      message: `Created ${ids.length} ${label} ${ids.length === 1 ? "event" : "events"} — ${publish ? "on sale now" : "as drafts, ready to publish"}. They’re on your Events page.`,
+    };
+  } catch (err) {
+    console.error("createSeries error", err);
+    return { status: "error", message: "Couldn’t create the series. Try again." };
+  }
 }
 
 /** Hide or show one of the organizer's reviews on their public page. Never edits it. */

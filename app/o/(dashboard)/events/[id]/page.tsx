@@ -25,6 +25,7 @@ import { PromoterLinks } from "./PromoterLinks";
 import { PromoCodes } from "./PromoCodes";
 import { TableManager } from "./TableManager";
 import { SectionTabs, TabPanel } from "./SectionTabs";
+import { SeriesForm } from "./SeriesForm";
 
 export const dynamic = "force-dynamic";
 
@@ -210,6 +211,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
                 <button className={buttonClass("secondary")}>Duplicate event</button>
               </form>
             </div>
+            <SeriesForm eventId={event.id} />
           </Card>
 
           {/* Danger zone — delete only allowed before any sales */}
