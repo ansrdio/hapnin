@@ -144,6 +144,40 @@ export async function sendBroadcastEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: opts.subject, html });
 }
 
+/** "Find my tickets": every upcoming ticket link for a buyer, in one email. */
+export async function sendMyTicketsEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  items: { eventTitle: string; whenText: string; venue: string; quantity: number; ticketUrl: string }[];
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const hi = opts.firstName ? `Hi ${escapeHtml(opts.firstName)},` : "Hi,";
+  const list = opts.items
+    .map(
+      (i) => `
+      <div style="margin:0 0 14px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:12px">
+        <p style="margin:0;font-weight:700;color:#F6EEE1">${escapeHtml(i.eventTitle)}</p>
+        <p style="margin:2px 0 0;color:#C9B8D8;font-size:14px">${escapeHtml(i.whenText)} · ${escapeHtml(i.venue)}</p>
+        <a href="${i.ticketUrl}" style="display:inline-block;margin-top:10px;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:10px 16px;border-radius:10px">Open ${i.quantity > 1 ? `${i.quantity} tickets` : "ticket"}</a>
+      </div>`
+    )
+    .join("");
+  const body =
+    opts.items.length > 0
+      ? `<p style="margin:0 0 16px;color:#F6EEE1">${hi} here are your upcoming tickets. Each link is your QR code — show it at the door.</p>${list}`
+      : `<p style="margin:0 0 12px;color:#F6EEE1">${hi} we couldn’t find any upcoming tickets for this address.</p>
+         <p style="margin:0;color:#C9B8D8">If you bought with a different email or phone number, try that one. Past events don’t show here.</p>`;
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">Your tickets</p>
+      <h1 style="margin:0 0 16px;font-size:24px;color:#F6EEE1">Hapnin</h1>
+      ${body}
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">You asked for this at hapnin.now/tickets. If that wasn’t you, ignore this email — nothing changes.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: "Your Hapnin tickets", html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

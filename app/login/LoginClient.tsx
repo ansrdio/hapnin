@@ -221,6 +221,12 @@ export function LoginClient() {
           Host on Hapnin
         </a>
       </p>
+      <p className="mt-2 text-sm text-mauve-dim">
+        Bought tickets and lost the link?{" "}
+        <a href="/tickets" className="text-gold hover:underline">
+          Find my tickets
+        </a>
+      </p>
     </div>
   );
 }

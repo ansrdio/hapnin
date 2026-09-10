@@ -9,7 +9,7 @@ const BASE = "https://www.hapnin.now";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const statics: MetadataRoute.Sitemap = ["", "/discover", "/host", "/create", "/why", "/terms", "/privacy"].map((p) => ({
+  const statics: MetadataRoute.Sitemap = ["", "/discover", "/host", "/create", "/tickets", "/why", "/terms", "/privacy"].map((p) => ({
     url: `${BASE}${p}`,
     lastModified: now,
     changeFrequency: p === "" || p === "/discover" ? "daily" : "weekly",

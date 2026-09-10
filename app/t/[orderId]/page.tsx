@@ -5,6 +5,7 @@ import { getOrderById, getTicketsByOrder } from "@/lib/orders";
 import { getEventById, getTier } from "@/lib/events";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet";
 import { TransferForm } from "./TransferForm";
+import { googleCalendarUrl, DEFAULT_DURATION_MS } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your tickets — Hapnin", robots: { index: false } };
@@ -60,6 +61,19 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
   const appleWallet = isAppleWalletConfigured();
   const googleWallet = isGoogleWalletConfigured();
 
+  // Add to calendar: .ics for Apple/Outlook, a prefilled link for Google.
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+  const ticketUrl = `${site}/t/${orderId}`;
+  const googleCal = googleCalendarUrl({
+    uid: `${orderId}@hapnin.now`,
+    title: event.title,
+    startsAt: event.starts_at,
+    endsAt: event.starts_at + DEFAULT_DURATION_MS,
+    location: [event.venue_name, event.venue_address, event.city, event.state].filter(Boolean).join(", "),
+    description: `Your Hapnin ticket: ${ticketUrl}`,
+    url: ticketUrl,
+  });
+
   return (
     <main className="grain relative mx-auto max-w-md px-5 py-12">
       {event.flyer_url && (
@@ -80,6 +94,23 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
           {tier.name} · admits up to {tier.seats} guests
         </p>
       )}
+
+      <div className="anim-rise d-1 mt-5 flex flex-wrap gap-2">
+        <a
+          href={`/t/${orderId}/calendar.ics`}
+          className="rounded-lg border border-plum-hi px-3.5 py-2 text-sm font-semibold text-cream hover:bg-plum"
+        >
+          Add to calendar
+        </a>
+        <a
+          href={googleCal}
+          target="_blank"
+          rel="noopener"
+          className="rounded-lg border border-plum-hi px-3.5 py-2 text-sm text-mauve-dim hover:text-cream"
+        >
+          Google Calendar
+        </a>
+      </div>
 
       <div className="mt-8 space-y-5">
         {tickets.map((t, i) => (

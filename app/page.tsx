@@ -252,6 +252,7 @@ export default async function Page() {
           </p>
           <p className="text-sm text-mauve-dim">
             Starting in Phoenix, Arizona. ·{" "}
+            <Link href="/tickets" className="hover:text-cream">Find my tickets</Link> ·{" "}
             <Link href="/terms" className="hover:text-cream">Terms</Link> ·{" "}
             <Link href="/privacy" className="hover:text-cream">Privacy</Link> ·{" "}
             <a href="mailto:jii@hapnin.now" className="hover:text-cream">jii@hapnin.now</a>
