@@ -32,6 +32,7 @@ export type ParsedEventValues = {
   starts_at: number;
   capacity: number | null;
   refund_policy: string;
+  referral_off_cents: number;
   talent: string[];
   is_first_event: boolean;
   event_type: string;
@@ -64,6 +65,9 @@ export function parseEventForm(formData: FormData): {
   const is_first_event = formData.get("is_first_event") === "on";
   const refundRaw = String(formData.get("refund_policy") ?? "none");
   const refund_policy = isRefundPolicy(refundRaw) ? refundRaw : "none";
+  // Bring-a-friend discount, entered in dollars; 0 (or blank) = off. Capped at $50.
+  const referralDollars = parseFloat(String(formData.get("referral_off") ?? "0"));
+  const referral_off_cents = Number.isFinite(referralDollars) ? Math.max(0, Math.min(5000, Math.round(referralDollars * 100))) : 0;
 
   const event_type = String(formData.get("event_type") ?? "");
   const community = String(formData.get("community") ?? "");
@@ -103,7 +107,7 @@ export function parseEventForm(formData: FormData): {
     values: {
       title, slug: slug ?? undefined, description, flyer_url,
       venue_name, venue_address, venue_zip, city, state,
-      starts_at: starts_at ?? undefined, capacity, refund_policy, talent, is_first_event,
+      starts_at: starts_at ?? undefined, capacity, refund_policy, referral_off_cents, talent, is_first_event,
       event_type, community, primary_language, genre, tiers,
     },
     fieldErrors,

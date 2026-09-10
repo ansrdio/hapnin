@@ -13,10 +13,10 @@ export default async function CheckoutPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; tier?: string }>;
+  searchParams: Promise<{ p?: string; tier?: string; friend?: string }>;
 }) {
   const { slug } = await params;
-  const { p, tier: preselectTierId } = await searchParams;
+  const { p, tier: preselectTierId, friend } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event || event.status !== "on_sale") notFound();
   // No checkout until the organizer's payouts are connected (money has nowhere to go).
@@ -40,6 +40,7 @@ export default async function CheckoutPage({
       refundPolicyLabel={REFUND_POLICY_LABELS[event.refund_policy]}
       consentText={CHECKOUT_CONSENT_TEXT}
       promoterCode={p ?? null}
+      friendCode={friend && /^[a-z0-9]{6,12}$/i.test(friend) ? friend.toLowerCase() : null}
       preselectTierId={preselectTierId ?? null}
       tiers={tiers.map((t) => ({
         id: t.id,

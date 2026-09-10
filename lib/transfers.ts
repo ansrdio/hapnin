@@ -15,7 +15,7 @@ import { sendSMS } from "./sms";
 export async function transferTickets(input: {
   orderId: string;
   count: number;
-  recipient: { phone: string; first_name?: string | null };
+  recipient: { phone: string; first_name?: string | null; email?: string | null };
 }): Promise<{ newOrderId: string }> {
   const db = getDb();
   const orderSnap = await db.collection("orders").doc(input.orderId).get();
@@ -31,6 +31,7 @@ export async function transferTickets(input: {
   await findOrCreateBuyer({
     phone: input.recipient.phone,
     first_name: input.recipient.first_name ?? null,
+    email: input.recipient.email ?? null,
     postal_code: "",
     first_event_id: order.event_id,
   });

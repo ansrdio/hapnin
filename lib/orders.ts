@@ -12,6 +12,8 @@ export type OrderRecord = {
   total_cents: number;
   status: string;
   created_at: number | null;
+  ref_code: string | null; // bring-a-friend share code (online orders)
+  referred_by_order_id: string | null;
 };
 
 export type TicketRecord = {
@@ -41,6 +43,8 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): OrderRecord {
     total_cents: d.total_cents,
     status: d.status,
     created_at: ms(d.created_at),
+    ref_code: d.ref_code ?? null,
+    referred_by_order_id: d.referred_by_order_id ?? null,
   };
 }
 
@@ -65,6 +69,12 @@ export async function getOrderById(id: string): Promise<OrderRecord | null> {
 export async function getOrderByPaymentIntent(pi: string): Promise<OrderRecord | null> {
   const snap = await getDb().collection("orders").where("stripe_payment_intent_id", "==", pi).limit(1).get();
   return snap.empty ? null : toOrder(snap.docs[0].id, snap.docs[0].data());
+}
+
+/** How many paid orders came through this order's bring-a-friend link. */
+export async function countReferrals(orderId: string): Promise<number> {
+  const snap = await getDb().collection("orders").where("referred_by_order_id", "==", orderId).get();
+  return snap.docs.filter((d) => d.data().status === "paid").length;
 }
 
 export async function getTicketsByOrder(orderId: string): Promise<TicketRecord[]> {

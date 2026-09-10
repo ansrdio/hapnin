@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import QRCode from "qrcode";
-import { getOrderById, getTicketsByOrder } from "@/lib/orders";
+import { getOrderById, getTicketsByOrder, countReferrals } from "@/lib/orders";
+import { CopyLink } from "@/app/components/CopyLink";
 import { getEventById, getTier } from "@/lib/events";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet";
 import { TransferForm } from "./TransferForm";
@@ -57,6 +58,9 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
       })
     )
   );
+
+  // Bring-a-friend: only when the organizer turned it on and this is an online order.
+  const referral = event.referral_off_cents > 0 && order.ref_code ? { code: order.ref_code, count: await countReferrals(orderId) } : null;
 
   const appleWallet = isAppleWalletConfigured();
   const googleWallet = isGoogleWalletConfigured();
@@ -155,6 +159,21 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
       </p>
 
       <TransferForm orderId={orderId} transferable={transferable} />
+
+      {referral && (
+        <div className="anim-rise d-3 mt-6 rounded-2xl border border-gold/40 bg-gold/5 p-5">
+          <p className="font-display font-semibold text-cream">
+            Bring friends — they get ${(event.referral_off_cents / 100).toFixed(0)} off.
+          </p>
+          <p className="mt-0.5 text-sm text-mauve-dim">
+            Share your link; the discount applies at their checkout.
+            {referral.count > 0 && ` ${referral.count} friend${referral.count === 1 ? "" : "s"} joined so far.`}
+          </p>
+          <div className="mt-3">
+            <CopyLink value={`${site}/e/${event.slug}?friend=${referral.code}`} />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

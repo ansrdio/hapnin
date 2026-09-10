@@ -288,6 +288,30 @@ export async function sendReminderEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: `${lead}: ${opts.eventTitle}`, html });
 }
 
+/** Bring-a-friend: tell the referrer a friend just joined through their link. */
+export async function sendReferralJoinedEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  friendFirstName?: string | null;
+  eventTitle: string;
+  count: number;
+  ticketUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const hi = opts.firstName ? `Hi ${escapeHtml(opts.firstName)},` : "Hi,";
+  const who = opts.friendFirstName ? escapeHtml(opts.friendFirstName) : "A friend";
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">Your link worked</p>
+      <h1 style="margin:0 0 16px;font-size:24px;color:#F6EEE1">${who} is coming to ${escapeHtml(opts.eventTitle)}.</h1>
+      <p style="margin:0 0 12px;color:#F6EEE1">${hi} ${who} just grabbed a ticket through your link — that's ${opts.count} friend${opts.count === 1 ? "" : "s"} so far.</p>
+      <a href="${opts.ticketUrl}" style="display:inline-block;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">Share it again</a>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">You're getting this because you hold a ticket to this event and shared your link.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: `${who} is coming — ${opts.eventTitle}`, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

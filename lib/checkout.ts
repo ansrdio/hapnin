@@ -9,7 +9,8 @@ import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
 import { resolvePromo, promoDiscountCents, adjustPromoRedemption } from "./promos";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
-import { sendTicketEmail } from "./email";
+import { sendTicketEmail, sendReferralJoinedEmail } from "./email";
+import { transferTickets } from "./transfers";
 
 // ── Money ────────────────────────────────────────────────────────────────────
 // Every amount is computed HERE, server-side, from the tier price in Firestore —
@@ -64,6 +65,10 @@ export type CheckoutInput = {
   referral_source: string | null;
   promoter_code: string | null;
   promo_code: string | null;
+  /** Bring-a-friend: another buyer's share code for this event (a bad one is ignored). */
+  friend_code: string | null;
+  /** Group buying: named friends who each get one ticket transferred to them on payment. */
+  friends: { first_name: string; phone: string; email: string | null }[];
   ip: string | null;
   user_agent: string | null;
 };
@@ -101,7 +106,23 @@ export async function createCheckoutIntent(
     promo = await resolvePromo(event.id, input.promo_code);
     if (!promo) throw new Error("INVALID_PROMO");
   }
-  const discount = promo ? promoDiscountCents(promo, tier.price_cents * qty) : 0;
+  const promoDiscount = promo ? promoDiscountCents(promo, tier.price_cents * qty) : 0;
+
+  // Bring-a-friend: a valid share code — someone ELSE's paid order on this
+  // event — is worth the organizer's flat referral_off_cents. A bad or
+  // self-referring code is simply ignored. Not stackable with a promo: the
+  // larger discount wins and only that one is recorded.
+  let referrer: { id: string } | null = null;
+  if (input.friend_code && event.referral_off_cents > 0) {
+    const snap = await db.collection("orders").where("ref_code", "==", input.friend_code).limit(1).get();
+    const d = snap.empty ? null : snap.docs[0].data();
+    if (d && d.event_id === event.id && d.status === "paid" && d.buyer_id !== input.buyer.phone) {
+      referrer = { id: snap.docs[0].id };
+    }
+  }
+  const referralDiscount = referrer ? Math.min(event.referral_off_cents, tier.price_cents * qty) : 0;
+  const referralWins = referralDiscount > promoDiscount;
+  const discount = referralWins ? referralDiscount : promoDiscount;
   const amounts = computeAmounts(tier.price_cents, qty, event.is_first_event, discount);
 
   // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
@@ -149,7 +170,9 @@ export async function createCheckoutIntent(
       buyer: input.buyer,
       referral_source: input.referral_source,
       promoter_link_id: promoterLink?.id ?? null,
-      promo_code_id: promo?.id ?? null,
+      promo_code_id: referralWins ? null : (promo?.id ?? null),
+      referred_by_order_id: referralWins && referrer ? referrer.id : null,
+      friends: input.friends ?? [],
       consent: {
         granted: input.buyer.marketing_opt_in,
         text: CHECKOUT_CONSENT_TEXT,
@@ -266,6 +289,9 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     status: "paid",
     channel: "online",
     promo_code_id: p.promo_code_id ?? null,
+    // Bring-a-friend: this order's own share code, and who (if anyone) referred it.
+    ref_code: Math.random().toString(36).slice(2, 10),
+    referred_by_order_id: p.referred_by_order_id ?? null,
     days_before_event: daysBefore,
     referral_source: p.referral_source ?? null,
     promoter_link_id: p.promoter_link_id ?? null,
@@ -356,6 +382,59 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     });
   } catch (err) {
     console.error("ticket sms error", err);
+  }
+
+  // Group buying: hand each named friend their own ticket — a transfer into a
+  // fresh order in their name (their QR stays valid) — then email it if we have
+  // an address; transferTickets texts them. Best-effort per friend; a failure
+  // leaves the ticket with the buyer and never undoes the order.
+  const friends = (p.friends ?? []) as { first_name: string; phone: string; email: string | null }[];
+  const seenPhones = new Set<string>([p.buyer.phone]);
+  for (const f of friends) {
+    if (!f.phone || seenPhones.has(f.phone)) continue;
+    seenPhones.add(f.phone);
+    try {
+      const { newOrderId } = await transferTickets({
+        orderId: orderRef.id,
+        count: 1,
+        recipient: { phone: f.phone, first_name: f.first_name, email: f.email },
+      });
+      if (f.email) {
+        await sendTicketEmail({
+          to: f.email,
+          firstName: f.first_name,
+          eventTitle: event.title,
+          whenText,
+          venue: [event.venue_name, event.venue_address].filter(Boolean).join(" · "),
+          quantity: 1,
+          ticketUrl: `${site}/t/${newOrderId}`,
+        });
+      }
+    } catch (err) {
+      console.error("group ticket error", { orderId: orderRef.id, phone: f.phone }, err);
+    }
+  }
+
+  // Bring-a-friend: tell the referrer someone joined through their link.
+  if (p.referred_by_order_id) {
+    try {
+      const refOrder = await db.collection("orders").doc(p.referred_by_order_id).get();
+      const refBuyer = refOrder.exists ? await db.collection("buyers").doc(refOrder.data()!.buyer_id).get() : null;
+      const email = refBuyer?.exists ? ((refBuyer.data()!.email as string | null) ?? null) : null;
+      if (email) {
+        const count = (await db.collection("orders").where("referred_by_order_id", "==", p.referred_by_order_id).get()).size;
+        await sendReferralJoinedEmail({
+          to: email,
+          firstName: (refBuyer!.data()!.first_name as string | null) ?? null,
+          friendFirstName: p.buyer.first_name,
+          eventTitle: event.title,
+          count,
+          ticketUrl: `${site}/t/${p.referred_by_order_id}`,
+        });
+      }
+    } catch (err) {
+      console.error("referral notify error", { orderId: orderRef.id }, err);
+    }
   }
 }
 

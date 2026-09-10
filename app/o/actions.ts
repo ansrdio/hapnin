@@ -52,6 +52,7 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       status,
       capacity: values.capacity ?? null,
       refund_policy: values.refund_policy as never,
+      referral_off_cents: values.referral_off_cents ?? 0,
       event_type: values.event_type as never,
       community: values.community as never,
       primary_language: values.primary_language as never,
@@ -307,6 +308,8 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   const capacity = capRaw ? parseInt(capRaw, 10) : null;
   const refundRaw = String(formData.get("refund_policy") ?? "none");
   const refund_policy = isRefundPolicy(refundRaw) ? refundRaw : "none";
+  const referralDollars = parseFloat(String(formData.get("referral_off") ?? "0"));
+  const referral_off_cents = Number.isFinite(referralDollars) ? Math.max(0, Math.min(5000, Math.round(referralDollars * 100))) : 0;
   const description = cleanText(String(formData.get("description") ?? ""), 2000) || null;
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const event_type = String(formData.get("event_type") ?? "");
@@ -329,7 +332,7 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
 
   await updateEventDetails(eventId, {
     title, description, venue_name, venue_address, venue_zip, city, state,
-    starts_at: starts_at!, capacity, refund_policy,
+    starts_at: starts_at!, capacity, refund_policy, referral_off_cents,
     event_type: event_type as never, community: community as never,
     primary_language: primary_language as never, genre: genre as never, talent,
   });
@@ -513,6 +516,7 @@ export async function duplicateEventAction(formData: FormData): Promise<void> {
         status: "draft",
         capacity: source.capacity,
         refund_policy: source.refund_policy,
+        referral_off_cents: source.referral_off_cents,
         event_type: source.event_type,
         community: source.community,
         primary_language: source.primary_language,

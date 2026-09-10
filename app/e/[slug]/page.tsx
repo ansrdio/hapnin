@@ -91,10 +91,10 @@ export default async function EventPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string }>;
+  searchParams: Promise<{ p?: string; friend?: string }>;
 }) {
   const { slug } = await params;
-  const { p } = await searchParams;
+  const { p, friend } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
@@ -137,7 +137,12 @@ export default async function EventPage({
 
   // Promoter attribution — validate the code so we only forward/celebrate real ones.
   const promoter = p ? await resolvePromoterCode(event.id, p) : null;
-  const checkoutHref = promoter ? `/e/${event.slug}/checkout?p=${promoter.code}` : `/e/${event.slug}/checkout`;
+  // Carry promoter and bring-a-friend codes through to checkout.
+  const qs = new URLSearchParams();
+  if (promoter) qs.set("p", promoter.code);
+  if (friend && /^[a-z0-9]{6,12}$/i.test(friend)) qs.set("friend", friend.toLowerCase());
+  const q = qs.toString();
+  const checkoutHref = q ? `/e/${event.slug}/checkout?${q}` : `/e/${event.slug}/checkout`;
   const tableHref = (id: string) => `${checkoutHref}${checkoutHref.includes("?") ? "&" : "?"}tier=${id}`;
 
   const Flyer = event.flyer_url ? (

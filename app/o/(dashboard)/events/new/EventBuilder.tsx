@@ -74,6 +74,9 @@ export function EventBuilder() {
               ))}
             </select>
           </Field>
+          <Field label="Bring-a-friend discount ($, optional)" hint="Buyers get a share link; friends who use it get this much off.">
+            <Input name="referral_off" type="number" min="0" max="50" step="1" placeholder="5" />
+          </Field>
           <Field label="Venue name" error={err.venue_name}>
             <Input name="venue_name" placeholder="The Van Buren" />
           </Field>

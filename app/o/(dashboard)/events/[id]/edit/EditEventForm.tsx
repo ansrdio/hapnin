@@ -20,6 +20,7 @@ type EventData = {
   starts_at: number;
   capacity: number | null;
   refund_policy: string;
+  referral_off_cents: number;
   event_type: string;
   community: string;
   primary_language: string;
@@ -100,6 +101,9 @@ export function EditEventForm({ event, tiers }: { event: EventData; tiers: Tier[
                 <option key={p} value={p}>{REFUND_POLICY_SHORT[p]}</option>
               ))}
             </select>
+          </Field>
+          <Field label="Bring-a-friend discount ($)" hint="Buyers get a share link; friends who use it get this much off. 0 = off.">
+            <Input name="referral_off" type="number" min="0" max="50" step="1" defaultValue={event.referral_off_cents ? (event.referral_off_cents / 100).toString() : ""} placeholder="5" />
           </Field>
         </div>
         <Field label="Description (optional)">

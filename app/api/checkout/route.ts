@@ -38,6 +38,18 @@ export async function POST(req: Request) {
   const scr = String(body.screening ?? "");
   const screening_interest = scr === "yes" ? true : scr === "no" ? false : null;
 
+  // Group buying: named friends each get their own ticket on payment. Up to
+  // quantity − 1; each needs a US mobile (tickets are keyed by phone), email
+  // optional. Anything unparseable is dropped, never an error.
+  const rawFriends = Array.isArray(body.friends) ? (body.friends as Record<string, unknown>[]).slice(0, Math.max(0, quantity - 1)) : [];
+  const friends = rawFriends
+    .map((f) => ({
+      first_name: cleanText(String(f.first_name ?? ""), 60) || "Friend",
+      phone: normalizeUsPhone(String(f.phone ?? "")),
+      email: normalizeEmail(String(f.email ?? "")),
+    }))
+    .filter((f): f is { first_name: string; phone: string; email: string | null } => !!f.phone);
+
   try {
     const { clientSecret, amounts } = await createCheckoutIntent({
       slug,
@@ -56,6 +68,8 @@ export async function POST(req: Request) {
       referral_source: body.ref ? cleanText(String(body.ref), 40) : null,
       promoter_code: body.p ? cleanText(String(body.p), 40) : null,
       promo_code: body.promo ? cleanText(String(body.promo), 24) : null,
+      friend_code: body.friend ? cleanText(String(body.friend), 24).toLowerCase() : null,
+      friends,
       ip,
       user_agent: h.get("user-agent"),
     });

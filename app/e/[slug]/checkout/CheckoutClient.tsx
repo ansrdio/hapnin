@@ -41,6 +41,7 @@ export function CheckoutClient({
   tiers: Tier[];
   promoterCode?: string | null;
   preselectTierId?: string | null;
+  friendCode?: string | null; // bring-a-friend share code from ?friend=
 }) {
   const initialTier = tiers.find((t) => t.id === preselectTierId)?.id ?? tiers[0].id;
   const [tierId, setTierId] = useState(initialTier);
@@ -50,6 +51,8 @@ export function CheckoutClient({
   const [promo, setPromo] = useState("");
   const [optIn, setOptIn] = useState(true);
   const [showName, setShowName] = useState(true); // first name in "X, Y and N others going"
+  // Group buying: one row per extra ticket; blank rows are ignored server-side.
+  const [friends, setFriends] = useState<{ first_name: string; phone: string; email: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -70,7 +73,12 @@ export function CheckoutClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, tierId, quantity: effQty, ...f, screening, optIn, showName, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
+        body: JSON.stringify({
+          slug, tierId, quantity: effQty, ...f, screening, optIn, showName,
+          p: promoterCode ?? undefined, promo: promo.trim() || undefined,
+          friend: friendCode ?? undefined,
+          friends: isTable ? [] : friends.slice(0, effQty - 1).filter((fr) => fr.phone.trim()),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -188,6 +196,36 @@ export function CheckoutClient({
               <span className="ml-auto font-display text-lg tabular-nums text-cream">
                 {usd(tier.price_cents * qty)}
               </span>
+            </div>
+          </div>
+        )}
+
+        {!isTable && qty >= 2 && (
+          <div className="rounded-xl border border-plum-hi bg-plum/30 p-4">
+            <p className="font-display font-semibold text-cream">
+              Sending tickets to friends? <span className="text-sm font-normal text-mauve-dim">(optional)</span>
+            </p>
+            <p className="mt-0.5 text-xs text-mauve-dim">
+              Add their mobile and each gets their own ticket the moment you pay. Leave blank to keep them all on your phone.
+            </p>
+            <div className="mt-3 space-y-2">
+              {Array.from({ length: qty - 1 }).map((_, i) => {
+                const fr = friends[i] ?? { first_name: "", phone: "", email: "" };
+                const set = (k: "first_name" | "phone" | "email") => (e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFriends((prev) => {
+                    const next = [...prev];
+                    while (next.length <= i) next.push({ first_name: "", phone: "", email: "" });
+                    next[i] = { ...next[i], [k]: e.target.value };
+                    return next;
+                  });
+                return (
+                  <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <input className={field} placeholder={`Friend ${i + 1} name`} value={fr.first_name} onChange={set("first_name")} />
+                    <input className={field} type="tel" inputMode="tel" placeholder="Mobile" value={fr.phone} onChange={set("phone")} />
+                    <input className={`${field} col-span-2 sm:col-span-1`} type="email" inputMode="email" placeholder="Email (optional)" value={fr.email} onChange={set("email")} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

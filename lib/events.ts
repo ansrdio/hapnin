@@ -41,6 +41,7 @@ export type EventRecord = {
   status: EventStatus;
   capacity: number | null;
   refund_policy: RefundPolicy;
+  referral_off_cents: number; // bring-a-friend: flat discount for a referred friend; 0 = off
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -82,6 +83,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     status: d.status,
     capacity: d.capacity ?? null,
     refund_policy: (d.refund_policy ?? "none") as RefundPolicy,
+    referral_off_cents: d.referral_off_cents ?? 0,
     event_type: d.event_type,
     community: d.community,
     primary_language: d.primary_language,
@@ -186,6 +188,7 @@ export type EventDetailsUpdate = {
   starts_at: number;
   capacity: number | null;
   refund_policy: RefundPolicy;
+  referral_off_cents: number; // bring-a-friend: flat discount for a referred friend; 0 = off
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -280,6 +283,7 @@ export async function createEvent(input: {
   status?: EventStatus;
   capacity?: number | null;
   refund_policy?: RefundPolicy;
+  referral_off_cents?: number;
   event_type: EventType;
   community: Community;
   primary_language: LanguageCode;
@@ -316,6 +320,7 @@ export async function createEvent(input: {
     status: input.status ?? "draft",
     capacity: input.capacity ?? null,
     refund_policy: input.refund_policy ?? "none",
+    referral_off_cents: input.referral_off_cents ?? 0,
     event_type: input.event_type,
     community: input.community,
     primary_language: input.primary_language,

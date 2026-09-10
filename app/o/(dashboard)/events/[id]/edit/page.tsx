@@ -46,6 +46,7 @@ export default async function EditEventPage({
           starts_at: event.starts_at,
           capacity: event.capacity,
           refund_policy: event.refund_policy,
+          referral_off_cents: event.referral_off_cents,
           event_type: event.event_type,
           community: event.community,
           primary_language: event.primary_language,
