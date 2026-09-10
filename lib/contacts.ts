@@ -191,6 +191,44 @@ export async function importContacts(input: {
   return { added, updated };
 }
 
+/**
+ * Buyer-side opt-in ("Get updates from X"): the person gives their OWN consent
+ * to hear from this organizer. Stored as a subscribed contact with source
+ * "follow" plus the consent evidence; counts toward the announce-able audience.
+ */
+export async function followOrganizer(input: {
+  organizerId: string;
+  email: string;
+  ip?: string | null;
+  userAgent?: string | null;
+}): Promise<void> {
+  const db = getDb();
+  const ref = db.collection(COLL).doc(docId(input.organizerId, input.email));
+  const snap = await ref.get();
+  const consent = {
+    subscribed: true,
+    consented_at: FieldValue.serverTimestamp(),
+    consent_ip: input.ip ?? null,
+    consent_user_agent: input.userAgent ?? null,
+    updated_at: FieldValue.serverTimestamp(),
+  };
+  if (snap.exists) {
+    await ref.update(consent); // re-subscribes if they'd unsubscribed — their choice
+    return;
+  }
+  await ref.set({
+    organizer_id: input.organizerId,
+    email: input.email,
+    phone: null,
+    first_name: null,
+    last_name: null,
+    source: "follow",
+    unsub_token: randomBytes(18).toString("base64url"),
+    created_at: FieldValue.serverTimestamp(),
+    ...consent,
+  });
+}
+
 export async function contactsSummary(organizerId: string): Promise<{ total: number; subscribed: number }> {
   const snap = await getDb().collection(COLL).where("organizer_id", "==", organizerId).get();
   return { total: snap.size, subscribed: snap.docs.filter((d) => d.data().subscribed !== false).length };

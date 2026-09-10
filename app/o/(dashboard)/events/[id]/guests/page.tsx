@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
 import { getEventGuests } from "@/lib/attendees";
-import { PageHeader, Card, Stat } from "@/app/components/ui";
+import { PageHeader, Card, Stat, LinkButton, buttonClass } from "@/app/components/ui";
 import { GuestTable } from "./GuestTable";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,22 @@ export default async function GuestsPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Guest list" subtitle={event.title} back={{ href: `/o/events/${id}`, label: event.title }} />
+      <PageHeader
+        title="Guest list"
+        subtitle={event.title}
+        back={{ href: `/o/events/${id}`, label: event.title }}
+        action={
+          <div className="flex gap-2">
+            <LinkButton href={`/scan/${id}/board`} variant="secondary">
+              Door board
+            </LinkButton>
+            {/* Plain anchor: a route handler download, not a page. */}
+            <a href={`/o/events/${id}/guests/export.csv`} className={buttonClass("secondary")}>
+              Export CSV
+            </a>
+          </div>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-3 gap-4">
         <Stat label="Orders" value={paid.length} />

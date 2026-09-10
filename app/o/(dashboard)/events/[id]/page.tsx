@@ -340,6 +340,9 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
               <LinkButton href={`/scan/${event.id}/sell`} variant="secondary">
                 Box office
               </LinkButton>
+              <LinkButton href={`/scan/${event.id}/board`} variant="secondary">
+                Door board
+              </LinkButton>
             </div>
           </Card>
 

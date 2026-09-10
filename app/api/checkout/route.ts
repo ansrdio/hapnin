@@ -51,6 +51,7 @@ export async function POST(req: Request) {
         postal_code: postal_code!,
         screening_interest,
         marketing_opt_in: body.optIn !== false,
+        show_name: body.showName !== false,
       },
       referral_source: body.ref ? cleanText(String(body.ref), 40) : null,
       promoter_code: body.p ? cleanText(String(body.p), 40) : null,

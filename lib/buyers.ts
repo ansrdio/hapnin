@@ -17,6 +17,7 @@ export async function findOrCreateBuyer(input: {
   screening_interest?: boolean | null;
   sms_marketing_opt_in?: boolean;
   email_marketing_opt_in?: boolean;
+  show_name?: boolean; // may their first name appear in "X, Y and N others going"
   first_event_id?: string | null;
 }): Promise<void> {
   const db = getDb();
@@ -33,6 +34,7 @@ export async function findOrCreateBuyer(input: {
         screening_interest: input.screening_interest ?? null,
         sms_marketing_opt_in: !!input.sms_marketing_opt_in,
         email_marketing_opt_in: !!input.email_marketing_opt_in,
+        show_name: input.show_name !== false,
         first_event_id: input.first_event_id ?? null,
         created_at: FieldValue.serverTimestamp(),
       });
@@ -47,6 +49,7 @@ export async function findOrCreateBuyer(input: {
     if (input.postal_code) update.postal_code = input.postal_code;
     if (input.screening_interest != null && d.screening_interest == null)
       update.screening_interest = input.screening_interest;
+    if (input.show_name != null) update.show_name = input.show_name; // latest choice wins
     if (input.sms_marketing_opt_in && !d.sms_marketing_opt_in) update.sms_marketing_opt_in = true;
     if (input.email_marketing_opt_in && !d.email_marketing_opt_in) update.email_marketing_opt_in = true;
     if (Object.keys(update).length) tx.update(ref, update);

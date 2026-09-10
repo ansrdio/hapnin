@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getOrganizerByHandle } from "@/lib/organizers";
 import { listEventsByOrganizer, getTiers, type EventRecord } from "@/lib/events";
 import { money } from "@/app/components/ui";
+import { FollowForm } from "@/app/components/FollowForm";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,11 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
           )}
         </div>
       </header>
+
+      {/* Follow — the buyer's own opt-in to this organizer's announcements */}
+      <div className="anim-rise d-1 mb-10">
+        <FollowForm organizerId={organizer.id} organizerName={organizer.name} compact />
+      </div>
 
       {/* Events */}
       <h2 className="anim-rise d-1 mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-gold">Upcoming events</h2>

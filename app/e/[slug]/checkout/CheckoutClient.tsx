@@ -49,6 +49,7 @@ export function CheckoutClient({
   const [screening, setScreening] = useState("");
   const [promo, setPromo] = useState("");
   const [optIn, setOptIn] = useState(true);
+  const [showName, setShowName] = useState(true); // first name in "X, Y and N others going"
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function CheckoutClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, tierId, quantity: effQty, ...f, screening, optIn, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
+        body: JSON.stringify({ slug, tierId, quantity: effQty, ...f, screening, optIn, showName, p: promoterCode ?? undefined, promo: promo.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -262,6 +263,11 @@ export function CheckoutClient({
               Terms
             </a>
           </span>
+        </label>
+
+        <label className="flex items-start gap-3 text-sm leading-relaxed text-mauve-dim">
+          <input type="checkbox" checked={showName} onChange={(e) => setShowName(e.target.checked)} className="mt-1 accent-gold" />
+          <span>Show my first name on the event page (“Ada, Chidi and 41 others going”). First name only, never your contact details.</span>
         </label>
 
         {errors.form && <p className="text-sm text-coral">{errors.form}</p>}

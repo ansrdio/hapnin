@@ -59,6 +59,7 @@ export type CheckoutInput = {
     postal_code: string;
     screening_interest: boolean | null;
     marketing_opt_in: boolean;
+    show_name: boolean; // may their first name appear in "X, Y and N others going"
   };
   referral_source: string | null;
   promoter_code: string | null;
@@ -242,6 +243,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     last_name: p.buyer.last_name,
     postal_code: p.buyer.postal_code,
     screening_interest: p.buyer.screening_interest,
+    show_name: p.buyer.show_name !== false,
     sms_marketing_opt_in: p.buyer.marketing_opt_in,
     email_marketing_opt_in: p.buyer.marketing_opt_in,
     first_event_id: event.id,

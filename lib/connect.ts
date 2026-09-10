@@ -64,3 +64,38 @@ export async function createExpressLoginLink(organizerId: string): Promise<strin
   const link = await getStripe().accounts.createLoginLink(organizer.stripe_account_id);
   return link.url;
 }
+
+export type PayoutSnapshot = {
+  available_cents: number; // in the organizer's Stripe balance, payable now
+  pending_cents: number; // settled sales still clearing
+  last_payout: { amount_cents: number; arrival_date: number; status: string } | null;
+  schedule: string; // human-readable payout schedule
+};
+
+/** "When do I get paid?" — the organizer's Stripe balance, last payout, and schedule. */
+export async function getPayoutSnapshot(organizerId: string): Promise<PayoutSnapshot | null> {
+  const organizer = await getOrganizerById(organizerId);
+  if (!organizer?.stripe_account_id) return null;
+  const stripe = getStripe();
+  const acct = organizer.stripe_account_id;
+  const [balance, payouts, account] = await Promise.all([
+    stripe.balance.retrieve({}, { stripeAccount: acct }),
+    stripe.payouts.list({ limit: 1 }, { stripeAccount: acct }),
+    stripe.accounts.retrieve(acct),
+  ]);
+  const usd = (arr: { amount: number; currency: string }[]) =>
+    arr.filter((a) => a.currency === "usd").reduce((s, a) => s + a.amount, 0);
+  const p = payouts.data[0];
+  const sched = account.settings?.payouts?.schedule;
+  const schedule = !sched
+    ? "Stripe’s standard schedule"
+    : sched.interval === "manual"
+      ? "manual payouts"
+      : `${sched.interval}${sched.delay_days ? `, ${sched.delay_days}-day rolling` : ""}`;
+  return {
+    available_cents: usd(balance.available),
+    pending_cents: usd(balance.pending),
+    last_payout: p ? { amount_cents: p.amount, arrival_date: p.arrival_date * 1000, status: p.status } : null,
+    schedule,
+  };
+}

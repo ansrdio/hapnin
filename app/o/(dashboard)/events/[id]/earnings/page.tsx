@@ -3,6 +3,7 @@ import { requireOrganizer } from "@/lib/auth";
 import { getEventById } from "@/lib/events";
 import { getEventEarnings } from "@/lib/earnings";
 import { openStripeDashboardAction } from "@/app/o/actions";
+import { getPayoutSnapshot } from "@/lib/connect";
 import { PageHeader, Card, Stat, LinkButton, buttonClass, money } from "@/app/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export default async function EarningsPage({ params }: { params: Promise<{ id: s
   const e = await getEventEarnings(id);
   const online = e.online;
   const hasDoor = e.door.tickets > 0;
+  // "When do I get paid?" — live from Stripe, owner only, never fatal.
+  const payout =
+    role === "owner" && organizer.stripe_onboarded ? await getPayoutSnapshot(organizer.id).catch(() => null) : null;
 
   return (
     <div className="max-w-3xl">
@@ -47,6 +51,28 @@ export default async function EarningsPage({ params }: { params: Promise<{ id: s
           {e.refunded.orders > 0 && <> · {e.refunded.orders} refunded</>}
         </p>
       </Card>
+
+      {payout && (
+        <Card className="mb-6">
+          <p className="mb-4 font-display font-semibold text-cream">Your Stripe payouts</p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Stat label="Available now" value={money(payout.available_cents)} sub="ready to pay out" />
+            <Stat label="On the way" value={money(payout.pending_cents)} sub="still clearing" />
+            <Stat
+              label="Last payout"
+              value={payout.last_payout ? money(payout.last_payout.amount_cents) : "—"}
+              sub={
+                payout.last_payout
+                  ? `${payout.last_payout.status} · ${new Date(payout.last_payout.arrival_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                  : "none yet"
+              }
+            />
+          </div>
+          <p className="mt-3 text-xs text-mauve-dim">
+            Schedule: {payout.schedule}. These are your whole Stripe balance across all events, live from Stripe.
+          </p>
+        </Card>
+      )}
 
       {/* How the online number is built */}
       <Card className="mb-6">

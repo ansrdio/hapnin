@@ -6,6 +6,9 @@ import { getOrganizerById } from "@/lib/organizers";
 import { resolvePromoterCode } from "@/lib/promoters";
 import { WaitlistForm } from "./WaitlistForm";
 import { ShareButton } from "./ShareButton";
+import { FollowForm } from "@/app/components/FollowForm";
+import { Countdown } from "@/app/components/Countdown";
+import { getGoingNames } from "@/lib/door";
 
 export const dynamic = "force-dynamic";
 
@@ -108,18 +111,26 @@ export default async function EventPage({
   const minPrice = (priceable.length ? priceable : tiers).reduce((m, t) => Math.min(m, t.price_cents), Infinity);
   const fromPrice = Number.isFinite(minPrice) ? minPrice : 0;
 
-  // Momentum — counts only, never names. Drives the "is it popping?" read.
+  // Momentum — scarcity first; otherwise real first names from buyers who
+  // allowed it at checkout ("Ada, Chidi and 41 others going"); counts alone as
+  // the fallback. Drives the "is it popping?" read.
   const capacity = event.capacity ?? tiers.reduce((a, t) => a + t.quantity_total, 0);
   const sold = event.tickets_sold;
   const left = capacity > 0 ? capacity - sold : null;
   const scarce = left != null && left > 0 && left <= Math.max(10, Math.round(capacity * 0.1));
+  const going = sold >= 3 ? await getGoingNames(event.id, 2) : [];
+  const others = Math.max(0, sold - going.length);
   const momentum: string | null = allSoldOut
     ? null
     : scarce
       ? `Only ${left} left`
-      : sold >= 10
-        ? `${sold} going`
-        : null;
+      : going.length > 0 && others > 0
+        ? `${going.join(", ")} and ${others} other${others === 1 ? "" : "s"} going`
+        : going.length > 0
+          ? `${going.join(", ")} going`
+          : sold >= 10
+            ? `${sold} going`
+            : null;
 
   // Lineup — the headliner + support, pulled from what the organizer entered.
   const [headliner, ...support] = event.talent;
@@ -273,6 +284,9 @@ export default async function EventPage({
                         <div>
                           <p className="font-display text-lg font-semibold text-cream">{t.name}</p>
                           {st.label && <p className="text-sm text-mauve-dim">{st.label}</p>}
+                          {st.available && t.sales_end_at && t.sales_end_at > Date.now() && t.sales_end_at - Date.now() < 14 * 86_400_000 && (
+                            <Countdown until={t.sales_end_at} prefix="Ends in" />
+                          )}
                         </div>
                         <span className="font-display text-lg tabular-nums text-cream">{usd(t.price_cents)}</span>
                       </li>
@@ -325,6 +339,13 @@ export default async function EventPage({
             {onSale && allSoldOut && (
               <div className="mt-8">
                 <WaitlistForm slug={event.slug} />
+              </div>
+            )}
+
+            {/* Follow — the buyer's own opt-in to this organizer's announcements */}
+            {organizer && (
+              <div className="anim-rise d-4 mt-10">
+                <FollowForm organizerId={organizer.id} organizerName={organizer.name} />
               </div>
             )}
           </div>
