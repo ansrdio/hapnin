@@ -19,6 +19,7 @@ import { deliverTicket } from "@/lib/checkout";
 import { getTiers } from "@/lib/events";
 import { slugify } from "@/lib/event-input";
 import { createExpressLoginLink } from "@/lib/connect";
+import { parseContacts, importContacts, announceEvent, deleteContact, IMPORT_MAX_ROWS, ANNOUNCE_MAX_RECIPIENTS } from "@/lib/contacts";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -552,6 +553,73 @@ export async function openStripeDashboardAction(): Promise<void> {
     console.error("stripe login link error", err);
   }
   redirect(url ?? `/o?payout_error=${encodeURIComponent("Couldn’t open your Stripe dashboard — connect payouts first.")}`);
+}
+
+// ── Audience: imported contacts + announcements ──────────────────────────────
+
+/** Import pasted emails / a CSV into the organizer's contacts. Requires the permission attestation. */
+export async function importContactsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  if (formData.get("attest") !== "on") {
+    return { status: "error", fieldErrors: { attest: "Confirm you have permission to contact these people." } };
+  }
+  const text = String(formData.get("text") ?? "");
+  if (text.trim().length < 5) return { status: "error", fieldErrors: { text: "Paste emails or upload a CSV first." } };
+
+  const { rows, skipped, truncated } = parseContacts(text);
+  if (rows.length === 0) return { status: "error", fieldErrors: { text: "No email addresses found in that." } };
+
+  try {
+    const { added, updated } = await importContacts({ organizerId: organizer.id, rows, attestedBy: organizer.email });
+    revalidatePath("/o/audience");
+    return {
+      status: "success",
+      message:
+        `Imported ${added} new` +
+        (updated ? ` · ${updated} updated` : "") +
+        (skipped ? ` · ${skipped} line${skipped === 1 ? "" : "s"} skipped (no email)` : "") +
+        (truncated ? ` · capped at ${IMPORT_MAX_ROWS.toLocaleString()} per import` : "") +
+        ".",
+    };
+  } catch (err) {
+    console.error("importContacts error", err);
+    return { status: "error", message: "Couldn’t import. Try again." };
+  }
+}
+
+/** Email an event to the organizer's whole audience (contacts + opted-in buyers). */
+export async function announceEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const subject = cleanText(String(formData.get("subject") ?? ""), 120);
+  const body = String(formData.get("body") ?? "").replace(/\r/g, "").trim().slice(0, 2000);
+  if (!(await ownedEvent(eventId, organizer.id))) return { status: "error", message: "Pick an event." };
+  if (!subject) return { status: "error", fieldErrors: { subject: "Give it a subject." } };
+  if (body.length < 3) return { status: "error", fieldErrors: { body: "Write a message first." } };
+
+  try {
+    const r = await announceEvent({ organizerId: organizer.id, eventId, subject, body });
+    if (r.recipients === 0) return { status: "error", message: "Your audience is empty — import contacts first." };
+    revalidatePath("/o/audience");
+    return {
+      status: "success",
+      message:
+        `Sent to ${r.sent} of ${r.recipients}` +
+        (r.failed ? ` (${r.failed} failed)` : "") +
+        (r.capped ? ` · list capped at ${ANNOUNCE_MAX_RECIPIENTS.toLocaleString()} per send` : "") +
+        ".",
+    };
+  } catch (err) {
+    console.error("announceEvent error", err);
+    return { status: "error", message: "Couldn’t send the announcement. Try again." };
+  }
+}
+
+/** Remove one imported contact. */
+export async function deleteContactAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  await deleteContact(organizer.id, String(formData.get("contact_id") ?? ""));
+  revalidatePath("/o/audience");
 }
 
 /** Add a team member (manager or door). Owner only. */

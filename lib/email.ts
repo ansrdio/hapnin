@@ -201,6 +201,56 @@ export async function sendWaitlistEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.name ?? undefined, subject: `Tickets just opened — ${opts.eventTitle}`, html });
 }
 
+/**
+ * An organizer announcing an event to their whole audience (imported contacts
+ * + opted-in past buyers). Says plainly why the reader is getting it and
+ * carries a one-click unsubscribe — both required for imported lists.
+ */
+export async function sendAnnouncementEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  organizerName: string;
+  eventTitle: string;
+  whenText: string;
+  venue: string;
+  flyerUrl: string | null;
+  subject: string;
+  body: string;
+  eventUrl: string;
+  reason: "contact" | "buyer";
+  unsubscribeUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const paragraphs = escapeHtml(opts.body.trim())
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 14px;color:#F6EEE1;line-height:1.55">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  const why =
+    opts.reason === "buyer"
+      ? `You're getting this because you bought a ticket from ${escapeHtml(opts.organizerName)} on Hapnin and opted into updates.`
+      : `You're getting this because ${escapeHtml(opts.organizerName)} added you to their list on Hapnin.`;
+  const flyer = opts.flyerUrl
+    ? `<img src="${opts.flyerUrl}" alt="" style="display:block;width:100%;max-width:520px;border-radius:12px;margin:0 0 18px">`
+    : "";
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:520px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">From ${escapeHtml(opts.organizerName)}</p>
+      <h1 style="margin:0 0 18px;font-size:24px;color:#F6EEE1">${escapeHtml(opts.subject)}</h1>
+      ${flyer}
+      ${paragraphs}
+      <div style="margin:6px 0 18px;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:12px">
+        <p style="margin:0;font-weight:700;color:#F6EEE1">${escapeHtml(opts.eventTitle)}</p>
+        <p style="margin:2px 0 0;color:#C9B8D8;font-size:14px">${escapeHtml(opts.whenText)} · ${escapeHtml(opts.venue)}</p>
+      </div>
+      <a href="${opts.eventUrl}" style="display:inline-block;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">Get tickets</a>
+    </div>
+    <p style="max-width:520px;margin:18px auto 0;font-size:12px;line-height:1.5;color:#9A87AC;text-align:center">
+      ${why} <a href="${opts.unsubscribeUrl}" style="color:#C9B8D8">Unsubscribe</a> — one click, no questions.
+    </p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: opts.subject, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { unsubscribeEmailByToken } from "@/lib/buyers";
+import { unsubscribeContactByToken } from "@/lib/contacts";
 import { SUPPORT_EMAIL } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,9 @@ export const dynamic = "force-dynamic";
 // transactional email (tickets, receipts, refunds) is unaffected.
 export default async function UnsubscribePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const ok = /^[A-Za-z0-9_-]{10,64}$/.test(token) ? await unsubscribeEmailByToken(token) : false;
+  // Tokens belong to either a buyer (checkout opt-in) or an imported contact.
+  const valid = /^[A-Za-z0-9_-]{10,64}$/.test(token);
+  const ok = valid ? (await unsubscribeEmailByToken(token)) || (await unsubscribeContactByToken(token)) : false;
 
   return (
     <main className="grain mx-auto max-w-md px-5 py-16">
