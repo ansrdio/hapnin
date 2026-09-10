@@ -1,5 +1,6 @@
 import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
+import { randomBytes } from "crypto";
 import { getDb } from "./firebase-admin";
 import type { ConsentScope, ConsentChannel, ConsentAction, ConsentSource } from "./enums";
 
@@ -53,6 +54,34 @@ export async function findOrCreateBuyer(input: {
 }
 
 /** Append a consent record. Append-only — never updated or deleted (TCPA evidence). */
+/**
+ * Per-buyer unsubscribe token for marketing email links. Created lazily and
+ * stored on the buyer doc so a link keeps working; random, not derived from
+ * the phone, so a link can't be forged for someone else.
+ */
+export async function getOrCreateUnsubToken(phone: string): Promise<string | null> {
+  const db = getDb();
+  const ref = db.collection("buyers").doc(phone);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return null;
+    const existing = snap.data()!.unsub_token as string | undefined;
+    if (existing) return existing;
+    const token = randomBytes(18).toString("base64url");
+    tx.update(ref, { unsub_token: token });
+    return token;
+  });
+}
+
+/** One-click unsubscribe from marketing email. Returns false if the token is unknown. */
+export async function unsubscribeEmailByToken(token: string): Promise<boolean> {
+  const db = getDb();
+  const snap = await db.collection("buyers").where("unsub_token", "==", token).limit(1).get();
+  if (snap.empty) return false;
+  await snap.docs[0].ref.update({ email_marketing_opt_in: false, email_unsubscribed_at: FieldValue.serverTimestamp() });
+  return true;
+}
+
 export async function recordConsent(input: {
   phone: string;
   scope: ConsentScope;

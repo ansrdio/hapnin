@@ -109,6 +109,41 @@ export async function sendRefundEmail(opts: {
   });
 }
 
+/**
+ * An organizer's broadcast to opted-in buyers of one event. Carries a one-click
+ * unsubscribe link (required for marketing email) and says plainly why the
+ * reader is getting it.
+ */
+export async function sendBroadcastEmail(opts: {
+  to: string;
+  firstName?: string | null;
+  organizerName: string;
+  eventTitle: string;
+  subject: string;
+  body: string;
+  eventUrl: string;
+  unsubscribeUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const paragraphs = escapeHtml(opts.body.trim())
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 14px;color:#F6EEE1;line-height:1.55">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:520px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">From ${escapeHtml(opts.organizerName)} · ${escapeHtml(opts.eventTitle)}</p>
+      <h1 style="margin:0 0 18px;font-size:24px;color:#F6EEE1">${escapeHtml(opts.subject)}</h1>
+      ${paragraphs}
+      <a href="${opts.eventUrl}" style="display:inline-block;margin-top:6px;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">View the event</a>
+    </div>
+    <p style="max-width:520px;margin:18px auto 0;font-size:12px;line-height:1.5;color:#9A87AC;text-align:center">
+      You're getting this because you bought a ticket to ${escapeHtml(opts.eventTitle)} on Hapnin and opted into updates.
+      <a href="${opts.unsubscribeUrl}" style="color:#C9B8D8">Unsubscribe from event updates</a> — you'll still get your tickets, receipts, and refund notices.
+    </p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: opts.subject, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

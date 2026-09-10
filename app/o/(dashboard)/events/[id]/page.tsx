@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth";
 import { getEventById, getTiers } from "@/lib/events";
-import { getEventAudience } from "@/lib/broadcasts";
+import { audienceSummary, listBroadcasts } from "@/lib/broadcasts";
 import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
 import { waitlistCount } from "@/lib/waitlist";
@@ -58,7 +58,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
   const tiers = await getTiers(id);
   const gaTiers = tiers.filter((t) => t.kind !== "table");
   const tableTiers = tiers.filter((t) => t.kind === "table");
-  const audience = await getEventAudience(id);
+  const [audience, broadcastHistory] = await Promise.all([audienceSummary(id), listBroadcasts(id)]);
   const promoterLinks = await listPromoterLinks(id);
   const promoCodes = await listPromoCodes(id);
   const waitlist = await waitlistCount(id);
@@ -235,10 +235,17 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
                     {waitlist} {waitlist === 1 ? "person is" : "people are"} waiting. Text them a buy link when seats open.
                   </p>
                 </div>
-                <form action={notifyWaitlistAction}>
-                  <input type="hidden" name="event_id" value={event.id} />
-                  <button className={buttonClass("secondary")}>Notify waitlist</button>
-                </form>
+                {smsOff ? (
+                  <p className="max-w-xs text-sm text-mauve-dim">
+                    <span className="font-medium text-cream">Texting isn’t switched on yet</span> — the waitlist is
+                    notified by text; this button wakes up when carrier approval lands.
+                  </p>
+                ) : (
+                  <form action={notifyWaitlistAction}>
+                    <input type="hidden" name="event_id" value={event.id} />
+                    <button className={buttonClass("secondary")}>Notify waitlist</button>
+                  </form>
+                )}
               </div>
             </Card>
           )}
@@ -264,11 +271,12 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           </Card>
 
           <Card className="mb-6">
-            <p className="font-display font-semibold text-cream">Text your buyers</p>
+            <p className="font-display font-semibold text-cream">Message your buyers</p>
             <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
               A quick update to everyone who bought and opted in — reminders, set times, last-minute changes.
+              Goes out by email now{smsOff ? "; texts join once carrier approval lands" : " and by text"}.
             </p>
-            <BroadcastForm eventId={event.id} audience={audience.length} smsOff={smsOff} />
+            <BroadcastForm eventId={event.id} audience={audience} smsOff={smsOff} history={broadcastHistory} />
           </Card>
         </TabPanel>
 

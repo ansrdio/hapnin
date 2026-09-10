@@ -2,7 +2,7 @@ import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getEventById } from "./events";
-import { sendSMS } from "./sms";
+import { sendSMS, isSmsConfigured } from "./sms";
 
 // Waitlist for a sold-out event. One entry per phone (id = `${eventId}:${phone}`).
 // When inventory frees up the organizer texts the list a buy link.
@@ -48,6 +48,9 @@ export async function notifyWaitlist(eventId: string): Promise<{ notified: numbe
   const db = getDb();
   const event = await getEventById(eventId);
   if (!event) throw new Error("EVENT_NOT_FOUND");
+  // Waitlist entries carry a phone only, so this is SMS-only. Until Twilio is
+  // configured, report 0 notified rather than "sending" to a console log.
+  if (!isSmsConfigured()) return { notified: 0 };
 
   const snap = await db.collection(COLL).where("event_id", "==", eventId).get();
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";

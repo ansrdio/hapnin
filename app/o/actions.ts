@@ -141,20 +141,25 @@ export async function issueCompAction(_prev: ActionState, formData: FormData): P
 export async function broadcastAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { organizer } = await requireOrganizer();
   const eventId = String(formData.get("event_id") ?? "");
-  const body = cleanText(String(formData.get("body") ?? ""), BROADCAST_MAX_LEN);
+  // Keep line breaks — they matter in an email. HTML is escaped at render time.
+  const body = String(formData.get("body") ?? "").replace(/\r/g, "").trim().slice(0, BROADCAST_MAX_LEN);
+  const subject = cleanText(String(formData.get("subject") ?? ""), 120) || null;
 
   const event = await getEventById(eventId);
   if (!event || event.organizer_id !== organizer.id) return { status: "error", message: "Event not found." };
   if (body.length < 3) return { status: "error", fieldErrors: { body: "Write a message first." } };
 
   try {
-    const { recipients, sent, failed } = await sendBroadcast({ eventId, organizerId: organizer.id, body });
-    if (recipients === 0) return { status: "error", message: "No opted-in buyers yet — nothing to send." };
+    const r = await sendBroadcast({ eventId, organizerId: organizer.id, body, subject });
+    if (r.recipients === 0) return { status: "error", message: "No opted-in buyers yet — nothing to send." };
     revalidatePath(`/o/events/${eventId}`);
-    return {
-      status: "success",
-      message: `Sent to ${sent} of ${recipients}${failed ? ` (${failed} failed)` : ""}.`,
-    };
+    const emailPart = `Emailed ${r.email.sent}${r.email.failed ? ` (${r.email.failed} failed)` : ""}`;
+    const smsPart = r.sms.skipped
+      ? ` · ${r.sms.skipped} text${r.sms.skipped === 1 ? "" : "s"} skipped (texting isn’t on yet)`
+      : r.sms.sent || r.sms.failed
+        ? ` · texted ${r.sms.sent}${r.sms.failed ? ` (${r.sms.failed} failed)` : ""}`
+        : "";
+    return { status: "success", message: `${emailPart}${smsPart}.` };
   } catch (err) {
     console.error("broadcast error", err);
     return { status: "error", message: "Couldn’t send the broadcast. Try again." };
