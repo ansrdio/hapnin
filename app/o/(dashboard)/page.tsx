@@ -165,7 +165,7 @@ export default async function OrganizerHome({
               n={1}
               done={payoutsDone}
               title="Connect payouts"
-              desc="Money from sales lands straight in your own account. ~2 minutes."
+              desc="Money from sales lands straight in your own account. ~2 minutes. Only needed for paid tickets — free RSVP events work without it."
             >
               {role === "owner" ? (
                 onboarding === "done" ? (

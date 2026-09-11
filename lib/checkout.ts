@@ -78,14 +78,27 @@ export type CheckoutInput = {
   user_agent: string | null;
 };
 
+/** Free (RSVP) orders never touch Stripe; their "payment intent id" is this prefix + the pending-order id. */
+export const FREE_PI_PREFIX = "free_";
+export const isFreePaymentId = (id: string | null | undefined): boolean => !!id && id.startsWith(FREE_PI_PREFIX);
+
+export type CheckoutResult =
+  | { kind: "pay"; clientSecret: string; amounts: Amounts }
+  /** $0 total: the order is already fulfilled — send the buyer straight to their ticket. */
+  | { kind: "free"; orderId: string; amounts: Amounts };
+
 /**
  * Reserve inventory (atomic), create the destination-charge PaymentIntent, and a
  * pending_orders doc the webhook fulfils on success. Returns the client secret.
  * If anything fails after reserving, the hold is released.
+ *
+ * A $0 total (free tier, or a discount covering the whole price) needs no
+ * payment: the pending order is created and fulfilled right here, in the same
+ * request, and the buyer lands on their ticket. No Stripe account is needed on
+ * either side, which is what lets an organizer run an RSVP event before their
+ * payouts are connected.
  */
-export async function createCheckoutIntent(
-  input: CheckoutInput
-): Promise<{ clientSecret: string; amounts: Amounts }> {
+export async function createCheckoutIntent(input: CheckoutInput): Promise<CheckoutResult> {
   const db = getDb();
   const event = await getEventBySlug(input.slug);
   if (!event) throw new Error("EVENT_NOT_FOUND");
@@ -100,7 +113,10 @@ export async function createCheckoutIntent(
   if (tier.sales_end_at && now > tier.sales_end_at) throw new Error("SOLD_OUT");
 
   const organizer = await getOrganizerById(event.organizer_id);
-  if (!organizer?.stripe_account_id || !organizer.stripe_onboarded) throw new Error("ORGANIZER_NOT_READY");
+  if (!organizer) throw new Error("ORGANIZER_NOT_READY");
+  // Paid tickets need somewhere for the money to land; free ones don't.
+  const organizerPayable = !!organizer.stripe_account_id && organizer.stripe_onboarded;
+  if (tier.price_cents > 0 && !organizerPayable) throw new Error("ORGANIZER_NOT_READY");
 
   // A table sells as one unit (it admits `seats` guests); GA sells up to MAX_QTY.
   const qty = tier.kind === "table" ? 1 : Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
@@ -143,15 +159,57 @@ export async function createCheckoutIntent(
   // Reserve BEFORE creating the intent.
   await reserveInventory(event.id, tier.id, qty);
 
+  const pendingRef = db.collection("pending_orders").doc();
+  const pendingBase = {
+    event_id: event.id,
+    tier_id: tier.id,
+    organizer_id: event.organizer_id,
+    quantity: qty,
+    ...amounts,
+    buyer: input.buyer,
+    referral_source: input.referral_source,
+    promoter_link_id: promoterLink?.id ?? null,
+    promo_code_id: referralWins ? null : (promo?.id ?? null),
+    referred_by_order_id: referralWins && referrer ? referrer.id : null,
+    friends: input.friends ?? [],
+    consent: {
+      granted: input.buyer.marketing_opt_in,
+      text: CHECKOUT_CONSENT_TEXT,
+      ip: input.ip,
+      user_agent: input.user_agent,
+    },
+    created_at: FieldValue.serverTimestamp(),
+  };
+
+  // ── Free path: nothing to charge, so fulfil now and hand back the order. ──
+  if (amounts.total_cents === 0) {
+    const fakePi = `${FREE_PI_PREFIX}${pendingRef.id}`;
+    try {
+      await pendingRef.set({ ...pendingBase, status: "reserved", payment_intent_id: fakePi, expires_at: Date.now() + 5 * 60 * 1000 });
+      const orderId = await fulfillPaidOrder(pendingRef.id, fakePi);
+      if (!orderId) throw new Error("FREE_FULFIL_FAILED");
+      return { kind: "free", orderId, amounts };
+    } catch (err) {
+      await releaseHold(pendingRef.id).catch(() => {});
+      throw err;
+    }
+  }
+
+  // Paid tickets must have a connected account (checked above per tier; a
+  // discount can't make a paid tier free of this requirement once total > 0).
+  if (!organizerPayable) {
+    await releaseInventory(event.id, tier.id, qty);
+    throw new Error("ORGANIZER_NOT_READY");
+  }
+
   try {
-    const pendingRef = db.collection("pending_orders").doc();
     const stripe = getStripe();
     const pi = await stripe.paymentIntents.create({
       amount: amounts.total_cents,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      transfer_data: { destination: organizer.stripe_account_id },
-      on_behalf_of: organizer.stripe_account_id,
+      transfer_data: { destination: organizer.stripe_account_id! },
+      on_behalf_of: organizer.stripe_account_id!,
       // 0 while the organizer's fee waiver is active → omit so the full amount transfers to them.
       ...(amounts.application_fee_cents > 0
         ? { application_fee_amount: amounts.application_fee_cents }
@@ -165,30 +223,13 @@ export async function createCheckoutIntent(
     });
 
     await pendingRef.set({
+      ...pendingBase,
       status: "reserved",
       payment_intent_id: pi.id,
-      event_id: event.id,
-      tier_id: tier.id,
-      organizer_id: event.organizer_id,
-      quantity: qty,
-      ...amounts,
-      buyer: input.buyer,
-      referral_source: input.referral_source,
-      promoter_link_id: promoterLink?.id ?? null,
-      promo_code_id: referralWins ? null : (promo?.id ?? null),
-      referred_by_order_id: referralWins && referrer ? referrer.id : null,
-      friends: input.friends ?? [],
-      consent: {
-        granted: input.buyer.marketing_opt_in,
-        text: CHECKOUT_CONSENT_TEXT,
-        ip: input.ip,
-        user_agent: input.user_agent,
-      },
       expires_at: Date.now() + 30 * 60 * 1000,
-      created_at: FieldValue.serverTimestamp(),
     });
 
-    return { clientSecret: pi.client_secret!, amounts };
+    return { kind: "pay", clientSecret: pi.client_secret!, amounts };
   } catch (err) {
     await releaseInventory(event.id, tier.id, qty); // don't strand the hold
     throw err;
@@ -199,13 +240,14 @@ export async function createCheckoutIntent(
  * Fulfil a paid PaymentIntent (called by the webhook). Idempotent: if an order
  * already exists for this PaymentIntent, it's a no-op. Creates buyer + order +
  * one ticket per admission + consent, bumps event counters, and texts the link.
+ * Returns the order id (existing or new), or null when nothing was fulfilled.
  */
-export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: string): Promise<void> {
+export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: string): Promise<string | null> {
   const db = getDb();
 
   // Idempotency guard #1: order already exists for this PI.
   const existing = await db.collection("orders").where("stripe_payment_intent_id", "==", paymentIntentId).limit(1).get();
-  if (!existing.empty) return;
+  if (!existing.empty) return existing.docs[0].id;
 
   const pendingRef = db.collection("pending_orders").doc(pendingOrderId);
 
@@ -249,19 +291,19 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     });
   } catch (err) {
     console.error("fulfillPaidOrder: PAID BUT SOLD OUT — needs refund", { pendingOrderId, paymentIntentId, err });
-    return;
+    return null;
   }
   if (!claim.ok) {
     // Silent no-ops still return 200 to the webhook, so log the non-benign ones.
     if (!claim.quiet) console.warn("fulfillPaidOrder: skipping", { pendingOrderId, paymentIntentId, reason: claim.reason });
-    return;
+    return null;
   }
   const p = claim.p;
 
   const event = await getEventById(p.event_id);
   if (!event) {
     console.warn("fulfillPaidOrder: event missing", { pendingOrderId, eventId: p.event_id });
-    return;
+    return null;
   }
 
   await findOrCreateBuyer({
@@ -441,6 +483,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
       console.error("referral notify error", { orderId: orderRef.id }, err);
     }
   }
+  return orderRef.id;
 }
 
 /**
@@ -517,7 +560,12 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
     const pi: string | undefined = p.payment_intent_id;
     try {
       let status: string | null = null;
-      if (pi) {
+      if (isFreePaymentId(pi)) {
+        // A free order is fulfilled in the same request that reserved it; one
+        // still "reserved" past expiry means that request died. Nothing was
+        // charged, so just give the seats back.
+        status = "missing";
+      } else if (pi) {
         try {
           status = (await stripe.paymentIntents.retrieve(pi)).status;
         } catch (err) {

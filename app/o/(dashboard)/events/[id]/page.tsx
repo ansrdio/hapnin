@@ -116,14 +116,14 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         }
       />
 
-      {/* Payouts not connected → this event can't actually sell */}
-      {!organizer.stripe_onboarded && (
+      {/* Payouts not connected → paid tickets can't sell (free/RSVP tiers still work) */}
+      {!organizer.stripe_onboarded && tiers.some((t) => t.price_cents > 0) && (
         <Card className="mb-6 border-coral/50 bg-coral/10">
-          <p className="font-display font-semibold text-cream">Buyers can’t check out yet.</p>
+          <p className="font-display font-semibold text-cream">Buyers can’t pay yet.</p>
           <p className="mt-1 text-sm text-mauve-dim">
             {event.status === "on_sale"
-              ? "This event is published, but tickets won’t sell until your payouts are connected — the money needs somewhere to land."
-              : "Connect your payouts before you publish, so tickets can sell the moment you go live."}
+              ? "This event is published, but paid tickets won’t sell until your payouts are connected — the money needs somewhere to land. Free tiers still work."
+              : "Connect your payouts before you publish, so paid tickets can sell the moment you go live. Free tiers work without it."}
           </p>
           <LinkButton href="/o" variant="primary" className="mt-4">
             Connect payouts

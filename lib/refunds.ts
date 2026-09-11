@@ -8,6 +8,7 @@ import { adjustPromoterStats } from "./promoters";
 import { adjustPromoRedemption } from "./promos";
 import { sendRefundEmail } from "./email";
 import { sendSMS } from "./sms";
+import { isFreePaymentId } from "./checkout";
 
 /**
  * Full refund of an order. For online orders this refunds the PaymentIntent and,
@@ -39,8 +40,8 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
 
   const qty = o.quantity ?? 0;
 
-  // Money reversal — skip for comps / anything without a charge.
-  if (o.channel !== "comp" && o.stripe_payment_intent_id) {
+  // Money reversal — skip for comps, free/RSVP orders, and anything without a charge.
+  if (o.channel !== "comp" && o.stripe_payment_intent_id && !isFreePaymentId(o.stripe_payment_intent_id) && (o.total_cents ?? 0) > 0) {
     // Only refund the application fee if one was actually charged. First/launch
     // events carry no platform fee (fee_cents === 0); asking Stripe to refund a
     // non-existent application fee is a 400. reverse_transfer always applies —

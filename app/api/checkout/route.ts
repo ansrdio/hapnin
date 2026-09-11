@@ -12,7 +12,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const h = await headers();
   const ip = clientIpFrom(h);
-  const rl = rateLimit(`checkout:${ip}`, { limit: 10, windowMs: 60_000 });
+  // Generous per-IP: a whole room on one venue Wi-Fi RSVPing at once shares an
+  // address. Every amount and every field is validated server-side regardless.
+  const rl = rateLimit(`checkout:${ip}`, { limit: 40, windowMs: 60_000 });
   if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
     .filter((f): f is { first_name: string; phone: string; email: string | null } => !!f.phone);
 
   try {
-    const { clientSecret, amounts } = await createCheckoutIntent({
+    const result = await createCheckoutIntent({
       slug,
       tierId,
       quantity,
@@ -73,7 +75,9 @@ export async function POST(req: Request) {
       ip,
       user_agent: h.get("user-agent"),
     });
-    return NextResponse.json({ clientSecret, amounts });
+    // Free/RSVP: the ticket already exists — the client goes straight to it.
+    if (result.kind === "free") return NextResponse.json({ free: true, orderId: result.orderId, amounts: result.amounts });
+    return NextResponse.json({ clientSecret: result.clientSecret, amounts: result.amounts });
   } catch (err) {
     const code = (err as Error).message;
     if (code === "INVALID_PROMO") return NextResponse.json({ fieldErrors: { promo: "That code isn’t valid." } }, { status: 400 });

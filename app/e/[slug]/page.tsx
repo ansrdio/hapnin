@@ -13,7 +13,7 @@ import { getGoingNames } from "@/lib/door";
 export const dynamic = "force-dynamic";
 
 const usd = (cents: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  cents === 0 ? "Free" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
 function fmtDate(ms: number, tz: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -103,8 +103,10 @@ export default async function EventPage({
   const tableTiers = tiers.filter((t) => t.kind === "table");
   const onSale = event.status === "on_sale";
   const allSoldOut = tiers.length > 0 && tiers.every((t) => !tierStatus(t).available);
-  // Buyers can only check out once the organizer's payouts are connected.
-  const payoutReady = !!organizer?.stripe_onboarded;
+  // Paid tickets can only sell once the organizer's payouts are connected; a
+  // free (RSVP) event has nothing to pay out, so it's open either way.
+  const freeEvent = tiers.length > 0 && tiers.every((t) => t.price_cents === 0);
+  const payoutReady = !!organizer?.stripe_onboarded || freeEvent;
   const sellable = onSale && !allSoldOut && payoutReady;
 
   const priceable = tiers.filter((t) => tierStatus(t).available);
@@ -366,7 +368,7 @@ export default async function EventPage({
                 {momentum ? (
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-coral">{momentum}</p>
                 ) : (
-                  <p className="text-[11px] uppercase tracking-wide text-mauve-dim">From</p>
+                  <p className="text-[11px] uppercase tracking-wide text-mauve-dim">{fromPrice === 0 ? "Entry" : "From"}</p>
                 )}
                 <p className="font-display text-xl font-semibold tabular-nums text-cream">{usd(fromPrice)}</p>
               </>
@@ -381,7 +383,7 @@ export default async function EventPage({
               href={checkoutHref}
               className="rounded-full bg-gold px-10 py-3.5 font-display text-base font-semibold text-ink shadow-lg shadow-gold/25 transition-colors hover:bg-gold-hi"
             >
-              Get tickets
+              {fromPrice === 0 ? "RSVP free" : "Get tickets"}
             </Link>
           ) : (
             <span className="rounded-full border border-white/15 px-10 py-3.5 font-display text-mauve-dim">

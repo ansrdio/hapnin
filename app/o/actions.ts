@@ -639,7 +639,8 @@ export async function createSeriesAction(_prev: ActionState, formData: FormData)
   const source = await ownedEvent(eventId, organizer.id);
   if (!source) return { status: "error", message: "Event not found." };
   if (publish && !organizer.stripe_onboarded) {
-    return { status: "error", message: "Connect payouts before publishing a series — tickets can’t sell without it." };
+    const hasPaidTier = (await getTiers(source.id)).some((t) => t.price_cents > 0);
+    if (hasPaidTier) return { status: "error", message: "Connect payouts before publishing a paid series — tickets can’t sell without it." };
   }
   try {
     const ids = await createSeries({ source, organizerId: organizer.id, cadence, count, publish });

@@ -150,7 +150,7 @@ export function EventBuilder() {
                   min="0"
                   value={t.price}
                   onChange={(e) => setTier(t.key, { price: e.target.value })}
-                  placeholder="Price"
+                  placeholder="Price · 0 = free"
                 />
                 <Input
                   name="tier_qty"

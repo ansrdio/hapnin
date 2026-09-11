@@ -8,7 +8,7 @@ import { getStripeClient } from "@/lib/stripe-client";
 type Tier = { id: string; name: string; price_cents: number; remaining: number; kind: "ga" | "table"; seats: number | null };
 type Amounts = { subtotal_cents: number; discount_cents: number; card_fee_cents: number; total_cents: number };
 
-const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+const usd = (c: number) => (c === 0 ? "Free" : `$${(c / 100).toFixed(2)}`);
 const field =
   "w-full rounded-xl border border-plum-hi bg-plum px-4 py-3.5 text-cream placeholder:text-mauve-dim/60 focus:border-gold";
 const label = "mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-gold";
@@ -61,6 +61,7 @@ export function CheckoutClient({
 
   const tier = tiers.find((t) => t.id === tierId)!;
   const isTable = tier.kind === "table";
+  const isFree = tier.price_cents === 0;
   const maxQ = isTable ? 1 : Math.min(8, tier.remaining);
   const effQty = isTable ? 1 : qty;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -91,9 +92,17 @@ export function CheckoutClient({
         setErrors(data.fieldErrors ?? { form: messages[data.error] ?? "Something went wrong. Try again." });
         return;
       }
+      if (data.free && data.orderId) {
+        // Nothing to pay — the ticket is already issued. Keep `busy` on so the
+        // button can't be tapped twice while the page changes.
+        window.location.assign(`/t/${data.orderId}`);
+        return;
+      }
       setAmounts(data.amounts);
       setClientSecret(data.clientSecret);
-    } finally {
+      setBusy(false);
+    } catch {
+      setErrors({ form: "Something went wrong. Try again." });
       setBusy(false);
     }
   }
@@ -139,8 +148,13 @@ export function CheckoutClient({
 
   return (
     <main className="grain mx-auto max-w-md px-5 py-12">
-      <h1 className="anim-rise font-display text-4xl font-bold text-cream">Get tickets</h1>
+      <h1 className="anim-rise font-display text-4xl font-bold text-cream">{isFree ? "RSVP" : "Get tickets"}</h1>
       <p className="anim-rise mt-1 text-mauve-dim">{eventTitle}</p>
+      {isFree && (
+        <p className="anim-rise mt-3 rounded-xl border border-emerald/40 bg-emerald/10 px-4 py-3 text-sm text-cream">
+          Free — no payment needed. Your ticket with a QR code lands in your email and on this phone the moment you confirm.
+        </p>
+      )}
 
       <form onSubmit={submitDetails} noValidate className="anim-rise d-1 mt-8 space-y-5">
         {tiers.length > 1 && (
@@ -207,7 +221,7 @@ export function CheckoutClient({
               Sending tickets to friends? <span className="text-sm font-normal text-mauve-dim">(optional)</span>
             </p>
             <p className="mt-0.5 text-xs text-mauve-dim">
-              Add their mobile and each gets their own ticket the moment you pay. Leave blank to keep them all on your phone.
+              Add their mobile and each gets their own ticket the moment you {isFree ? "confirm" : "pay"}. Leave blank to keep them all on your phone.
             </p>
             <div className="mt-3 space-y-2">
               {Array.from({ length: qty - 1 }).map((_, i) => {
@@ -278,7 +292,7 @@ export function CheckoutClient({
           </div>
         </fieldset>
 
-        <div>
+        <div hidden={isFree}>
           <label className={label}>Promo code (optional)</label>
           <input
             className={`${field} uppercase`}
@@ -316,7 +330,11 @@ export function CheckoutClient({
           disabled={busy}
           className="w-full rounded-xl bg-gold px-6 py-4 font-display text-lg font-semibold text-ink transition-colors hover:bg-gold-hi disabled:opacity-60"
         >
-          {busy ? "One sec…" : `Continue — ${usd(tier.price_cents * effQty)}`}
+          {busy
+            ? isFree ? "Getting your ticket…" : "One sec…"
+            : isFree
+              ? `Confirm — ${effQty === 1 ? "1 free ticket" : `${effQty} free tickets`}`
+              : `Continue — ${usd(tier.price_cents * effQty)}`}
         </button>
       </form>
     </main>
