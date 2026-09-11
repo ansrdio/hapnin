@@ -559,6 +559,8 @@ function WalletButtons({
         emailRequired: true,
         phoneNumberRequired: true,
         billingAddressRequired: true,
+        // Wallets only — pay-later and PayPal-style buttons confuse a ticket purchase.
+        paymentMethods: { klarna: "never", paypal: "never", amazonPay: "never" },
         buttonHeight: 50,
         layout: { maxColumns: 1, overflow: "never" },
       }}
