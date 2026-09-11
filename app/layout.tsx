@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   applicationName: "Hapnin",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Hapnin", statusBarStyle: "black-translucent" },
+  // Older iPhones only honour the apple- prefixed tag; Next emits the modern one.
+  other: { "apple-mobile-web-app-capable": "yes" },
   keywords: [
     "Hapnin",
     "African events",

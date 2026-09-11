@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   manifest: "/scan/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Hapnin Door", statusBarStyle: "black-translucent" },
+  // Older iPhones only honour the apple- prefixed tag; Next emits the modern one.
+  other: { "apple-mobile-web-app-capable": "yes" },
   robots: { index: false, follow: false },
 };
 
