@@ -22,9 +22,10 @@ function Submit() {
   );
 }
 
-export function HostSignupForm() {
+export function HostSignupForm({ src = null, code = null }: { src?: string | null; code?: string | null }) {
   const [state, action] = useActionState(signupOrganizerAction, initialActionState);
   const [email, setEmail] = useState("");
+  const [showCode, setShowCode] = useState(!!code);
   const err = state.fieldErrors ?? {};
 
   // On success, hand off to the tested sign-in flow (prefilled email).
@@ -37,6 +38,7 @@ export function HostSignupForm() {
 
   return (
     <form action={action} noValidate className="space-y-5">
+      {src && <input type="hidden" name="src" value={src} />}
       <div>
         <label className={label}>Name or crew</label>
         <input name="name" className={field} placeholder="AuraCollective" />
@@ -74,6 +76,19 @@ export function HostSignupForm() {
         <input name="instagram" className={field} placeholder="auracollective" />
         {err.instagram && <p className="mt-1 text-sm text-coral">{err.instagram}</p>}
       </div>
+
+      {showCode ? (
+        <div>
+          <label className={label}>Launch code</label>
+          <input name="code" defaultValue={code ?? ""} className={`${field} uppercase`} placeholder="CODE" autoCapitalize="characters" />
+          <p className="mt-1 text-xs text-mauve-dim">From a Hapnin launch night or a referral. Waives our fee for a while.</p>
+          {err.code && <p className="mt-1 text-sm text-coral">{err.code}</p>}
+        </div>
+      ) : (
+        <button type="button" onClick={() => setShowCode(true)} className="text-sm text-gold underline decoration-gold/40 underline-offset-4 hover:text-gold-hi">
+          Have a launch code?
+        </button>
+      )}
 
       {state.status === "error" && state.message && <p className="text-sm text-coral">{state.message}</p>}
 

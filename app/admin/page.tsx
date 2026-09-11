@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listOrganizers } from "@/lib/organizers";
+import { listOrganizers, isFeeWaived } from "@/lib/organizers";
 import { getFounderMetrics } from "@/lib/metrics";
 import { Stat, money } from "@/app/components/ui";
 import { CreateOrganizerForm } from "./CreateOrganizerForm";
@@ -44,15 +44,23 @@ export default async function AdminHome() {
                   <Link href={`/admin/organizers/${o.id}`} className="font-display text-lg font-semibold text-cream hover:text-gold">
                     {o.name}
                   </Link>
-                  <p className="text-sm text-mauve-dim">/o/{o.handle} · {o.email}</p>
+                  <p className="text-sm text-mauve-dim">
+                    /o/{o.handle} · {o.email}
+                    {o.signup_source && <span className="ml-2 text-mauve-dim/70">via {o.signup_source}</span>}
+                  </p>
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    o.stripe_onboarded ? "bg-emerald/15 text-emerald" : "bg-plum text-mauve-dim"
-                  }`}
-                >
-                  {o.stripe_onboarded ? "Onboarded" : "Onboarding pending"}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {isFeeWaived(o) && (
+                    <span className="rounded-full bg-gold/15 px-3 py-1 text-xs font-medium text-gold">Fee waived</span>
+                  )}
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      o.stripe_onboarded ? "bg-emerald/15 text-emerald" : "bg-plum text-mauve-dim"
+                    }`}
+                  >
+                    {o.stripe_onboarded ? "Onboarded" : "Onboarding pending"}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

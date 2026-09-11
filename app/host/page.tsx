@@ -13,7 +13,11 @@ const PERKS = [
   ["Reach your people", "A public page, share links, and texts to buyers who opt in."],
 ];
 
-export default function HostPage() {
+// `?src=launch-night` tags the sign-up's source; `?code=…` prefills a launch code.
+export default async function HostPage({ searchParams }: { searchParams: Promise<{ src?: string; code?: string }> }) {
+  const { src, code } = await searchParams;
+  const cleanSrc = src && /^[a-z0-9_-]{1,40}$/i.test(src) ? src.toLowerCase() : null;
+  const cleanCode = code && /^[a-z0-9_-]{1,24}$/i.test(code) ? code.toUpperCase() : null;
   return (
     <main className="grain min-h-[100svh]">
       <div className="mx-auto grid max-w-5xl gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_minmax(0,440px)] lg:py-20">
@@ -43,7 +47,7 @@ export default function HostPage() {
         {/* Form */}
         <div className="anim-rise d-1 rounded-3xl border border-white/10 bg-plum/40 p-6 backdrop-blur sm:p-8">
           <h2 className="mb-6 font-display text-2xl font-bold text-cream">Create your host account</h2>
-          <HostSignupForm />
+          <HostSignupForm src={cleanSrc} code={cleanCode} />
           <p className="mt-5 text-center text-sm text-mauve-dim">
             Already host? <Link href="/login?next=/o" className="text-gold hover:underline">Sign in</Link>
           </p>

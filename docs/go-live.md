@@ -103,7 +103,15 @@ Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org
 `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` ·
 `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` ·
 `BREVO_API_KEY` / `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` ·
-`CRON_SECRET` (set, verified) · pending: `TWILIO_*`.
+`CRON_SECRET` (set, verified) · `LAUNCH_CODES` (optional — see below) · pending: `TWILIO_*`.
+
+### Launch codes (`LAUNCH_CODES`)
+An organizer who signs up on `/host` with a valid code gets Hapnin's fee waived
+for N days (`organizers.fee_waived_until`). Codes live only in the env var:
+`LAUNCH_CODES="PHXLAUNCH:90,FRIEND:30"` (code:days, comma-separated,
+case-insensitive). Unset → no code is accepted. `/host?src=launch-night&code=PHXLAUNCH`
+prefills it and records `signup_source` (shown on `/admin`). Admin can also set
+or clear the waiver per organizer on their admin page.
 
 ## Legal pages
 - `/terms` and `/privacy` are live, linked from the landing footer, beside the
