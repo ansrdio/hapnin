@@ -18,7 +18,7 @@ const EXT: Record<string, string> = {
 // created in the same flow). Type + size are validated.
 export async function POST(req: Request) {
   const h = await headers();
-  const rl = rateLimit(`flyer-public:${clientIpFrom(h)}`, { limit: 10, windowMs: 60_000 });
+  const rl = rateLimit(`flyer-public:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 });
   if (!rl.ok) return NextResponse.json({ error: "Too many uploads. Wait a moment." }, { status: 429 });
 
   const form = await req.formData().catch(() => null);

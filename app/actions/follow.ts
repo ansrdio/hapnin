@@ -11,7 +11,7 @@ import type { ActionState } from "@/app/admin/action-state";
 // Rate-limited per IP; records the consent evidence with the contact.
 export async function followOrganizerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`follow:${clientIpFrom(h)}`, { limit: 8, windowMs: 10 * 60_000 });
+  const rl = rateLimit(`follow:${clientIpFrom(h)}`, { limit: 40, windowMs: 10 * 60_000 });
   if (!rl.ok) return { status: "error", message: "Too many tries — give it a few minutes." };
 
   const organizerId = String(formData.get("organizer_id") ?? "");

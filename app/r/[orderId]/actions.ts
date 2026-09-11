@@ -7,7 +7,7 @@ import type { ActionState } from "@/app/admin/action-state";
 
 export async function submitReviewAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`review:${clientIpFrom(h)}`, { limit: 10, windowMs: 10 * 60_000 });
+  const rl = rateLimit(`review:${clientIpFrom(h)}`, { limit: 40, windowMs: 10 * 60_000 });
   if (!rl.ok) return { status: "error", message: "Too many tries — give it a few minutes." };
 
   const orderId = String(formData.get("order_id") ?? "");

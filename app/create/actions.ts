@@ -21,7 +21,7 @@ function autoHandle(name: string): string {
  */
 export async function createEventGuestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`create-event:${clientIpFrom(h)}`, { limit: 6, windowMs: 60_000 });
+  const rl = rateLimit(`create-event:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 });
   if (!rl.ok) return { status: "error", message: `Too many tries. Wait ${rl.retryAfterSec}s.` };
 
   const { values, fieldErrors } = parseEventForm(formData);

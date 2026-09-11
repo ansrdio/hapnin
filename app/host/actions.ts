@@ -19,7 +19,7 @@ function normalizeHandle(raw: string): string | null {
  */
 export async function signupOrganizerAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`host-signup:${clientIpFrom(h)}`, { limit: 5, windowMs: 60_000 });
+  const rl = rateLimit(`host-signup:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 } /* launch night: many sign-ups from one venue IP */);
   if (!rl.ok) return { status: "error", message: `Too many tries. Wait ${rl.retryAfterSec}s.` };
 
   const name = cleanText(String(formData.get("name") ?? ""), 120);

@@ -11,7 +11,7 @@ import type { ActionState } from "@/app/admin/action-state";
 // it means holding the ticket), so no login — but rate-limited.
 export async function transferAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`transfer:${clientIpFrom(h)}`, { limit: 6, windowMs: 60_000 });
+  const rl = rateLimit(`transfer:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 });
   if (!rl.ok) return { status: "error", message: `Too many tries. Wait ${rl.retryAfterSec}s.` };
 
   const orderId = String(formData.get("order_id") ?? "");

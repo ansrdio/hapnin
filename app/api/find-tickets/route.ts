@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 // effect is an email to the address on file, if any. Rate-limited per IP.
 export async function POST(req: Request) {
   const ip = clientIpFrom(await headers());
-  const rl = rateLimit(`find-tickets:${ip}`, { limit: 5, windowMs: 10 * 60_000 });
+  const rl = rateLimit(`find-tickets:${ip}`, { limit: 20, windowMs: 10 * 60_000 });
   if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = (await req.json().catch(() => ({}))) as { q?: unknown };

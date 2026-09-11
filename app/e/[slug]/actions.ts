@@ -10,7 +10,7 @@ import type { ActionState } from "@/app/admin/action-state";
 /** Public: join a sold-out event's waitlist. Rate-limited, no login. */
 export async function joinWaitlistAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const h = await headers();
-  const rl = rateLimit(`waitlist:${clientIpFrom(h)}`, { limit: 6, windowMs: 60_000 });
+  const rl = rateLimit(`waitlist:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 });
   if (!rl.ok) return { status: "error", message: `Too many tries. Wait ${rl.retryAfterSec}s.` };
 
   const slug = String(formData.get("slug") ?? "");

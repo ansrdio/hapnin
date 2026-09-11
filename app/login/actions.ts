@@ -26,7 +26,7 @@ export async function sendLoginLink(_prev: LoginState, formData: FormData): Prom
   if (!email) return { status: "error", message: "Enter a valid email address." };
 
   const h = await headers();
-  const rl = rateLimit(`login:${clientIpFrom(h)}`, { limit: 5, windowMs: 60_000 });
+  const rl = rateLimit(`login:${clientIpFrom(h)}`, { limit: 30, windowMs: 60_000 } /* a room on one venue Wi-Fi shares an IP */);
   if (!rl.ok) return { status: "error", message: `Too many tries. Wait ${rl.retryAfterSec}s.` };
 
   // No Brevo yet → let the client send via Firebase.
