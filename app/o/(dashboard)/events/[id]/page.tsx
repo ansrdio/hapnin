@@ -6,7 +6,7 @@ import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
 import { waitlistSummary } from "@/lib/waitlist";
 import { isSmsConfigured } from "@/lib/sms";
-import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction } from "@/app/o/actions";
+import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction, deleteSampleEventAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
   PageHeader,
@@ -132,13 +132,34 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
       )}
 
       {/* Publish controls — always visible, above the tabs */}
+      {event.is_sample && (
+        <Card className="mb-6 border-gold/40 bg-gold/[0.06]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-display font-semibold text-cream">This is your sample event.</p>
+              <p className="mt-1 text-sm text-mauve-dim">
+                Made-up guests, real screens: open Guests, Earnings, the door board and the scanner to see a night the way
+                you&rsquo;ll run it. It can&rsquo;t be published. Delete it whenever you like.
+              </p>
+            </div>
+            <form action={deleteSampleEventAction}>
+              <input type="hidden" name="event_id" value={event.id} />
+              <button className={buttonClass("danger")}>Delete sample</button>
+            </form>
+          </div>
+        </Card>
+      )}
+
       <Card className="mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          {event.status === "draft" && (
+          {event.status === "draft" && !event.is_sample && (
             <>
               <StatusButton eventId={event.id} status="on_sale" label="Publish — go on sale" variant="primary" />
               <span className="text-sm text-mauve-dim">Draft — not visible to buyers yet.</span>
             </>
+          )}
+          {event.status === "draft" && event.is_sample && (
+            <span className="text-sm text-mauve-dim">Sample — private to you; buyers never see it.</span>
           )}
           {event.status === "on_sale" && (
             <>

@@ -302,6 +302,7 @@ export async function getOrganizerAudience(organizerId: string): Promise<Audienc
     for (const s of snaps) {
       if (!s.exists) continue;
       const b = s.data()!;
+      if (b.is_sample === true) continue; // seeded demo guests are not an audience
       if (!b.email || b.email_marketing_opt_in !== true) continue;
       const token = b.unsub_token ?? (await getOrCreateUnsubToken(s.id));
       if (!token) continue;

@@ -2,11 +2,16 @@ import Link from "next/link";
 import { requireOrganizer } from "@/lib/auth";
 import { listEventsByOrganizer } from "@/lib/events";
 import { refreshOnboardingStatus } from "@/lib/connect";
-import { startOwnOnboardingAction, refreshOwnStripeStatusAction } from "@/app/o/actions";
+import { startOwnOnboardingAction, refreshOwnStripeStatusAction, createSampleEventAction } from "@/app/o/actions";
+import { listTeamMembers } from "@/lib/team";
+import { EVENT_TEMPLATES } from "@/lib/templates";
 import { PageHeader, LinkButton, Card, Stat, StatusBadge, EmptyState, buttonClass, money } from "@/app/components/ui";
 import { EventList, CopyLinkButton } from "./EventList";
 
 export const dynamic = "force-dynamic";
+
+// Three quick-start tiles on the checklist; the builder has the full set.
+const QUICK_TEMPLATES = EVENT_TEMPLATES.filter((t) => ["afrobeats-night", "amapiano-day-party", "free-rsvp"].includes(t.id));
 
 const PAST_GRACE_MS = 6 * 60 * 60 * 1000; // matches EventList: "upcoming" until 6h after doors
 
@@ -65,10 +70,11 @@ function Step({
 export default async function OrganizerHome({
   searchParams,
 }: {
-  searchParams: Promise<{ onboarding?: string; payout_error?: string }>;
+  searchParams: Promise<{ onboarding?: string; payout_error?: string; sample?: string }>;
 }) {
   const { organizer, role } = await requireOrganizer();
-  const { onboarding, payout_error } = await searchParams;
+  const { onboarding, payout_error, sample: sampleParam } = await searchParams;
+  const sampleDeleted = sampleParam === "deleted";
   const events = await listEventsByOrganizer(organizer.id);
 
   // Returning from Stripe onboarding: pull the live status so the indicator
@@ -89,20 +95,30 @@ export default async function OrganizerHome({
     }
   }
 
+  // The checklist reads real events only; the sample is a playground.
+  const real = events.filter((e) => !e.is_sample);
+  const sample = events.find((e) => e.is_sample) ?? null;
+  const team = await listTeamMembers(organizer.id).catch(() => []);
   const payoutsDone = organizer.stripe_onboarded;
-  const createDone = events.length > 0;
-  const publishDone = events.some((e) => e.status === "on_sale");
-  const allSetUp = payoutsDone && createDone && publishDone;
-  const firstToPublish = events.find((e) => e.status === "draft") ?? events[0];
+  const createDone = real.length > 0;
+  const publishDone = real.some((e) => e.status === "on_sale");
+  const soldDone = real.some((e) => e.tickets_sold > 0);
+  const doorDone = real.some((e) => e.checked_in > 0);
+  const teamDone = team.length > 0;
+  const steps = [createDone, publishDone, soldDone, doorDone, payoutsDone, teamDone];
+  const doneCount = steps.filter(Boolean).length;
+  const allSetUp = doneCount === steps.length;
+  const firstToPublish = real.find((e) => e.status === "draft") ?? real[0];
+  const firstLive = real.find((e) => e.status === "on_sale");
 
-  const totals = events.reduce(
+  const totals = real.reduce(
     (a, e) => ({ sold: a.sold + e.tickets_sold, gross: a.gross + e.gross_cents }),
     { sold: 0, gross: 0 }
   );
 
   // "Next up": the soonest upcoming event — prefer one that's actually on sale.
   const now = Date.now();
-  const upcoming = events
+  const upcoming = real
     .filter((e) => e.starts_at + PAST_GRACE_MS >= now && e.status !== "cancelled")
     .sort((a, b) => a.starts_at - b.starts_at);
   const next = upcoming.find((e) => e.status === "on_sale") ?? upcoming[0] ?? null;
@@ -156,16 +172,91 @@ export default async function OrganizerHome({
         </Card>
       )}
 
+      {sampleDeleted && (
+        <Card className="mb-6 border-emerald/50 bg-emerald/10">
+          <p className="font-display font-semibold text-cream">Sample event removed.</p>
+          <p className="mt-0.5 text-sm text-mauve-dim">All of its made-up guests, orders and tickets went with it.</p>
+        </Card>
+      )}
+
       {!allSetUp && (
         <Card className="mb-8 border-gold/30 bg-gold/[0.04]">
-          <p className="font-display text-lg font-semibold text-cream">Get set up</p>
-          <p className="mt-0.5 text-sm text-mauve-dim">Four steps to your first sale.</p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-display text-lg font-semibold text-cream">Get set up</p>
+              <p className="mt-0.5 text-sm text-mauve-dim">
+                {doneCount === 0 ? "Six steps from here to a night that runs itself." : `${doneCount} of ${steps.length} done.`}
+              </p>
+            </div>
+            <div className="h-2 w-40 overflow-hidden rounded-full bg-plum">
+              <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+            </div>
+          </div>
           <ol className="mt-6 space-y-5">
+            <Step n={1} done={createDone} title="Create your event" desc="Start from a template — tiers, pricing and the blurb filled in — or from scratch. Three minutes.">
+              <div className="flex flex-wrap gap-2">
+                {QUICK_TEMPLATES.map((t) => (
+                  <Link key={t.id} href={`/o/events/new?template=${t.id}`} className={buttonClass("secondary")}>
+                    {t.emoji} {t.name}
+                  </Link>
+                ))}
+                <LinkButton href="/o/events/new" variant="primary">+ New event</LinkButton>
+              </div>
+              {!sample ? (
+                <form action={createSampleEventAction} className="mt-3">
+                  <button className="text-sm text-gold underline decoration-gold/40 underline-offset-4 hover:text-gold-hi">
+                    Or explore with a sample event first — made-up guests, real screens
+                  </button>
+                </form>
+              ) : (
+                <p className="mt-3 text-sm text-mauve-dim">
+                  Your sample event is in the list below —{" "}
+                  <Link href={`/o/events/${sample.id}`} className="text-gold hover:underline">open it</Link> to click around Guests, Earnings and the door.
+                </p>
+              )}
+            </Step>
+
+            <Step n={2} done={publishDone} title="Publish it" desc="Flip it on sale. Free RSVP events publish straight away; paid ones need payouts connected (step 5).">
+              {createDone && firstToPublish && (
+                <LinkButton href={`/o/events/${firstToPublish.id}`} variant="secondary">
+                  Open &amp; publish
+                </LinkButton>
+              )}
+            </Step>
+
             <Step
-              n={1}
+              n={3}
+              done={soldDone}
+              title="Share it and get the first ticket out"
+              desc={<>Copy the link, post the story, print the QR poster. Your page: <span className="text-cream">hapnin.now/o/{organizer.handle}</span></>}
+            >
+              {firstLive && (
+                <div className="flex flex-wrap gap-2">
+                  <CopyLinkButton slug={firstLive.slug} label="Copy event link" className={buttonClass("primary")} />
+                  <Link href={`/o/poster/${firstLive.id}`} target="_blank" className={buttonClass("secondary")}>
+                    QR poster ↗
+                  </Link>
+                  <Link href={`/o/${organizer.handle}`} target="_blank" className={buttonClass("secondary")}>
+                    Public page ↗
+                  </Link>
+                </div>
+              )}
+            </Step>
+
+            <Step n={4} done={doorDone} title="Run the door" desc="Scan QR codes at the entrance from any phone — works offline. Put the live board on a screen.">
+              {(firstLive ?? sample) && (
+                <div className="flex flex-wrap gap-2">
+                  <LinkButton href={`/scan/${(firstLive ?? sample)!.id}`} variant="secondary">Open scanner</LinkButton>
+                  <LinkButton href={`/scan/${(firstLive ?? sample)!.id}/board`} variant="secondary">Door board</LinkButton>
+                </div>
+              )}
+            </Step>
+
+            <Step
+              n={5}
               done={payoutsDone}
               title="Connect payouts"
-              desc="Money from sales lands straight in your own account. ~2 minutes. Only needed for paid tickets — free RSVP events work without it."
+              desc="Money from paid tickets lands straight in your own account. ~2 minutes with your phone. Not needed for free events."
             >
               {role === "owner" ? (
                 onboarding === "done" ? (
@@ -191,29 +282,8 @@ export default async function OrganizerHome({
               )}
             </Step>
 
-            <Step n={2} done={createDone} title="Create an event" desc="Add your flyer, tiers, and details.">
-              <LinkButton href="/o/events/new" variant="primary">+ New event</LinkButton>
-            </Step>
-
-            <Step n={3} done={publishDone} title="Publish it" desc="Flip it on sale so people can buy.">
-              {createDone && firstToPublish && (
-                <LinkButton href={`/o/events/${firstToPublish.id}`} variant="secondary">
-                  Open &amp; publish
-                </LinkButton>
-              )}
-            </Step>
-
-            <Step
-              n={4}
-              done={false}
-              title="Share your link"
-              desc={<>Post it everywhere: <span className="text-cream">hapnin.now/o/{organizer.handle}</span></>}
-            >
-              {publishDone && (
-                <Link href={`/o/${organizer.handle}`} target="_blank" className={buttonClass("secondary")}>
-                  View public page ↗
-                </Link>
-              )}
+            <Step n={6} done={teamDone} title="Add your door team" desc="Give the people on the door their own login for the scanner — no access to your money or settings.">
+              {role === "owner" && <LinkButton href="/o/team" variant="secondary">Add team</LinkButton>}
             </Step>
           </ol>
         </Card>
@@ -266,9 +336,9 @@ export default async function OrganizerHome({
         </Card>
       )}
 
-      {events.length > 1 && (
+      {real.length > 1 && (
         <div className="mb-8 grid grid-cols-3 gap-4">
-          <Stat label="Events" value={events.length} />
+          <Stat label="Events" value={real.length} />
           <Stat label="Tickets sold" value={totals.sold} />
           <Stat label="Gross" value={money(totals.gross)} />
         </div>

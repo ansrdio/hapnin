@@ -47,7 +47,8 @@ export type EventRecord = {
   primary_language: LanguageCode;
   genre: Genre;
   talent: string[];
-  is_first_event: boolean; // free launch event → application_fee 0
+  is_first_event: boolean; // legacy flag — no longer affects fees (see organizers.fee_waived_until)
+  is_sample: boolean; // a seeded demo event with fake guests; never publishable, excluded from metrics
   // Live counters, bumped by fulfillment (tickets_sold/gross_cents) and the door
   // scanner (checked_in). Default 0 until the first sale/scan.
   tickets_sold: number;
@@ -90,6 +91,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     genre: d.genre,
     talent: d.talent ?? [],
     is_first_event: !!d.is_first_event,
+    is_sample: !!d.is_sample,
     tickets_sold: d.tickets_sold ?? 0,
     gross_cents: d.gross_cents ?? 0,
     checked_in: d.checked_in ?? 0,
@@ -290,6 +292,7 @@ export async function createEvent(input: {
   genre: Genre;
   talent?: string[];
   is_first_event?: boolean;
+  is_sample?: boolean;
   tiers: NewTier[];
 }): Promise<EventRecord> {
   const db = getDb();
@@ -327,6 +330,7 @@ export async function createEvent(input: {
     genre: input.genre,
     talent: input.talent ?? [],
     is_first_event: input.is_first_event ?? false,
+    is_sample: input.is_sample ?? false,
     tickets_sold: 0,
     gross_cents: 0,
     created_at: FieldValue.serverTimestamp(),

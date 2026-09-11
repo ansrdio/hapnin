@@ -40,8 +40,10 @@ export async function refundOrder(eventId: string, orderId: string): Promise<voi
 
   const qty = o.quantity ?? 0;
 
-  // Money reversal — skip for comps, free/RSVP orders, and anything without a charge.
-  if (o.channel !== "comp" && o.stripe_payment_intent_id && !isFreePaymentId(o.stripe_payment_intent_id) && (o.total_cents ?? 0) > 0) {
+  // Money reversal — only for orders Stripe actually charged. Comps, free/RSVP
+  // orders ("free_…"), sample orders ("sample_…") and $0 totals just void tickets.
+  const pi = o.stripe_payment_intent_id as string | null | undefined;
+  if (o.channel !== "comp" && pi && pi.startsWith("pi_") && !isFreePaymentId(pi) && (o.total_cents ?? 0) > 0) {
     // Only refund the application fee if one was actually charged. First/launch
     // events carry no platform fee (fee_cents === 0); asking Stripe to refund a
     // non-existent application fee is a 400. reverse_transfer always applies —

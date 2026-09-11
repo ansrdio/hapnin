@@ -22,6 +22,7 @@ import { createExpressLoginLink } from "@/lib/connect";
 import { parseContacts, importContacts, announceEvent, deleteContact, IMPORT_MAX_ROWS, ANNOUNCE_MAX_RECIPIENTS } from "@/lib/contacts";
 import { setReviewHidden } from "@/lib/reviews";
 import { createSeries, type Cadence } from "@/lib/series";
+import { createSampleEvent, deleteSampleEvent } from "@/lib/sample";
 import { parseEventForm } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
@@ -82,10 +83,28 @@ export async function setEventStatusAction(formData: FormData): Promise<void> {
 
   const event = await getEventById(eventId);
   if (!event || event.organizer_id !== organizer.id) return; // not theirs → no-op
+  if (event.is_sample && status !== "draft") return; // a sample never goes on sale
 
   await setEventStatus(eventId, status);
   revalidatePath(`/o/events/${eventId}`);
   revalidatePath("/o");
+}
+
+/** Seed (or jump to) the organizer's sample event — a demo night with made-up guests. */
+export async function createSampleEventAction(): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const { id } = await createSampleEvent({ organizerId: organizer.id, handle: organizer.handle });
+  revalidatePath("/o");
+  redirect(`/o/events/${id}`);
+}
+
+/** Remove the sample event and every seeded guest, order and ticket with it. */
+export async function deleteSampleEventAction(formData: FormData): Promise<void> {
+  const { organizer } = await requireOrganizer();
+  const eventId = String(formData.get("event_id") ?? "");
+  const ok = await deleteSampleEvent(eventId, organizer.id);
+  revalidatePath("/o");
+  if (ok) redirect("/o?sample=deleted");
 }
 
 /** Set or clear an event's flyer (from the manage page). */
