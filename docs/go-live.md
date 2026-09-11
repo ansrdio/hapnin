@@ -68,10 +68,12 @@ Twilio lands — the gate lifts itself.
   in `lifecycle_sends`, so retries can't double-send.
 - `/api/cron/sweep-holds` at 15:00 UTC — backstop sweep of abandoned holds.
 
-**To switch it on:** set `CRON_SECRET` in Vercel → Production to any long random
-string and redeploy. Vercel sends it as `Authorization: Bearer …`; until it's
-set, cron hits are rejected (307 to login) and nothing sends. Preview what the
-next run would do, as admin: `/api/cron/lifecycle?dry=1`.
+**Status: ON** — `CRON_SECRET` set in Vercel → Production 2026-09-10 (rotated once
+the same day) and verified: dry runs of both routes return 200 JSON with the
+secret, 307 without. Vercel sends it as `Authorization: Bearer …`. Preview what
+the next run would do, as admin or with the secret: `/api/cron/lifecycle?dry=1`.
+To rotate: `openssl rand -hex 32` → edit the var → redeploy; the old value is
+rejected as soon as the redeploy finishes.
 
 ## 🔧 Admin ops tools (admin session required — `ADMIN_EMAILS`)
 | Route | Use |
@@ -99,7 +101,7 @@ Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org
 `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` ·
 `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` ·
 `BREVO_API_KEY` / `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` ·
-pending: `TWILIO_*` · optional: `CRON_SECRET`.
+`CRON_SECRET` (set, verified) · pending: `TWILIO_*`.
 
 ## Legal pages
 - `/terms` and `/privacy` are live, linked from the landing footer, beside the
