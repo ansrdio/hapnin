@@ -22,8 +22,10 @@ needs a **redeploy** to take effect.
   `public/.well-known/apple-developer-merchantid-domain-association`.
 - Money model: buyer pays face value + card processing; the organizer's own
   connected account is the settlement merchant (`on_behalf_of`); Hapnin's
-  `application_fee` (3% + 50¢, **$0 on an organizer's first event**) is the
-  only thing that lands on the platform.
+  `application_fee` (3% + 50¢; **$0 while an organizer's launch-offer waiver
+  is active** — `organizers.fee_waived_until`, set by admin) is the only thing
+  that lands on the platform. The old per-event "first event free" flag is no
+  longer honoured (2026-09-10). Free ($0) tickets skip Stripe entirely.
 
 ### Email (Brevo)
 - `hapnin.now` authenticated (brevo-code TXT, DKIM, DMARC). Sender
@@ -109,8 +111,8 @@ Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org
   operator name (`LEGAL_NAME`, currently the trade name "Hapnin" — swap in the
   LLC name if one exists), support email (`jii@hapnin.now`), governing state
   (Arizona), and the fee text (mirrors `lib/checkout.ts`).
-- **Terms publish the platform fee** (3% + $0.50 per paid ticket, first event
-  waived) — terms must disclose fees. `/host` does not yet state pricing.
+- **Terms publish the platform fee** (3% + $0.50 per paid ticket; free tickets
+  carry no fee) — terms must disclose fees.
 - They are careful plain-language drafts, **not legal advice** — have a lawyer
   review before scale.
 

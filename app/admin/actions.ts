@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { createOrganizer, getOrganizerById } from "@/lib/organizers";
+import { createOrganizer, getOrganizerById, setFeeWaiver } from "@/lib/organizers";
 import { createOnboardingLink, refreshOnboardingStatus } from "@/lib/connect";
 import { sendSMS } from "@/lib/sms";
 import { createEvent } from "@/lib/events";
@@ -79,6 +79,23 @@ export async function refreshStripeStatusAction(formData: FormData): Promise<voi
   const id = String(formData.get("organizer_id") ?? "");
   if (!id) return;
   await refreshOnboardingStatus(id);
+  revalidatePath(`/admin/organizers/${id}`);
+}
+
+/** Launch offer: waive Hapnin's platform fee for this organizer until a date (or clear it). */
+export async function setFeeWaiverAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get("organizer_id") ?? "");
+  if (!id) return;
+  const raw = String(formData.get("until") ?? "").trim();
+  const clear = formData.get("clear") === "1";
+  let until: number | null = null;
+  if (!clear && raw) {
+    // <input type="date"> → end of that day, Phoenix time (UTC-7, no DST).
+    const t = Date.parse(`${raw}T23:59:59-07:00`);
+    if (!Number.isNaN(t)) until = t;
+  }
+  await setFeeWaiver(id, until);
   revalidatePath(`/admin/organizers/${id}`);
 }
 

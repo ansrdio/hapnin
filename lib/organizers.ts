@@ -15,7 +15,16 @@ export type Organizer = {
   stripe_account_id: string | null;
   stripe_onboarded: boolean;
   marketing_approved: boolean;
+  /** Launch offer: Hapnin's platform fee is 0 on this organizer's sales until this time (ms). */
+  fee_waived_until: number | null;
+  /** How they signed up (e.g. "launch-night"), for reporting. */
+  signup_source: string | null;
 };
+
+/** Is Hapnin's platform fee currently waived for this organizer? */
+export function isFeeWaived(o: Pick<Organizer, "fee_waived_until">, now = Date.now()): boolean {
+  return o.fee_waived_until != null && now < o.fee_waived_until;
+}
 
 const COLL = "organizers";
 
@@ -33,6 +42,8 @@ function toOrganizer(id: string, d: FirebaseFirestore.DocumentData): Organizer {
     stripe_account_id: d.stripe_account_id ?? null,
     stripe_onboarded: !!d.stripe_onboarded,
     marketing_approved: !!d.marketing_approved,
+    fee_waived_until: typeof d.fee_waived_until === "number" ? d.fee_waived_until : null,
+    signup_source: d.signup_source ?? null,
   };
 }
 
@@ -43,6 +54,8 @@ export async function createOrganizer(input: {
   email: string;
   phone: string;
   instagram_handle?: string | null;
+  fee_waived_until?: number | null;
+  signup_source?: string | null;
 }): Promise<Organizer> {
   const db = getDb();
   const handle = input.handle.toLowerCase();
@@ -64,10 +77,17 @@ export async function createOrganizer(input: {
     stripe_account_id: null,
     stripe_onboarded: false,
     marketing_approved: false,
+    fee_waived_until: input.fee_waived_until ?? null,
+    signup_source: input.signup_source ?? null,
     created_at: FieldValue.serverTimestamp(),
   };
   await ref.set(data);
   return toOrganizer(ref.id, data);
+}
+
+/** Set (or clear with null) the launch-offer fee waiver. */
+export async function setFeeWaiver(id: string, until: number | null): Promise<void> {
+  await getDb().collection(COLL).doc(id).update({ fee_waived_until: until });
 }
 
 /** Update an organizer's public profile (name, bio, IG, avatar). */

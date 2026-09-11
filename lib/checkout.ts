@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "./firebase-admin";
 import { getStripe } from "./stripe";
 import { getEventById, getEventBySlug, getTier, reserveInventory, releaseInventory } from "./events";
-import { getOrganizerById } from "./organizers";
+import { getOrganizerById, isFeeWaived } from "./organizers";
 import { findOrCreateBuyer, recordConsent } from "./buyers";
 import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
 import { resolvePromo, promoDiscountCents, adjustPromoRedemption } from "./promos";
@@ -17,7 +17,8 @@ import { transferTickets } from "./transfers";
 // never trusted from the client. Model (see docs/architecture.md):
 //   buyer pays  = face value + card processing (buyers cover card fees)
 //   organizer nets ≈ face value (Stripe fee is covered by the added card fee)
-//   Hapnin keeps = application_fee_amount (0 on a first/launch event)
+//   Hapnin keeps = application_fee_amount (0 while an organizer's launch-offer
+//                  fee waiver is active — see organizers.isFeeWaived)
 const CARD = { pct: 0.029, fixed: 30 }; // Stripe standard, buyer-covered
 const PLATFORM = { pct: 0.03, fixed: 50 }; // Hapnin ongoing (3% + 50¢/ticket)
 export const MAX_QTY = 8;
@@ -33,12 +34,16 @@ export type Amounts = {
   total_cents: number;
 };
 
-export function computeAmounts(priceCents: number, qty: number, isFirstEvent: boolean, discountCents = 0): Amounts {
+export function computeAmounts(priceCents: number, qty: number, feeWaived: boolean, discountCents = 0): Amounts {
   const gross = priceCents * qty;
   const discount = Math.max(0, Math.min(discountCents, gross));
   const subtotal = gross - discount;
+  // A free ticket carries no fees at all — nothing is charged.
+  if (subtotal === 0) {
+    return { subtotal_cents: 0, discount_cents: discount, card_fee_cents: 0, application_fee_cents: 0, total_cents: 0 };
+  }
   const card = Math.round(subtotal * CARD.pct + CARD.fixed * qty);
-  const application = isFirstEvent ? 0 : Math.round(subtotal * PLATFORM.pct + PLATFORM.fixed * qty);
+  const application = feeWaived ? 0 : Math.round(subtotal * PLATFORM.pct + PLATFORM.fixed * qty);
   return {
     subtotal_cents: subtotal,
     discount_cents: discount,
@@ -123,7 +128,7 @@ export async function createCheckoutIntent(
   const referralDiscount = referrer ? Math.min(event.referral_off_cents, tier.price_cents * qty) : 0;
   const referralWins = referralDiscount > promoDiscount;
   const discount = referralWins ? referralDiscount : promoDiscount;
-  const amounts = computeAmounts(tier.price_cents, qty, event.is_first_event, discount);
+  const amounts = computeAmounts(tier.price_cents, qty, isFeeWaived(organizer), discount);
 
   // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
   const promoterLink = input.promoter_code ? await resolvePromoterCode(event.id, input.promoter_code) : null;
@@ -147,7 +152,7 @@ export async function createCheckoutIntent(
       automatic_payment_methods: { enabled: true },
       transfer_data: { destination: organizer.stripe_account_id },
       on_behalf_of: organizer.stripe_account_id,
-      // 0 on a free first event → omit so the full amount transfers to the organizer.
+      // 0 while the organizer's fee waiver is active → omit so the full amount transfers to them.
       ...(amounts.application_fee_cents > 0
         ? { application_fee_amount: amounts.application_fee_cents }
         : {}),

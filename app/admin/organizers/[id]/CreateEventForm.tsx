@@ -121,11 +121,6 @@ export function CreateEventForm({ organizerId }: { organizerId: string }) {
         {err.tiers && <p className="mt-1 text-sm text-coral">{err.tiers}</p>}
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-mauve-dim">
-        <input type="checkbox" name="is_first_event" defaultChecked className="accent-gold" />
-        First event — free (0% platform fee)
-      </label>
-
       <button className="rounded-xl bg-gold px-6 py-3 font-display font-semibold text-ink transition-colors hover:bg-gold-hi">
         Create event
       </button>

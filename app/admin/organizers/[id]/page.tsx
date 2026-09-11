@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrganizerById } from "@/lib/organizers";
 import { listEventsByOrganizer } from "@/lib/events";
-import { startOnboardingAction, refreshStripeStatusAction } from "../../actions";
+import { startOnboardingAction, refreshStripeStatusAction, setFeeWaiverAction } from "../../actions";
+import { isFeeWaived } from "@/lib/organizers";
 import { TestSmsForm } from "./TestSmsForm";
 import { CreateEventForm } from "./CreateEventForm";
 
@@ -61,6 +62,33 @@ export default async function OrganizerDetail({
             </form>
           )}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-plum-hi bg-plum/40 p-6">
+        <h2 className="font-display text-lg font-semibold text-cream">Launch offer — fee waiver</h2>
+        <p className="mt-1 text-sm text-mauve-dim">
+          Hapnin&rsquo;s 3% + 50¢ is skipped on this organizer&rsquo;s sales until the date below. Buyers still cover card processing.
+          {o.signup_source && <span className="ml-2 text-mauve-dim/70">Signed up via: {o.signup_source}</span>}
+        </p>
+        <p className="mt-2 text-sm">
+          Status:{" "}
+          {isFeeWaived(o) ? (
+            <span className="text-emerald">Waived until {new Date(o.fee_waived_until!).toLocaleDateString("en-US", { timeZone: "America/Phoenix", month: "short", day: "numeric", year: "numeric" })}</span>
+          ) : (
+            <span className="text-mauve-dim">Standard fee</span>
+          )}
+        </p>
+        <form action={setFeeWaiverAction} className="mt-4 flex flex-wrap items-end gap-3">
+          <input type="hidden" name="organizer_id" value={o.id} />
+          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-gold">
+            Waive until
+            <input name="until" type="date" className="mt-1.5 block rounded-xl border border-plum-hi bg-ink/60 px-3 py-2.5 text-cream [color-scheme:dark]" />
+          </label>
+          <button className="rounded-xl bg-gold px-5 py-3 font-display font-semibold text-ink transition-colors hover:bg-gold-hi">Set waiver</button>
+          {o.fee_waived_until != null && (
+            <button name="clear" value="1" className="rounded-xl border border-plum-hi px-5 py-3 font-display text-cream transition-colors hover:bg-plum">Clear</button>
+          )}
+        </form>
       </section>
 
       <section className="rounded-2xl border border-plum-hi bg-plum/40 p-6">

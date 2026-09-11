@@ -52,7 +52,7 @@ export default async function PitchOgImage() {
             letterSpacing: "-0.01em",
           }}
         >
-          Your first event costs you nothing.
+          Keep more of every ticket.
         </div>
 
         <div

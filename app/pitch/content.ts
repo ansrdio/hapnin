@@ -45,9 +45,9 @@ export const copy = {
   uniqueHeading: "And two things you can’t get anywhere else.",
 
   // 8 — the offer
-  offerHeading: "Your first event is free. After that, you pay for what we actually do.",
+  offerHeading: "You pay for what we actually do. Nothing else.",
   offerBody:
-    "No platform fee on your first event. After that it’s 3% plus 50¢ a ticket — roughly what it costs to run the thing, and about a third of what a marketplace tier charges.",
+    "3% plus 50¢ a ticket — roughly what it costs to run the thing, and about a third of what a marketplace tier charges. Free events and RSVPs cost nothing.",
   offerBody2:
     "We’re not charging you for discovery we’re not providing. If that changes — if we ever build something that genuinely brings people to your room — we’ll talk about pricing then, and you’ll be able to see for yourself whether it’s working.",
 

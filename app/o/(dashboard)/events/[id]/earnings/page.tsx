@@ -81,7 +81,7 @@ export default async function EarningsPage({ params }: { params: Promise<{ id: s
           <Row label={`Ticket sales · ${online.tickets} ${online.tickets === 1 ? "ticket" : "tickets"}`} value={money(online.face_cents + online.discount_cents)} />
           {online.discount_cents > 0 && <Row label="Promo discounts" value={`−${money(online.discount_cents)}`} muted />}
           <Row label="Face value collected" value={money(online.face_cents)} />
-          <Row label="Hapnin fee" value={`−${money(online.hapnin_fee_cents)}`} muted hint={online.hapnin_fee_cents === 0 && online.tickets > 0 ? "waived — first event" : undefined} />
+          <Row label="Hapnin fee" value={`−${money(online.hapnin_fee_cents)}`} muted hint={online.hapnin_fee_cents === 0 && online.tickets > 0 ? "waived — launch offer" : undefined} />
           <div className="flex items-baseline justify-between border-t border-plum-hi pt-2 font-semibold text-cream">
             <dt>Net to you</dt>
             <dd className="tabular-nums">{money(online.net_cents)}</dd>

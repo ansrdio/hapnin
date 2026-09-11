@@ -4,7 +4,7 @@ import { copy } from "./content";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
-const ogTitle = "Your first event costs you nothing.";
+const ogTitle = "Keep more of every ticket.";
 const ogDesc =
   "Ticketing for African events in Phoenix — no cut of a room you filled yourself.";
 

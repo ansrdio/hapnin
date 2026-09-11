@@ -196,11 +196,6 @@ export function EventBuilder() {
         </div>
       </Card>
 
-      <label className="flex items-center gap-2.5 text-sm text-mauve-dim">
-        <input type="checkbox" name="is_first_event" className="h-4 w-4 accent-gold" />
-        This is a launch event — waive Hapnin’s fee (buyers still cover card processing).
-      </label>
-
       {state.status === "error" && state.message && <p className="text-sm text-coral">{state.message}</p>}
 
       <SubmitButtons />

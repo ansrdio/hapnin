@@ -161,7 +161,7 @@ const slides: Slide[] = [
   },
   {
     key: "offer",
-    title: "Your first event is free",
+    title: "What it costs",
     node: (
       <Center>
         <div className="anim-rise d-1 rounded-3xl border border-gold/45 bg-gold/[0.07] p-7 sm:p-10">

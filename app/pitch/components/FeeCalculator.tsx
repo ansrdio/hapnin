@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 // Card processing is covered by buyers on every side, so it never changes what
 // the organizer keeps — it's shown once, separately, for transparency.
 const CARD = { percent: 2.9, fixed: 0.3 };
-// Hapnin's ongoing platform fee — the standing price after the free first event.
+// Hapnin's platform fee.
 const HAPNIN = { percent: 3, fixed: 0.5 };
 
 const usd0 = new Intl.NumberFormat("en-US", {
@@ -33,10 +33,8 @@ export function FeeCalculator() {
     const marketKeep = gross - marketFee;
     const ongoingFee = gross * (HAPNIN.percent / 100) + HAPNIN.fixed * tickets;
     const ongoingKeep = gross - ongoingFee;
-    const firstKeep = gross; // 0% on the launch offer
-    // Headline the ONGOING saving — the one that survives the free event ending.
     const ongoingDiff = ongoingKeep - marketKeep; // == marketFee - ongoingFee
-    return { gross, cardFees, marketFee, marketKeep, ongoingFee, ongoingKeep, firstKeep, ongoingDiff };
+    return { gross, cardFees, marketFee, marketKeep, ongoingFee, ongoingKeep, ongoingDiff };
   }, [tickets, price, pct, perTicket]);
 
   return (
@@ -68,11 +66,8 @@ export function FeeCalculator() {
 
       {/* Two panels */}
       <div className="mt-11 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* On Hapnin — lit, ongoing rate standing, free first event as a badge */}
+        {/* On Hapnin — lit */}
         <div className="relative rounded-2xl border border-gold/45 bg-gold/[0.07] p-6">
-          <span className="absolute -top-3 left-5 rounded-full bg-gold px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
-            First event free
-          </span>
           <div className="mt-2 flex items-center gap-2">
             <span className="inline-block h-2 w-2 rotate-45 bg-gold" aria-hidden="true" />
             <h3 className="font-display text-lg font-semibold text-cream">On Hapnin</h3>
@@ -82,7 +77,7 @@ export function FeeCalculator() {
             <Row
               label="Platform fee"
               value={`−${usd0.format(m.ongoingFee)}`}
-              hint="ongoing · 3% + 50¢"
+              hint="3% + 50¢"
             />
           </dl>
           <div className="mt-5 border-t border-gold/25 pt-4">
@@ -90,12 +85,6 @@ export function FeeCalculator() {
               <span className="text-sm uppercase tracking-[0.14em] text-gold">You keep</span>
               <span className="font-display text-2xl font-bold tabular-nums text-cream">
                 {usd0.format(m.ongoingKeep)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline justify-between text-sm">
-              <span className="text-mauve-dim">Your first event</span>
-              <span className="font-display font-semibold tabular-nums text-gold">
-                {usd0.format(m.firstKeep)} · free
               </span>
             </div>
           </div>
@@ -155,7 +144,6 @@ export function FeeCalculator() {
         anywhere.
       </p>
 
-      {/* Headline the ONGOING saving; the free event is the secondary line. */}
       <p
         className="mt-8 font-display text-3xl font-bold text-cream sm:text-4xl"
         aria-live="polite"
@@ -163,8 +151,7 @@ export function FeeCalculator() {
         You keep{" "}
         <span className="text-gold tabular-nums">{usd0.format(Math.max(0, m.ongoingDiff))}</span> more.
       </p>
-      <p className="mt-2 font-display text-lg text-gold">And your first event is free.</p>
-      <p className="mt-1 font-display text-lg text-mauve-dim">On tickets you sold yourself.</p>
+      <p className="mt-2 font-display text-lg text-mauve-dim">On tickets you sold yourself.</p>
     </div>
   );
 }

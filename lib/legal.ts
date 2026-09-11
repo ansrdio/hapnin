@@ -5,5 +5,5 @@ export const LEGAL_NAME = "Hapnin";
 export const SUPPORT_EMAIL = "jii@hapnin.now";
 export const GOVERNING_STATE = "Arizona";
 export const LAST_UPDATED = "September 9, 2026";
-// Mirrors lib/checkout.ts PLATFORM (3% + 50¢) and the first-event waiver.
-export const PLATFORM_FEE_TEXT = "3% + $0.50 per paid ticket, waived on an organizer’s first event";
+// Mirrors lib/checkout.ts PLATFORM (3% + 50¢). Free tickets carry no fee.
+export const PLATFORM_FEE_TEXT = "3% + $0.50 per paid ticket (free tickets carry no fee)";
