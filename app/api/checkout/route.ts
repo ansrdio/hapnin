@@ -85,6 +85,7 @@ export async function POST(req: Request) {
     if (code === "ORGANIZER_NOT_READY")
       return NextResponse.json({ error: "organizer_not_ready" }, { status: 409 });
     if (code === "NOT_ON_SALE") return NextResponse.json({ error: "not_on_sale" }, { status: 409 });
+    if (code === "EVENT_NOT_FOUND" || code === "TIER_NOT_FOUND") return NextResponse.json({ error: "not_found" }, { status: 404 });
     console.error("checkout error", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
