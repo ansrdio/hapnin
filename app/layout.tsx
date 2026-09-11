@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description:
     "African events in your city — the afrobeats night, the amapiano set, the Nollywood screening, the comedy show, the culture festival — in one place. Phoenix first. Then wherever you are.",
   applicationName: "Hapnin",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Hapnin", statusBarStyle: "black-translucent" },
   keywords: [
     "Hapnin",
     "African events",

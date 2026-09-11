@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireScanAccess } from "@/lib/auth";
 import { listEventsByOrganizer } from "@/lib/events";
+import { AddToHomeHint } from "./AddToHomeHint";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function ScanHome() {
         ))}
         {events.length === 0 && <li className="text-mauve-dim">No events yet.</li>}
       </ul>
+      <AddToHomeHint />
     </main>
   );
 }
