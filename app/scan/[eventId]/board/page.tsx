@@ -30,6 +30,9 @@ export default async function DoorBoard({ params }: { params: Promise<{ eventId:
           <h1 className="mt-1 font-display text-2xl font-bold text-cream">{event.title}</h1>
         </div>
         <div className="flex gap-2">
+          <Link href={`/scan/${eventId}/board/screen`} target="_blank" className="rounded-lg border border-gold/50 px-3.5 py-2 text-sm font-semibold text-gold hover:bg-gold/10">
+            Big screen ↗
+          </Link>
           <Link href={`/scan/${eventId}`} className="rounded-lg border border-plum-hi px-3.5 py-2 text-sm font-semibold text-cream hover:bg-plum">
             Scanner
           </Link>

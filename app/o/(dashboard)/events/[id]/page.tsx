@@ -288,6 +288,22 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         {/* ── Promotion ──────────────────────────────────────────────────── */}
         <TabPanel id="promotion">
           <Card className="mb-6">
+            <p className="font-display font-semibold text-cream">Poster &amp; QR</p>
+            <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
+              A printable page with a big QR code straight to this event — for the door, the bar, table tents, or the
+              story you post. Anyone who scans it lands on the RSVP or ticket page.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <LinkButton href={`/o/poster/${event.id}`} variant="secondary" target="_blank">
+                Open poster ↗
+              </LinkButton>
+              <LinkButton href={`/scan/${event.id}/board/screen`} variant="secondary" target="_blank">
+                Big-screen live board ↗
+              </LinkButton>
+            </div>
+          </Card>
+
+          <Card className="mb-6">
             <p className="font-display font-semibold text-cream">Promo codes</p>
             <p className="mb-4 mt-0.5 text-sm text-mauve-dim">
               Discounts buyers enter at checkout — percentage or flat amount, with an optional cap on uses.
