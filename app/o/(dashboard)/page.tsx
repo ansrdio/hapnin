@@ -202,18 +202,6 @@ export default async function OrganizerHome({
                 ))}
                 <LinkButton href="/o/events/new" variant="primary">+ New event</LinkButton>
               </div>
-              {!sample ? (
-                <form action={createSampleEventAction} className="mt-3">
-                  <button className="text-sm text-gold underline decoration-gold/40 underline-offset-4 hover:text-gold-hi">
-                    Or explore with a sample event first — made-up guests, real screens
-                  </button>
-                </form>
-              ) : (
-                <p className="mt-3 text-sm text-mauve-dim">
-                  Your sample event is in the list below —{" "}
-                  <Link href={`/o/events/${sample.id}`} className="text-gold hover:underline">open it</Link> to click around Guests, Earnings and the door.
-                </p>
-              )}
             </Step>
 
             <Step n={2} done={publishDone} title="Publish it" desc="Flip it on sale. Free RSVP events publish straight away; paid ones need payouts connected (step 5).">
@@ -286,6 +274,20 @@ export default async function OrganizerHome({
               {role === "owner" && <LinkButton href="/o/team" variant="secondary">Add team</LinkButton>}
             </Step>
           </ol>
+          <div className="mt-6 border-t border-plum-hi pt-4">
+            {!sample ? (
+              <form action={createSampleEventAction}>
+                <button className="text-sm text-gold underline decoration-gold/40 underline-offset-4 hover:text-gold-hi">
+                  Explore with a sample event — made-up guests, real screens. Deletes in one click.
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm text-mauve-dim">
+                Your sample event is in the list below —{" "}
+                <Link href={`/o/events/${sample.id}`} className="text-gold hover:underline">open it</Link> to click around Guests, Earnings and the door.
+              </p>
+            )}
+          </div>
         </Card>
       )}
 
