@@ -62,7 +62,7 @@ export type CheckoutInput = {
     email: string;
     first_name: string;
     last_name: string;
-    postal_code: string;
+    postal_code: string | null;
     screening_interest: boolean | null;
     marketing_opt_in: boolean;
     show_name: boolean; // may their first name appear in "X, Y and N others going"
@@ -87,18 +87,33 @@ export type CheckoutResult =
   /** $0 total: the order is already fulfilled — send the buyer straight to their ticket. */
   | { kind: "free"; orderId: string; amounts: Amounts };
 
+export type Quote = {
+  event: NonNullable<Awaited<ReturnType<typeof getEventBySlug>>>;
+  tier: NonNullable<Awaited<ReturnType<typeof getTier>>>;
+  organizer: NonNullable<Awaited<ReturnType<typeof getOrganizerById>>>;
+  organizerPayable: boolean;
+  qty: number;
+  amounts: Amounts;
+  promo: Awaited<ReturnType<typeof resolvePromo>>;
+  referrer: { id: string } | null;
+  referralWins: boolean;
+};
+
 /**
- * Reserve inventory (atomic), create the destination-charge PaymentIntent, and a
- * pending_orders doc the webhook fulfils on success. Returns the client secret.
- * If anything fails after reserving, the hold is released.
- *
- * A $0 total (free tier, or a discount covering the whole price) needs no
- * payment: the pending order is created and fulfilled right here, in the same
- * request, and the buyer lands on their ticket. No Stripe account is needed on
- * either side, which is what lets an organizer run an RSVP event before their
- * payouts are connected.
+ * Price a checkout without touching inventory or Stripe: validates the event,
+ * tier and sale window, applies a promo or bring-a-friend code, and computes
+ * every amount server-side. The checkout page calls this (via /api/checkout/
+ * quote) to know what to show a wallet button; createCheckoutIntent calls it
+ * again at purchase time, so the two can never disagree.
  */
-export async function createCheckoutIntent(input: CheckoutInput): Promise<CheckoutResult> {
+export async function quoteCheckout(input: {
+  slug: string;
+  tierId: string;
+  quantity: number;
+  promo_code: string | null;
+  friend_code: string | null;
+  buyerPhone?: string | null;
+}): Promise<Quote> {
   const db = getDb();
   const event = await getEventBySlug(input.slug);
   if (!event) throw new Error("EVENT_NOT_FOUND");
@@ -137,7 +152,7 @@ export async function createCheckoutIntent(input: CheckoutInput): Promise<Checko
   if (input.friend_code && event.referral_off_cents > 0) {
     const snap = await db.collection("orders").where("ref_code", "==", input.friend_code).limit(1).get();
     const d = snap.empty ? null : snap.docs[0].data();
-    if (d && d.event_id === event.id && d.status === "paid" && d.buyer_id !== input.buyer.phone) {
+    if (d && d.event_id === event.id && d.status === "paid" && (!input.buyerPhone || d.buyer_id !== input.buyerPhone)) {
       referrer = { id: snap.docs[0].id };
     }
   }
@@ -145,6 +160,30 @@ export async function createCheckoutIntent(input: CheckoutInput): Promise<Checko
   const referralWins = referralDiscount > promoDiscount;
   const discount = referralWins ? referralDiscount : promoDiscount;
   const amounts = computeAmounts(tier.price_cents, qty, isFeeWaived(organizer), discount);
+  return { event, tier, organizer, organizerPayable, qty, amounts, promo, referrer, referralWins };
+}
+
+/**
+ * Reserve inventory (atomic), create the destination-charge PaymentIntent, and a
+ * pending_orders doc the webhook fulfils on success. Returns the client secret.
+ * If anything fails after reserving, the hold is released.
+ *
+ * A $0 total (free tier, or a discount covering the whole price) needs no
+ * payment: the pending order is created and fulfilled right here, in the same
+ * request, and the buyer lands on their ticket. No Stripe account is needed on
+ * either side, which is what lets an organizer run an RSVP event before their
+ * payouts are connected.
+ */
+export async function createCheckoutIntent(input: CheckoutInput): Promise<CheckoutResult> {
+  const db = getDb();
+  const { event, tier, organizer, organizerPayable, qty, amounts, promo, referrer, referralWins } = await quoteCheckout({
+    slug: input.slug,
+    tierId: input.tierId,
+    quantity: input.quantity,
+    promo_code: input.promo_code,
+    friend_code: input.friend_code,
+    buyerPhone: input.buyer.phone,
+  });
 
   // Resolve promoter attribution (best-effort; a bad code just isn't attributed).
   const promoterLink = input.promoter_code ? await resolvePromoterCode(event.id, input.promoter_code) : null;

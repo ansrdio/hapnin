@@ -13,7 +13,7 @@ export async function findOrCreateBuyer(input: {
   email?: string | null;
   first_name?: string | null;
   last_name?: string | null;
-  postal_code: string;
+  postal_code: string | null;
   screening_interest?: boolean | null;
   sms_marketing_opt_in?: boolean;
   email_marketing_opt_in?: boolean;

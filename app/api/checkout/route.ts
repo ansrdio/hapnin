@@ -28,12 +28,15 @@ export async function POST(req: Request) {
   const tierId = String(body.tierId ?? "");
   const quantity = Number(body.quantity ?? 1);
 
+  const zipRaw = String(body.zip ?? "").trim();
+
   const fieldErrors: Record<string, string> = {};
   if (!first_name) fieldErrors.firstName = "Required.";
-  if (!last_name) fieldErrors.lastName = "Required.";
+  // A wallet may hand us a single name; that's fine — last name is optional there.
+  if (!last_name && body.wallet !== true) fieldErrors.lastName = "Required.";
   if (!phone) fieldErrors.phone = "US mobile number.";
   if (!email) fieldErrors.email = "Working email.";
-  if (!postal_code) fieldErrors.zip = "5-digit ZIP.";
+  if (zipRaw && !postal_code) fieldErrors.zip = "5-digit ZIP."; // optional, but must be valid if given
   if (!slug || !tierId) fieldErrors.form = "Missing event or tier.";
   if (Object.keys(fieldErrors).length) return NextResponse.json({ fieldErrors }, { status: 400 });
 
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
         email: email!,
         first_name,
         last_name,
-        postal_code: postal_code!,
+        postal_code: postal_code ?? null,
         screening_interest,
         marketing_opt_in: body.optIn !== false,
         show_name: body.showName !== false,
