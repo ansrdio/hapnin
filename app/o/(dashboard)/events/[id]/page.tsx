@@ -131,6 +131,22 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
         </Card>
       )}
 
+      {/* No flyer → the event page has a blank third; nudge before it's shared */}
+      {!event.flyer_url && !event.is_sample && event.status !== "cancelled" && (
+        <Card className="mb-6 border-gold/40 bg-gold/[0.06]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-display font-semibold text-cream">No flyer yet.</p>
+              <p className="mt-1 text-sm text-mauve-dim">
+                The flyer is the first thing a buyer sees and the image every share, story and reminder email uses.
+                A portrait JPG or PNG takes ten seconds to add.
+              </p>
+            </div>
+            <a href="#flyer" className={buttonClass("primary")}>Add flyer</a>
+          </div>
+        </Card>
+      )}
+
       {/* Publish controls — always visible, above the tabs */}
       {event.is_sample && (
         <Card className="mb-6 border-gold/40 bg-gold/[0.06]">
@@ -209,7 +225,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
           </Card>
 
           <Card className="mb-6">
-            <p className="mb-4 font-display font-semibold text-cream">Flyer</p>
+            <p id="flyer" className="mb-4 scroll-mt-6 font-display font-semibold text-cream">Flyer</p>
             <form action={setEventFlyerAction} className="space-y-4">
               <input type="hidden" name="event_id" value={event.id} />
               <FlyerUpload initialUrl={event.flyer_url ?? ""} />

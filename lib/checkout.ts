@@ -9,7 +9,7 @@ import { resolvePromoterCode, adjustPromoterStats } from "./promoters";
 import { resolvePromo, promoDiscountCents, adjustPromoRedemption } from "./promos";
 import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
-import { sendTicketEmail, sendReferralJoinedEmail } from "./email";
+import { sendTicketEmail, sendReferralJoinedEmail, sendOrganizerFirstSaleEmail } from "./email";
 import { transferTickets } from "./transfers";
 
 // ── Money ────────────────────────────────────────────────────────────────────
@@ -432,6 +432,29 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   if (p.promo_code_id) await adjustPromoRedemption(p.promo_code_id, 1);
 
   await pendingRef.update({ status: "fulfilled", order_id: orderRef.id });
+
+  // The organizer's first sale on this event — one email, the moment it lands.
+  // `event` was read before the counter bump, so tickets_sold is pre-sale.
+  if (event.tickets_sold === 0 && !event.is_sample) {
+    try {
+      const organizer = await getOrganizerById(event.organizer_id);
+      if (organizer?.email) {
+        const site0 = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
+        await sendOrganizerFirstSaleEmail({
+          to: organizer.email,
+          organizerName: organizer.name,
+          eventTitle: event.title,
+          buyerFirstName: p.buyer.first_name,
+          quantity: p.quantity,
+          free: (p.total_cents ?? 0) === 0,
+          dashboardUrl: `${site0}/o`,
+          guestsUrl: `${site0}/o/events/${event.id}/guests`,
+        });
+      }
+    } catch (err) {
+      console.error("first-sale email error", err);
+    }
+  }
 
   // Deliver the ticket. Email is the reliable channel (Brevo is live); SMS is
   // best-effort and only really sends once Twilio creds land. Neither should

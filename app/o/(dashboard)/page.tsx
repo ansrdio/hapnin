@@ -130,6 +130,8 @@ export default async function OrganizerHome({
     .filter((e) => e.starts_at + PAST_GRACE_MS >= now && e.status !== "cancelled")
     .sort((a, b) => a.starts_at - b.starts_at);
   const next = upcoming.find((e) => e.status === "on_sale") ?? upcoming[0] ?? null;
+  // Event day: from 12h before doors until 6h after, the card becomes the door.
+  const doorMode = !!next && next.status === "on_sale" && next.starts_at - now <= 12 * 60 * 60 * 1000 && now - next.starts_at <= PAST_GRACE_MS;
 
   return (
     <div>
@@ -193,17 +195,21 @@ export default async function OrganizerHome({
           {/* Next up — the one event an organizer checks every day, with the
               numbers and actions that matter right now. */}
           {next && (
-            <Card className="mb-8 border-gold/30 bg-gold/[0.04]">
+            <Card className={`mb-8 ${doorMode ? "border-coral/50 bg-coral/[0.06]" : "border-gold/30 bg-gold/[0.04]"}`}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex min-w-0 items-start gap-4">
                   {next.flyer_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={next.flyer_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-plum text-2xl">🎟️</div>
+                    <Link href={`/o/events/${next.id}#flyer`} className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-gold/50 bg-plum text-center text-[10px] font-semibold uppercase leading-tight text-gold hover:bg-gold/10">
+                      Add<br />flyer
+                    </Link>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Next up · {whenLabel(next.starts_at)}</p>
+                    <p className={`text-xs font-semibold uppercase tracking-[0.2em] ${doorMode ? "text-coral" : "text-gold"}`}>
+                      {doorMode ? (next.starts_at <= now ? "Tonight · doors open" : "Tonight · doors soon") : `Next up · ${whenLabel(next.starts_at)}`}
+                    </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2.5">
                       <Link href={`/o/events/${next.id}`} className="font-display text-2xl font-bold text-cream hover:text-gold">
                         {next.title}
@@ -215,25 +221,47 @@ export default async function OrganizerHome({
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {next.status === "on_sale" ? (
-                    <CopyLinkButton slug={next.slug} label="Copy event link" className={buttonClass("primary")} />
-                  ) : (
-                    <LinkButton href={`/o/events/${next.id}`} variant="primary">Publish</LinkButton>
-                  )}
-                  <LinkButton href={`/o/events/${next.id}/guests`} variant="secondary">Guest list</LinkButton>
-                  <LinkButton href={`/o/events/${next.id}`} variant="secondary">Manage</LinkButton>
+                {doorMode ? (
+                  <div className="flex flex-wrap gap-2">
+                    <LinkButton href={`/scan/${next.id}`} variant="primary">Open scanner</LinkButton>
+                    <LinkButton href={`/scan/${next.id}/board`} variant="secondary">Door board</LinkButton>
+                    <Link href={`/scan/${next.id}/board/screen`} target="_blank" className={buttonClass("secondary")}>Big screen ↗</Link>
+                    <LinkButton href={`/scan/${next.id}/sell`} variant="secondary">Box office</LinkButton>
+                    <LinkButton href={`/o/events/${next.id}/guests`} variant="secondary">Guest list</LinkButton>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {next.status === "on_sale" ? (
+                      <CopyLinkButton slug={next.slug} label="Copy event link" className={buttonClass("primary")} />
+                    ) : (
+                      <LinkButton href={`/o/events/${next.id}`} variant="primary">Publish</LinkButton>
+                    )}
+                    <LinkButton href={`/o/events/${next.id}/guests`} variant="secondary">Guest list</LinkButton>
+                    <LinkButton href={`/o/events/${next.id}`} variant="secondary">Manage</LinkButton>
+                  </div>
+                )}
+              </div>
+              {doorMode ? (
+                <div className="mt-5 grid grid-cols-3 gap-4">
+                  <Stat label="Checked in" value={next.checked_in} sub={`of ${next.tickets_sold} · ${Math.max(0, next.tickets_sold - next.checked_in)} still to come`} />
+                  <Stat
+                    label="Sold"
+                    value={next.capacity != null ? `${next.tickets_sold}/${next.capacity}` : next.tickets_sold}
+                    sub={next.capacity != null ? `${Math.max(0, next.capacity - next.tickets_sold)} left for walk-ups` : undefined}
+                  />
+                  <Stat label="Gross" value={money(next.gross_cents)} />
                 </div>
-              </div>
-              <div className="mt-5 grid grid-cols-3 gap-4">
-                <Stat
-                  label="Sold"
-                  value={next.capacity != null ? `${next.tickets_sold}/${next.capacity}` : next.tickets_sold}
-                  sub={next.capacity != null ? `${Math.max(0, next.capacity - next.tickets_sold)} left` : undefined}
-                />
-                <Stat label="Gross" value={money(next.gross_cents)} />
-                <Stat label="Checked in" value={next.checked_in} sub={`of ${next.tickets_sold}`} />
-              </div>
+              ) : (
+                <div className="mt-5 grid grid-cols-3 gap-4">
+                  <Stat
+                    label="Sold"
+                    value={next.capacity != null ? `${next.tickets_sold}/${next.capacity}` : next.tickets_sold}
+                    sub={next.capacity != null ? `${Math.max(0, next.capacity - next.tickets_sold)} left` : undefined}
+                  />
+                  <Stat label="Gross" value={money(next.gross_cents)} />
+                  <Stat label="Checked in" value={next.checked_in} sub={`of ${next.tickets_sold}`} />
+                </div>
+              )}
             </Card>
           )}
 

@@ -312,6 +312,67 @@ export async function sendReferralJoinedEmail(opts: {
   return sendEmail({ to: opts.to, toName: opts.firstName ?? undefined, subject: `${who} is coming — ${opts.eventTitle}`, html });
 }
 
+/** To the organizer the moment their event gets its first ticket (or RSVP). */
+export async function sendOrganizerFirstSaleEmail(opts: {
+  to: string;
+  organizerName: string;
+  eventTitle: string;
+  buyerFirstName: string;
+  quantity: number;
+  free: boolean;
+  dashboardUrl: string;
+  guestsUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const what = opts.free
+    ? `${opts.quantity === 1 ? "an RSVP" : `${opts.quantity} RSVPs`}`
+    : `${opts.quantity === 1 ? "a ticket" : `${opts.quantity} tickets`}`;
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">First one in</p>
+      <h1 style="margin:0 0 16px;font-size:26px;color:#F6EEE1">${escapeHtml(opts.eventTitle)} just got ${what}.</h1>
+      <p style="margin:0 0 20px;color:#F6EEE1">${escapeHtml(opts.buyerFirstName)} is the first name on the list. It only goes up from here — share the link again while it's warm.</p>
+      <a href="${opts.guestsUrl}" style="display:inline-block;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:12px">See the guest list</a>
+      <p style="margin:20px 0 0;font-size:13px;color:#9A87AC">Your dashboard: ${escapeHtml(opts.dashboardUrl)}</p>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">Hapnin · you'll get a short daily summary on days you sell. Reply to this email if you'd rather not.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.organizerName, subject: `First ${opts.free ? "RSVP" : "ticket"} — ${opts.eventTitle}`, html });
+}
+
+/** Daily digest to an organizer: yesterday's sales per event, only on days they sold. */
+export async function sendOrganizerDigestEmail(opts: {
+  to: string;
+  organizerName: string;
+  dayText: string;
+  rows: { title: string; tickets: number; gross_cents: number; total_sold: number; capacity: number | null; url: string }[];
+  dashboardUrl: string;
+}): Promise<{ ok: boolean; error?: string; mode: "brevo" | "console" }> {
+  const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+  const tickets = opts.rows.reduce((a, r) => a + r.tickets, 0);
+  const gross = opts.rows.reduce((a, r) => a + r.gross_cents, 0);
+  const rows = opts.rows
+    .map(
+      (r) => `
+      <tr>
+        <td style="padding:10px 0;border-top:1px solid #3d2456;color:#F6EEE1"><a href="${r.url}" style="color:#F6EEE1;text-decoration:none;font-weight:600">${escapeHtml(r.title)}</a><br><span style="font-size:12px;color:#9A87AC">${r.total_sold}${r.capacity != null ? ` of ${r.capacity}` : ""} sold so far</span></td>
+        <td style="padding:10px 0;border-top:1px solid #3d2456;text-align:right;color:#F6EEE1;white-space:nowrap">+${r.tickets} · ${usd(r.gross_cents)}</td>
+      </tr>`
+    )
+    .join("");
+  const html = `
+  <div style="background:#1B0A2A;padding:32px 16px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#F6EEE1">
+    <div style="max-width:480px;margin:0 auto;background:#2C1342;border-radius:16px;padding:28px">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#F4B24C">${escapeHtml(opts.dayText)}</p>
+      <h1 style="margin:0 0 16px;font-size:26px;color:#F6EEE1">${tickets} ${tickets === 1 ? "ticket" : "tickets"} · ${usd(gross)}</h1>
+      <table style="width:100%;border-collapse:collapse;font-size:15px">${rows}</table>
+      <a href="${opts.dashboardUrl}" style="display:inline-block;margin-top:20px;background:#F4B24C;color:#1B0A2A;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:12px">Open dashboard</a>
+    </div>
+    <p style="max-width:480px;margin:16px auto 0;font-size:12px;color:#9A87AC;text-align:center">Hapnin · sent only on days you sell. Face value, before Hapnin's fee.</p>
+  </div>`;
+  return sendEmail({ to: opts.to, toName: opts.organizerName, subject: `${opts.dayText}: ${tickets} ${tickets === 1 ? "ticket" : "tickets"} · ${usd(gross)}`, html });
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
