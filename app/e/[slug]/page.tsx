@@ -201,7 +201,7 @@ export default async function EventPage({
               <ShareButton title={event.title} />
             </div>
 
-            <h1 className="anim-rise d-1 mt-6 font-display text-4xl font-bold leading-[1.05] text-cream sm:text-5xl">
+            <h1 className="anim-rise d-1 mt-6 font-brand text-4xl font-bold leading-[1.05] text-cream sm:text-5xl">
               {event.title}
             </h1>
 

@@ -78,7 +78,7 @@ export default async function Page() {
                 filter: "blur(8px)",
               }}
             />
-            <h1 className="relative font-display font-bold leading-[0.86] tracking-[-0.02em]">
+            <h1 className="relative font-brand font-bold leading-[0.86] tracking-[-0.02em]">
               <span className="anim-rise d-2 block text-[clamp(3.25rem,17vw,10.5rem)] text-cream masthead-shadow">
                 What&rsquo;s
               </span>

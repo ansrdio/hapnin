@@ -45,7 +45,7 @@ export default async function HostPage({ searchParams }: { searchParams: Promise
       <div className="mx-auto grid max-w-5xl gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_minmax(0,440px)] lg:py-20">
         <div className="anim-rise">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gold">Host on Hapnin</p>
-          <h1 className="mt-3 font-display text-4xl font-bold leading-[1.05] text-cream sm:text-5xl">
+          <h1 className="mt-3 font-brand text-4xl font-bold leading-[1.05] text-cream sm:text-5xl">
             Throw the night. Keep the money.
           </h1>
           <p className="mt-4 max-w-md leading-relaxed text-mauve-dim">

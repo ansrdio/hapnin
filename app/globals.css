@@ -33,7 +33,9 @@
 }
 
 :root {
-  --font-display: "Clash Display";
+  /* --font-display is set by next/font (Manrope) on <html>; Clash Display is
+     the brand face, used only for the big marketing headlines (.font-brand). */
+  --font-brand: "Clash Display";
   --font-body: "Supreme";
   color-scheme: dark;
 }

@@ -37,7 +37,7 @@ export default async function DiscoverPage() {
       <div className="mx-auto max-w-page px-5 py-12 sm:px-8 sm:py-16">
         <header className="anim-rise mb-8">
           <Link href="/" className="text-sm text-mauve-dim transition-colors hover:text-cream">← Hapnin</Link>
-          <h1 className="mt-2 font-display text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin</h1>
+          <h1 className="mt-2 font-brand text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin</h1>
           <p className="mt-1 text-mauve-dim">African events in Phoenix — and wherever you are next.</p>
         </header>
 

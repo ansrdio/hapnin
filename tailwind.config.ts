@@ -17,6 +17,7 @@ const config: Config = {
       },
       fontFamily: {
         display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+        brand: ["var(--font-brand)", "var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
         body: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       maxWidth: {

@@ -67,7 +67,7 @@ export default async function OrganizerPublicPage({ params }: { params: Promise<
             {organizer.name.charAt(0).toUpperCase()}
           </div>
         )}
-        <h1 className="mt-5 font-display text-4xl font-bold text-cream sm:text-5xl">
+        <h1 className="mt-5 font-brand text-4xl font-bold text-cream sm:text-5xl">
           {organizer.name}
         </h1>
         {organizer.bio && <p className="mt-3 max-w-lg leading-relaxed text-mauve-dim">{organizer.bio}</p>}
