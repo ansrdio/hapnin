@@ -116,8 +116,8 @@ or clear the waiver per organizer on their admin page.
 ## Legal pages
 - `/terms` and `/privacy` are live, linked from the landing footer, beside the
   checkout consent line, and in the sitemap. Both read from `lib/legal.ts`:
-  operator name (`LEGAL_NAME` = "Wander In", the operating company; add the
-  entity suffix, e.g. LLC, once registered), support email (`jii@hapnin.now`), governing state
+  operator name (`LEGAL_NAME`, currently the trade name "Hapnin" — swap in the
+  LLC name if one exists), support email (`jii@hapnin.now`), governing state
   (Arizona), and the fee text (mirrors `lib/checkout.ts`).
 - **Terms publish the platform fee** (3% + $0.50 per paid ticket; free tickets
   carry no fee) — terms must disclose fees.

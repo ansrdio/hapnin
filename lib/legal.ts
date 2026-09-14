@@ -1,7 +1,7 @@
 // Facts the legal pages depend on — one place to change them. Client-safe.
 // If Hapnin is operated by a formal entity (e.g. an LLC), put its legal name
 // in LEGAL_NAME; the pages read "operated by LEGAL_NAME".
-export const LEGAL_NAME = "Wander In";
+export const LEGAL_NAME = "Hapnin";
 export const SUPPORT_EMAIL = "jii@hapnin.now";
 export const GOVERNING_STATE = "Arizona";
 export const LAST_UPDATED = "September 14, 2026";
