@@ -125,7 +125,7 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
   return (
     <div className="rounded-2xl border border-plum-hi bg-plum/40 p-5">
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">{label}</div>
-      <div className="mt-1.5 font-display text-2xl font-semibold tabular-nums text-cream">{value}</div>
+      <div className="mt-1.5 font-brand text-[1.65rem] font-semibold tabular-nums text-cream">{value}</div>
       {sub && <div className="mt-0.5 text-sm text-mauve-dim">{sub}</div>}
     </div>
   );

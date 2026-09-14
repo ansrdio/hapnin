@@ -40,7 +40,7 @@ export default async function PosterPage({ params }: { params: Promise<{ id: str
           <span className="inline-block h-2.5 w-2.5 rotate-45 bg-[#F2593F]" aria-hidden="true" />
           Hapnin
         </p>
-        <h1 className="mt-4 font-display text-[44pt] font-bold leading-[1.02]">{event.title}</h1>
+        <h1 className="mt-4 font-brand text-[44pt] font-semibold leading-[1.02]">{event.title}</h1>
         <p className="mt-3 text-[16pt] leading-snug text-neutral-700">
           {day} · {time}
           {event.venue_name ? <><br />{event.venue_name}</> : null}

@@ -24,7 +24,7 @@ const slides: Slide[] = [
         <p className="anim-rise d-1 mb-6 text-sm font-medium uppercase tracking-[0.3em] text-gold">
           {copy.heroEyebrow}
         </p>
-        <h1 className="anim-rise d-2 font-display text-4xl font-bold leading-[1.04] text-cream sm:text-6xl">
+        <h1 className="anim-rise d-2 font-brand text-4xl font-bold leading-[1.04] text-cream sm:text-6xl">
           {copy.concedeTitle}
         </h1>
         <p className="anim-rise d-3 mt-6 text-lg leading-relaxed text-mauve-dim sm:text-xl">
@@ -41,7 +41,7 @@ const slides: Slide[] = [
     title: "What that fee is for",
     node: (
       <Center>
-        <h2 className="anim-rise d-1 font-display text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
+        <h2 className="anim-rise d-1 font-brand text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
           {copy.feeHeading}
         </h2>
         <p className="anim-rise d-2 mt-6 text-lg leading-relaxed text-mauve-dim">{copy.feeBody}</p>
@@ -56,7 +56,7 @@ const slides: Slide[] = [
         <p className="anim-rise d-1 mb-6 text-sm font-medium uppercase tracking-[0.3em] text-gold">
           One question
         </p>
-        <h2 className="anim-rise d-2 font-display text-[2.1rem] font-bold leading-[1.08] text-cream sm:text-6xl">
+        <h2 className="anim-rise d-2 font-brand text-[2.1rem] font-bold leading-[1.08] text-cream sm:text-6xl">
           {copy.questionHeading}
         </h2>
       </Center>
@@ -77,7 +77,7 @@ const slides: Slide[] = [
             </li>
           ))}
         </ul>
-        <p className="anim-rise d-5 mt-9 font-display text-2xl font-bold leading-[1.15] text-gold sm:text-3xl">
+        <p className="anim-rise d-5 mt-9 font-brand text-2xl font-bold leading-[1.15] text-gold sm:text-3xl">
           {copy.answerPunch}
         </p>
         <p className="anim-rise d-5 mt-6 leading-relaxed text-mauve-dim">{copy.answerStructural}</p>
@@ -90,7 +90,7 @@ const slides: Slide[] = [
     interactive: true,
     node: (
       <Center wide>
-        <h2 className="font-display text-3xl font-bold text-cream sm:text-4xl">{copy.calcHeading}</h2>
+        <h2 className="font-brand text-3xl font-bold text-cream sm:text-4xl">{copy.calcHeading}</h2>
         <p className="mt-3 max-w-xl leading-relaxed text-mauve-dim">{copy.calcSub}</p>
         <div className="mt-7">
           <FeeCalculator />
@@ -116,7 +116,7 @@ const slides: Slide[] = [
     title: "Everything you already expect",
     node: (
       <Center>
-        <h2 className="anim-rise d-1 font-display text-3xl font-semibold text-cream sm:text-4xl">
+        <h2 className="anim-rise d-1 font-brand text-3xl font-semibold text-cream sm:text-4xl">
           {copy.expectHeading}
         </h2>
         <p className="anim-rise d-1 mt-3 text-mauve-dim">{copy.expectSub}</p>
@@ -139,7 +139,7 @@ const slides: Slide[] = [
     title: "Two things you can't get anywhere else",
     node: (
       <Center>
-        <h2 className="anim-rise d-1 font-display text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
+        <h2 className="anim-rise d-1 font-brand text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
           {copy.uniqueHeading}
         </h2>
         <ul className="mt-8 space-y-7">
@@ -165,7 +165,7 @@ const slides: Slide[] = [
     node: (
       <Center>
         <div className="anim-rise d-1 rounded-3xl border border-gold/45 bg-gold/[0.07] p-7 sm:p-10">
-          <h2 className="font-display text-2xl font-bold leading-[1.08] text-cream sm:text-4xl">
+          <h2 className="font-brand text-2xl font-bold leading-[1.08] text-cream sm:text-4xl">
             {copy.offerHeading}
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-cream/90">{copy.offerBody}</p>
@@ -179,7 +179,7 @@ const slides: Slide[] = [
     title: "Here's what we don't have",
     node: (
       <Center>
-        <h2 className="anim-rise d-1 font-display text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
+        <h2 className="anim-rise d-1 font-brand text-3xl font-semibold leading-[1.1] text-cream sm:text-4xl">
           {copy.honestHeading}
         </h2>
         <p className="anim-rise d-2 mt-6 text-lg leading-relaxed text-mauve-dim">{copy.honestBody}</p>
@@ -196,7 +196,7 @@ const slides: Slide[] = [
           <span className="inline-block h-2 w-2 rotate-45 bg-emerald" aria-hidden="true" />
           {copy.trustEyebrow}
         </p>
-        <h2 className="anim-rise d-2 font-display text-2xl font-semibold text-cream sm:text-4xl">
+        <h2 className="anim-rise d-2 font-brand text-2xl font-semibold text-cream sm:text-4xl">
           {copy.trustHeading}
         </h2>
         <p className="anim-rise d-3 mt-6 text-lg leading-relaxed text-cream/90">{copy.trustBody}</p>
@@ -217,7 +217,7 @@ const slides: Slide[] = [
     title: "Who you are dealing with",
     node: (
       <Center>
-        <h2 className="anim-rise d-1 font-display text-2xl font-semibold text-cream sm:text-4xl">
+        <h2 className="anim-rise d-1 font-brand text-2xl font-semibold text-cream sm:text-4xl">
           {copy.bioHeading}
         </h2>
         <p className="anim-rise d-2 mt-6 text-lg leading-relaxed text-mauve-dim">{copy.bio}</p>
@@ -238,7 +238,7 @@ const slides: Slide[] = [
     interactive: true,
     node: (
       <Center wide>
-        <h2 className="font-display text-3xl font-bold text-cream sm:text-5xl">{copy.askHeading}</h2>
+        <h2 className="font-brand text-3xl font-bold text-cream sm:text-5xl">{copy.askHeading}</h2>
         <p className="mt-4 text-lg leading-relaxed text-mauve-dim">{copy.askBody}</p>
         <div className="mt-8">
           <PitchForm />

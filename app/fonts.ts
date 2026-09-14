@@ -1,12 +1,21 @@
-import { Manrope } from "next/font/google";
+import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
 
-// UI and heading face. Clash Display (the brand face) stays for the big
-// marketing headlines only — at button, label and card-title sizes its quirky
-// letterforms were hard to read (an organizer told us it read "dyslexic").
-// Manrope has open apertures, distinct letterforms and real weights.
-export const displayFont = Manrope({
+// Two faces, chosen after an organizer found the old display face hard to
+// read:
+//   Plus Jakarta Sans — every button, label, form, paragraph and UI heading.
+//     Open letterforms, a two-storey "a", real weights. One family, one voice.
+//   Fraunces — the big statements and the big numbers only: hero headlines,
+//     pitch slides, dashboard stats. Warm, editorial, unmistakably Hapnin.
+export const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-display",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+export const serifFont = Fraunces({
+  subsets: ["latin"],
+  axes: ["opsz", "SOFT"],
+  variable: "--font-serif",
   display: "swap",
 });

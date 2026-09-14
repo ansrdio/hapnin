@@ -69,12 +69,12 @@ export function ScreenBoard({
             <span className="inline-block h-[0.6em] w-[0.6em] rotate-45 bg-coral" aria-hidden="true" />
             Hapnin · live
           </p>
-          <h1 className="mt-2 font-display text-[clamp(28px,4.5vw,72px)] font-bold leading-[1.02]">{title}</h1>
+          <h1 className="mt-2 font-brand text-[clamp(28px,4.5vw,72px)] font-semibold leading-[1.02]">{title}</h1>
           <p className="mt-2 text-[clamp(14px,1.6vw,24px)] text-mauve-dim">{whenText}</p>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[clamp(12px,1.2vw,18px)] uppercase tracking-[0.24em] text-mauve-dim">In the room</p>
-          <p className="font-display text-[clamp(56px,9vw,150px)] font-bold leading-none tabular-nums">
+          <p className="font-brand text-[clamp(56px,9vw,150px)] font-semibold leading-none tabular-nums">
             {stats.checkedIn}
             <span className="text-[0.4em] text-mauve-dim"> / {stats.sold}</span>
           </p>
@@ -123,7 +123,7 @@ export function ScreenBoard({
           className="anim-bloom absolute inset-0 z-50 flex flex-col items-center justify-center bg-ink/95 text-center"
         >
           <p className="text-[clamp(16px,2vw,32px)] font-semibold uppercase tracking-[0.3em] text-gold">Welcome</p>
-          <p className="mt-[2vh] px-[6vw] font-display text-[clamp(48px,12vw,220px)] font-bold leading-none text-cream">{welcome}</p>
+          <p className="mt-[2vh] px-[6vw] font-brand text-[clamp(48px,12vw,220px)] font-semibold leading-none text-cream">{welcome}</p>
           <p className="mt-[3vh] text-[clamp(16px,2vw,32px)] text-mauve-dim">You&rsquo;re in. 🎟️</p>
         </div>
       )}

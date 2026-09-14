@@ -44,7 +44,7 @@ export default async function EarningsPage({ params }: { params: Promise<{ id: s
       {/* The number */}
       <Card className="mb-6 border-gold/30 bg-gold/[0.04]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Net to you</p>
-        <p className="mt-2 font-display text-5xl font-bold tabular-nums text-cream">{money(e.total_net_cents)}</p>
+        <p className="mt-2 font-brand text-5xl font-semibold tabular-nums text-cream">{money(e.total_net_cents)}</p>
         <p className="mt-2 text-sm text-mauve-dim">
           {online.tickets + e.door.tickets} paid {online.tickets + e.door.tickets === 1 ? "ticket" : "tickets"}
           {e.comps > 0 && <> · {e.comps} comp{e.comps === 1 ? "" : "s"} (free)</>}

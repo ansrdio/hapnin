@@ -2,41 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- Self-hosted display + body faces (Fontshare) ---- */
-@font-face {
-  font-family: "Clash Display";
-  src: url("/fonts/ClashDisplay-Semibold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Clash Display";
-  src: url("/fonts/ClashDisplay-Bold.woff2") format("woff2");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Supreme";
-  src: url("/fonts/Supreme-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Supreme";
-  src: url("/fonts/Supreme-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  /* --font-display is set by next/font (Manrope) on <html>; Clash Display is
-     the brand face, used only for the big marketing headlines (.font-brand). */
-  --font-brand: "Clash Display";
-  --font-body: "Supreme";
+  /* next/font sets --font-sans (Plus Jakarta Sans) and --font-serif (Fraunces)
+     on <html>. UI + body share the sans; the serif is for hero headlines and
+     big numbers (.font-brand). */
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
+  --font-brand: var(--font-serif);
   color-scheme: dark;
 }
 
@@ -56,6 +28,12 @@
   h1, h2, h3 {
     @apply font-display;
     text-wrap: balance;
+  }
+  /* Fraunces: optical size follows the rendered size; a little softness. */
+  .font-brand {
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 40;
+    letter-spacing: -0.005em;
   }
   ::selection {
     background: theme("colors.gold");
