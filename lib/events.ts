@@ -1,4 +1,5 @@
 import "server-only";
+import { geocodeAddress } from "./geocode";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb, ALREADY_EXISTS } from "./firebase-admin";
 import type { EventStatus, EventType, Community, LanguageCode, Genre } from "./enums";
@@ -30,11 +31,15 @@ export type EventRecord = {
   slug: string;
   description: string | null;
   flyer_url: string | null;
+  flyer_color: string | null; // dominant colour of the flyer (#rrggbb) — tints the event page
   venue_name: string;
   venue_address: string;
   venue_zip: string | null;
   city: string;
   state: string;
+  venue_lat: number | null; // geocoded lazily for the map; null until resolved
+  venue_lng: number | null;
+  venue_geocoded_at: number | null; // last attempt (ms), so a miss isn't retried on every view
   starts_at: number; // epoch ms
   doors_at: number | null;
   timezone: string;
@@ -73,11 +78,15 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     slug: d.slug,
     description: d.description ?? null,
     flyer_url: d.flyer_url ?? null,
+    flyer_color: typeof d.flyer_color === "string" && /^#[0-9a-f]{6}$/i.test(d.flyer_color) ? d.flyer_color.toLowerCase() : null,
     venue_name: d.venue_name,
     venue_address: d.venue_address,
     venue_zip: d.venue_zip ?? null,
     city: d.city,
     state: d.state,
+    venue_lat: typeof d.venue_lat === "number" ? d.venue_lat : null,
+    venue_lng: typeof d.venue_lng === "number" ? d.venue_lng : null,
+    venue_geocoded_at: typeof d.venue_geocoded_at === "number" ? d.venue_geocoded_at : null,
     starts_at: tsToMs(d.starts_at) ?? 0,
     doors_at: tsToMs(d.doors_at),
     timezone: d.timezone ?? "America/Phoenix",
@@ -159,9 +168,27 @@ export async function setEventStatus(eventId: string, status: EventStatus): Prom
   await getDb().collection(EVENTS).doc(eventId).update({ status });
 }
 
-/** Set (or clear) an event's flyer image URL. */
-export async function setEventFlyer(eventId: string, flyerUrl: string | null): Promise<void> {
-  await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl });
+/** Set (or clear) an event's flyer image URL and its dominant colour. */
+export async function setEventFlyer(eventId: string, flyerUrl: string | null, flyerColor: string | null = null): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).update({ flyer_url: flyerUrl, flyer_color: flyerUrl ? flyerColor : null });
+}
+
+/**
+ * Coordinates for the event-page map. Geocoded on first view and stored; a
+ * miss is remembered for a day so a bad address doesn't hit the geocoder on
+ * every page load. Never throws — the page just shows the address.
+ */
+export async function ensureGeocoded(event: EventRecord): Promise<{ lat: number; lng: number } | null> {
+  if (event.venue_lat != null && event.venue_lng != null) return { lat: event.venue_lat, lng: event.venue_lng };
+  const now = Date.now();
+  if (event.venue_geocoded_at && now - event.venue_geocoded_at < 24 * 60 * 60 * 1000) return null;
+  const hit = await geocodeAddress([event.venue_address, event.city, event.state, event.venue_zip]);
+  await getDb()
+    .collection(EVENTS)
+    .doc(event.id)
+    .update({ venue_lat: hit?.lat ?? null, venue_lng: hit?.lng ?? null, venue_geocoded_at: now })
+    .catch(() => {});
+  return hit;
 }
 
 /** Delete an event, its tiers, and its slug reservation. Caller guards no-sales. */
@@ -200,7 +227,8 @@ export type EventDetailsUpdate = {
 
 /** Update an event's editable details (slug + status + counters are untouched). */
 export async function updateEventDetails(eventId: string, d: EventDetailsUpdate): Promise<void> {
-  await getDb().collection(EVENTS).doc(eventId).update({ ...d });
+  // The address may have changed: drop the stored pin so the next page view re-geocodes.
+  await getDb().collection(EVENTS).doc(eventId).update({ ...d, venue_lat: null, venue_lng: null, venue_geocoded_at: null });
 }
 
 /** Update an existing GA tier. quantity_total can't drop below what's sold. */
@@ -274,6 +302,7 @@ export async function createEvent(input: {
   slug: string;
   description?: string | null;
   flyer_url?: string | null;
+  flyer_color?: string | null;
   venue_name: string;
   venue_address: string;
   venue_zip?: string | null;
@@ -312,6 +341,7 @@ export async function createEvent(input: {
     slug,
     description: input.description ?? null,
     flyer_url: input.flyer_url ?? null,
+    flyer_color: input.flyer_url ? (input.flyer_color ?? null) : null,
     venue_name: input.venue_name,
     venue_address: input.venue_address,
     venue_zip: input.venue_zip ?? null,

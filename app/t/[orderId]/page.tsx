@@ -7,6 +7,7 @@ import { getEventById, getTier } from "@/lib/events";
 import { isAppleWalletConfigured, isGoogleWalletConfigured } from "@/lib/wallet";
 import { TransferForm } from "./TransferForm";
 import { googleCalendarUrl, DEFAULT_DURATION_MS } from "@/lib/calendar";
+import { MapsLink } from "@/app/components/EventMap";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your tickets — Hapnin", robots: { index: false } };
@@ -95,7 +96,10 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
         {event.title}
       </h1>
       <p className="anim-rise d-1 mt-3 text-mauve-dim">{fmtDate(event.starts_at, event.timezone)}</p>
-      <p className="anim-rise d-1 text-mauve-dim">{event.venue_name} · {event.venue_address}</p>
+      <p className="anim-rise d-1 text-mauve-dim">
+        {event.venue_name} · {event.venue_address}{" "}
+        <MapsLink lat={event.venue_lat} lng={event.venue_lng} label={event.venue_name} address={`${event.venue_address}, ${event.city}, ${event.state}`} />
+      </p>
       {tier && tier.kind === "table" && (
         <p className="anim-rise d-1 mt-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/5 px-3.5 py-1.5 text-sm text-gold">
           {tier.name} · admits up to {tier.seats} guests

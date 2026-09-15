@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getEventBySlug, getTiers, REFUND_POLICY_LABELS, type Tier } from "@/lib/events";
+import { getEventBySlug, getTiers, ensureGeocoded, REFUND_POLICY_LABELS, type Tier } from "@/lib/events";
 import { getOrganizerById } from "@/lib/organizers";
 import { resolvePromoterCode } from "@/lib/promoters";
 import { WaitlistForm } from "./WaitlistForm";
@@ -9,6 +9,7 @@ import { ShareButton } from "./ShareButton";
 import { FollowForm } from "@/app/components/FollowForm";
 import { Countdown } from "@/app/components/Countdown";
 import { getGoingNames } from "@/lib/door";
+import { EventMap } from "@/app/components/EventMap";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,8 @@ export default async function EventPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const [tiers, organizer] = await Promise.all([getTiers(event.id), getOrganizerById(event.organizer_id)]);
+  const [tiers, organizer, pin] = await Promise.all([getTiers(event.id), getOrganizerById(event.organizer_id), ensureGeocoded(event)]);
+  const tint = event.flyer_url ? event.flyer_color : null;
   const gaTiers = tiers.filter((t) => t.kind !== "table");
   const tableTiers = tiers.filter((t) => t.kind === "table");
   const onSale = event.status === "on_sale";
@@ -167,12 +169,19 @@ export default async function EventPage({
 
   return (
     <main className="grain relative min-h-[100svh] pb-28">
-      {/* Blurred flyer tints the whole page to the event */}
+      {/* The flyer takes over the room: its blur behind everything, its dominant
+          colour washed over the top so the whole page reads as this event. */}
       {event.flyer_url && (
         <div className="fixed inset-0 -z-10" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={event.flyer_url} alt="" className="h-full w-full scale-125 object-cover blur-3xl" />
-          <div className="absolute inset-0 bg-ink/85" />
+          <div className="absolute inset-0 bg-ink/80" />
+          {tint && (
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(180deg, ${tint}99 0%, ${tint}55 35%, ${tint}1a 70%, transparent 100%)` }}
+            />
+          )}
         </div>
       )}
 
@@ -348,6 +357,17 @@ export default async function EventPage({
                 <WaitlistForm slug={event.slug} />
               </div>
             )}
+
+            {/* Where it is — a map that opens the phone's maps app */}
+            <div className="anim-rise d-4 mt-8">
+              <EventMap
+                lat={pin?.lat ?? null}
+                lng={pin?.lng ?? null}
+                label={event.venue_name}
+                address={[event.venue_address, `${event.city}, ${event.state}${event.venue_zip ? ` ${event.venue_zip}` : ""}`].join(" · ")}
+                accent={tint ?? "#F4B24C"}
+              />
+            </div>
 
             {/* Follow — the buyer's own opt-in to this organizer's announcements */}
             {organizer && (

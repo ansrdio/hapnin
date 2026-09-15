@@ -46,6 +46,7 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       slug: values.slug!,
       description: values.description ?? null,
       flyer_url: values.flyer_url ?? null,
+      flyer_color: values.flyer_color ?? null,
       venue_name: values.venue_name!,
       venue_address: values.venue_address!,
       venue_zip: values.venue_zip ?? null,
@@ -113,11 +114,13 @@ export async function setEventFlyerAction(formData: FormData): Promise<void> {
   const eventId = String(formData.get("event_id") ?? "");
   const raw = String(formData.get("flyer_url") ?? "").trim();
   const flyerUrl = /^https:\/\/\S{1,600}$/.test(raw) ? raw : null;
+  const colorRaw = String(formData.get("flyer_color") ?? "").trim().toLowerCase();
+  const flyerColor = /^#[0-9a-f]{6}$/.test(colorRaw) ? colorRaw : null;
 
   const event = await getEventById(eventId);
   if (!event || event.organizer_id !== organizer.id) return; // not theirs → no-op
 
-  await setEventFlyer(eventId, flyerUrl);
+  await setEventFlyer(eventId, flyerUrl, flyerColor);
   revalidatePath(`/o/events/${eventId}`);
   revalidatePath("/o");
 }
