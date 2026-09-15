@@ -4,43 +4,46 @@ import { useEffect, useRef, useState } from "react";
 
 // The venue on a dark map, the way a Posh page shows it. Tapping anywhere on
 // it opens the phone's maps app: Apple Maps on iPhone, Google Maps elsewhere.
-// Leaflet + CARTO's dark tiles (no API key); the map is a picture, not a
-// control — no dragging or zooming, just the pin and the tap.
+// The map is a picture, not a control — no dragging or zooming, just the pin
+// and the tap.
 
 declare global {
   interface Window {
-    L?: LeafletLike;
-    __hapninLeaflet?: Promise<LeafletLike>;
+    maplibregl?: MapLibreLike;
+    __hapninMaplibre?: Promise<MapLibreLike>;
   }
 }
-type LeafletLike = {
-  map: (el: HTMLElement, opts: Record<string, unknown>) => { setView: (c: [number, number], z: number) => unknown; remove: () => void };
-  tileLayer: (url: string, opts: Record<string, unknown>) => { addTo: (m: unknown) => unknown };
-  circleMarker: (c: [number, number], opts: Record<string, unknown>) => { addTo: (m: unknown) => unknown };
+type MapLibreMap = { remove: () => void; on: (ev: string, fn: () => void) => void };
+type MapLibreLike = {
+  Map: new (opts: Record<string, unknown>) => MapLibreMap;
+  Marker: new (opts: Record<string, unknown>) => { setLngLat: (c: [number, number]) => { addTo: (m: MapLibreMap) => unknown } };
 };
 
-const LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-const LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+// MapLibre GL from cdnjs + OpenFreeMap's dark style: no API key, free for
+// production, vector tiles so the pin colour and the labels stay crisp.
+const MAPLIBRE_JS = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js";
+const MAPLIBRE_CSS = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css";
+const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 
-function loadLeaflet(): Promise<LeafletLike> {
-  if (window.L) return Promise.resolve(window.L);
-  if (!window.__hapninLeaflet) {
-    window.__hapninLeaflet = new Promise((resolve, reject) => {
-      if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
+function loadMapLibre(): Promise<MapLibreLike> {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+  if (!window.__hapninMaplibre) {
+    window.__hapninMaplibre = new Promise((resolve, reject) => {
+      if (!document.querySelector(`link[href="${MAPLIBRE_CSS}"]`)) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
-        link.href = LEAFLET_CSS;
+        link.href = MAPLIBRE_CSS;
         document.head.appendChild(link);
       }
       const s = document.createElement("script");
-      s.src = LEAFLET_JS;
+      s.src = MAPLIBRE_JS;
       s.async = true;
-      s.onload = () => (window.L ? resolve(window.L) : reject(new Error("leaflet missing")));
-      s.onerror = () => reject(new Error("leaflet failed"));
+      s.onload = () => (window.maplibregl ? resolve(window.maplibregl) : reject(new Error("maplibre missing")));
+      s.onerror = () => reject(new Error("maplibre failed"));
       document.head.appendChild(s);
     });
   }
-  return window.__hapninLeaflet;
+  return window.__hapninMaplibre;
 }
 
 /** Deep link that opens the native maps app for this platform. */
@@ -80,31 +83,23 @@ export function EventMap({
 
   useEffect(() => {
     if (lat == null || lng == null || !el.current) return;
-    let map: ReturnType<LeafletLike["map"]> | null = null;
+    let map: MapLibreMap | null = null;
     let cancelled = false;
-    loadLeaflet()
-      .then((L) => {
+    loadMapLibre()
+      .then((ml) => {
         if (cancelled || !el.current) return;
-        map = L.map(el.current, {
-          zoomControl: false,
-          dragging: false,
-          scrollWheelZoom: false,
-          doubleClickZoom: false,
-          touchZoom: false,
-          boxZoom: false,
-          keyboard: false,
-          tap: false,
-          attributionControl: true,
+        map = new ml.Map({
+          container: el.current,
+          style: STYLE_DARK,
+          center: [lng, lat],
+          zoom: 14.6,
+          interactive: false,
+          attributionControl: { compact: true },
         });
-        map.setView([lat, lng], 15);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 19,
-        }).addTo(map);
-        L.circleMarker([lat, lng], { radius: 22, color: accent, weight: 0, fillColor: accent, fillOpacity: 0.22 }).addTo(map);
-        L.circleMarker([lat, lng], { radius: 9, color: "#1B0A2A", weight: 2, fillColor: accent, fillOpacity: 1 }).addTo(map);
-        setReady(true);
+        const pin = document.createElement("div");
+        pin.style.cssText = `width:22px;height:22px;border-radius:50%;background:${accent};border:3px solid #1B0A2A;box-shadow:0 0 0 12px ${accent}33, 0 6px 18px rgba(0,0,0,.5)`;
+        new ml.Marker({ element: pin, anchor: "center" }).setLngLat([lng, lat]).addTo(map);
+        map.on("load", () => setReady(true));
       })
       .catch(() => {});
     return () => {
