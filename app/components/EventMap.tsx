@@ -120,7 +120,8 @@ export function EventMap({
     >
       {hasPin && (
         <div className="relative aspect-[16/10] w-full bg-[#0f0a17]">
-          <div ref={el} className="absolute inset-0" style={{ opacity: ready ? 1 : 0, transition: "opacity .4s" }} />
+          {/* Inline position/size: maplibre-gl.css sets .maplibregl-map to position:relative, which would collapse a class-based absolute box to 0px. */}
+          <div ref={el} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: ready ? 1 : 0, transition: "opacity .4s" }} />
           {!ready && <div className="absolute inset-0 animate-pulse bg-white/[0.04]" aria-hidden="true" />}
         </div>
       )}
