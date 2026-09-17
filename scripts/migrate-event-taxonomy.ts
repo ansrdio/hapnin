@@ -23,7 +23,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, CATEGORIES, sceneTagLabel } from "../lib/taxonomy.ts";
+import { CATEGORIES, sceneTagLabel } from "../lib/taxonomy.ts";
+import { planTaxonomyMigration, applyTaxonomyMigration } from "../lib/taxonomy-migration.ts";
 
 const APPLY = process.argv.includes("--apply");
 const FORCE = process.argv.includes("--force");
@@ -79,49 +80,27 @@ function db() {
   return getFirestore();
 }
 
-const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
-
 async function main() {
   const fs = db();
-  const snap = await fs.collection("events").get();
-  console.log(`${APPLY ? "APPLY" : "DRY RUN"} · ${snap.size} events · project ${process.env.FIREBASE_PROJECT_ID}\n`);
+  const plan = await planTaxonomyMigration(fs, { force: FORCE });
+  console.log(`${APPLY ? "APPLY" : "DRY RUN"} · ${plan.counts.total} events · project ${process.env.FIREBASE_PROJECT_ID}\n`);
 
-  let writes = 0, skipped = 0, conflicts = 0;
-  for (const doc of snap.docs) {
-    const d = doc.data();
-    const legacy = { event_type: d.event_type ?? null, community: d.community ?? null, genre: d.genre ?? null };
-    const derivedCategory = deriveCategory(legacy);
-    const derivedTags = deriveSceneTags(legacy);
-    const storedCategory = isCategory(d.category) ? d.category : null;
-    const storedTags = Array.isArray(d.scene_tags) ? normalizeSceneTags(d.scene_tags) : null;
-
-    const title = `${doc.id}  "${d.title ?? "(untitled)"}"${d.is_sample ? "  [sample]" : ""}`;
-    const current = `type=${legacy.event_type ?? "—"} community=${legacy.community ?? "—"} genre=${legacy.genre ?? "—"} lang=${d.primary_language ?? "—"}`;
-    const target = `category=${derivedCategory} (${CATEGORIES.find((c) => c.id === derivedCategory)?.label}) tags=[${derivedTags.map(sceneTagLabel).join(", ")}]`;
-
-    if (storedCategory && storedTags) {
-      if (storedCategory === derivedCategory && same(storedTags, derivedTags)) {
-        skipped++;
-        console.log(`= ${title}\n    already migrated: ${target}`);
-        continue;
-      }
-      if (!FORCE) {
-        conflicts++;
-        console.log(`! ${title}\n    stored:  category=${storedCategory} tags=[${storedTags.join(", ")}]\n    derived: ${target}\n    left alone (set by hand, or already the new model). Use --force to overwrite.`);
-        continue;
-      }
-    }
-
-    console.log(`${APPLY ? "→" : "·"} ${title}\n    current: ${current}\n    derived: ${target}`);
-    if (APPLY) {
-      await doc.ref.update({ category: derivedCategory, scene_tags: derivedTags });
-      writes++;
+  for (const r of plan.rows) {
+    const title = `${r.id}  "${r.title}"${r.is_sample ? "  [sample]" : ""}`;
+    const current = `type=${r.current.event_type ?? "—"} community=${r.current.community ?? "—"} genre=${r.current.genre ?? "—"} lang=${r.current.primary_language ?? "—"}`;
+    const target = `category=${r.proposed.category} (${CATEGORIES.find((c) => c.id === r.proposed.category)?.label}) tags=[${r.proposed.scene_tags.map(sceneTagLabel).join(", ")}]`;
+    if (r.status === "already_migrated") {
+      console.log(`= ${title}\n    already migrated: ${target}`);
+    } else if (r.status === "skipped") {
+      console.log(`! ${title}\n    stored:  category=${r.existing.category} tags=[${(r.existing.scene_tags ?? []).join(", ")}]\n    derived: ${target}\n    left alone (set by hand, or already the new model). Use --force to overwrite.`);
     } else {
-      writes++;
+      console.log(`${APPLY ? "→" : "·"} ${title}\n    current: ${current}\n    derived: ${target}`);
     }
   }
-  console.log(`\n${APPLY ? "wrote" : "would write"} ${writes} · already migrated ${skipped} · left alone ${conflicts}`);
-  if (!APPLY && writes > 0) console.log("Re-run with --apply to write.");
+
+  const updated = APPLY ? await applyTaxonomyMigration(fs, plan) : 0;
+  console.log(`\n${APPLY ? `wrote ${updated}` : `would write ${plan.counts.would_migrate}`} · already migrated ${plan.counts.already_migrated} · left alone ${plan.counts.skipped}`);
+  if (!APPLY && plan.counts.would_migrate > 0) console.log("Re-run with --apply to write.");
 }
 
 main().catch((err) => {
