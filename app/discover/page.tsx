@@ -6,8 +6,9 @@ import { DiscoverClient, type Card } from "./DiscoverClient";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "What's hapnin",
-  description: "African events near you — afrobeats, amapiano, Nollywood, comedy, culture. Phoenix first.",
+  title: "Events in Phoenix | Hapnin",
+  description:
+    "Discover what’s happening in Phoenix, starting with the city’s African diaspora event scene. Find nightlife, day parties, film, comedy, festivals and more.",
 };
 
 export default async function DiscoverPage() {
@@ -23,7 +24,8 @@ export default async function DiscoverPage() {
         venue_name: e.venue_name,
         starts_at: e.starts_at,
         flyer_url: e.flyer_url,
-        event_type: e.event_type,
+        category: e.category,
+        scene_tags: e.scene_tags,
         from_cents: tiers.length ? Math.min(...tiers.map((t) => t.price_cents)) : null,
         free: tiers.some((t) => t.price_cents === 0),
         talent: e.talent,
@@ -37,8 +39,8 @@ export default async function DiscoverPage() {
       <div className="mx-auto max-w-page px-5 py-12 sm:px-8 sm:py-16">
         <header className="anim-rise mb-8">
           <Link href="/" className="text-sm text-mauve-dim transition-colors hover:text-cream">← Hapnin</Link>
-          <h1 className="mt-2 font-brand text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin</h1>
-          <p className="mt-1 text-mauve-dim">African events in Phoenix — and wherever you are next.</p>
+          <h1 className="mt-2 font-brand text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin in Phoenix</h1>
+          <p className="mt-1 text-mauve-dim">Starting with Phoenix&rsquo;s African diaspora scene.</p>
         </header>
 
         <DiscoverClient cards={cards} cities={cities} />

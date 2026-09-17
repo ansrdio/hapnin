@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { EVENT_TYPE } from "@/lib/enums";
+import { CATEGORIES, SCENE_TAGS, categoryLabel, sceneTagLabel } from "@/lib/taxonomy";
 
 export type Card = {
   id: string;
@@ -12,14 +12,14 @@ export type Card = {
   venue_name: string;
   starts_at: number;
   flyer_url: string | null;
-  event_type: string;
+  category: string;
+  scene_tags: string[];
   from_cents: number | null;
   free: boolean;
   talent: string[];
 };
 
 const usd = (c: number) => (c % 100 === 0 ? `$${c / 100}` : `$${(c / 100).toFixed(2)}`);
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const TZ = "America/Phoenix";
 
 const phxDay = (ms: number) => new Date(ms).toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
@@ -46,8 +46,21 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
 
 export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: string[] }) {
   const [q, setQ] = useState("");
-  const [type, setType] = useState("all");
+  const [category, setCategory] = useState("all");
+  const [scene, setScene] = useState("all");
   const [city, setCity] = useState("all");
+
+  // Only offer the choices the current inventory can actually satisfy — a
+  // short list of real options beats a long list of empty ones. Order follows
+  // the taxonomy, not the data, so the chips read consistently day to day.
+  const categories = useMemo(() => {
+    const present = new Set(cards.map((c) => c.category));
+    return CATEGORIES.filter((c) => present.has(c.id));
+  }, [cards]);
+  const scenes = useMemo(() => {
+    const present = new Set(cards.flatMap((c) => c.scene_tags));
+    return SCENE_TAGS.filter((t) => present.has(t.id));
+  }, [cards]);
   const [when, setWhen] = useState<"any" | "tonight" | "weekend">("any");
   const [freeOnly, setFreeOnly] = useState(false);
 
@@ -57,7 +70,8 @@ export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: strin
     const needle = q.trim().toLowerCase();
 
     return cards.filter((c) => {
-      if (type !== "all" && c.event_type !== type) return false;
+      if (category !== "all" && c.category !== category) return false;
+      if (scene !== "all" && !c.scene_tags.includes(scene)) return false;
       if (city !== "all" && c.city !== city) return false;
       if (freeOnly && !c.free) return false;
       if (when === "tonight" && !(phxDay(c.starts_at) === today && c.starts_at >= now)) return false;
@@ -72,7 +86,7 @@ export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: strin
       }
       return true;
     });
-  }, [cards, q, type, city, when, freeOnly]);
+  }, [cards, q, category, scene, city, when, freeOnly]);
 
   return (
     <div>
@@ -92,18 +106,30 @@ export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: strin
         <Pill active={when === "weekend"} onClick={() => setWhen(when === "weekend" ? "any" : "weekend")}>This weekend</Pill>
         <Pill active={freeOnly} onClick={() => setFreeOnly((v) => !v)}>Free</Pill>
         <span className="mx-1 h-5 w-px bg-white/10" aria-hidden="true" />
-        <select className={selectCls} value={type} onChange={(e) => setType(e.target.value)} aria-label="Type">
-          <option value="all">All types</option>
-          {EVENT_TYPE.map((t) => (
-            <option key={t} value={t}>{cap(t)}</option>
-          ))}
-        </select>
-        <select className={selectCls} value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
-          <option value="all">All cities</option>
-          {cities.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        {categories.length > 0 && (
+          <select className={selectCls} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
+            <option value="all">All categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{categoryLabel(c.id)}</option>
+            ))}
+          </select>
+        )}
+        {scenes.length > 0 && (
+          <select className={selectCls} value={scene} onChange={(e) => setScene(e.target.value)} aria-label="Scene">
+            <option value="all">All scenes</option>
+            {scenes.map((t) => (
+              <option key={t.id} value={t.id}>{sceneTagLabel(t.id)}</option>
+            ))}
+          </select>
+        )}
+        {cities.length > 1 && (
+          <select className={selectCls} value={city} onChange={(e) => setCity(e.target.value)} aria-label="City">
+            <option value="all">All cities</option>
+            {cities.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Grid */}
@@ -139,6 +165,10 @@ export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: strin
                 <p className="mt-2.5 font-display text-base font-semibold leading-tight text-cream group-hover:text-gold">{c.title}</p>
                 <p className="mt-0.5 text-sm text-mauve-dim">{fmtDate(c.starts_at)}</p>
                 <p className="truncate text-sm text-mauve-dim">{c.venue_name} · {c.city}</p>
+                <p className="mt-1 truncate text-xs text-mauve-dim/80">
+                  {categoryLabel(c.category, true)}
+                  {c.scene_tags.length > 0 && <> · {c.scene_tags.slice(0, 3).map(sceneTagLabel).join(" · ")}</>}
+                </p>
               </Link>
             </li>
           ))}
