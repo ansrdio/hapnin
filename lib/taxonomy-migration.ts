@@ -14,7 +14,7 @@
 //   · Everything else "would_migrate"; apply writes exactly those two fields.
 
 import type { Firestore } from "firebase-admin/firestore";
-import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, type Category, type SceneTag } from "./taxonomy";
+import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, type Category, type SceneTag } from "./taxonomy.ts";
 
 export type MigrationStatus = "would_migrate" | "already_migrated" | "skipped";
 
