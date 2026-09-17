@@ -23,8 +23,8 @@ type EventData = {
   referral_off_cents: number;
   category: string;
   scene_tags: string[];
+  custom_tags: string[];
   primary_language: string | null;
-  genre: string | null;
   talent: string[];
 };
 type Tier = { id: string; name: string; price_cents: number; quantity_total: number; quantity_sold: number; is_active: boolean };
@@ -114,7 +114,7 @@ export function EditEventForm({ event, tiers }: { event: EventData; tiers: Tier[
       <Card className="space-y-5">
         <p className="font-display font-semibold text-cream">Event details</p>
         <ClassificationFields
-          defaults={{ category: event.category, scene_tags: event.scene_tags, primary_language: event.primary_language, genre: event.genre }}
+          defaults={{ category: event.category, scene_tags: event.scene_tags, custom_tags: event.custom_tags, primary_language: event.primary_language }}
           errors={err}
         />
         <Field label="Lineup (comma-separated, optional)">

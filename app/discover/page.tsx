@@ -26,6 +26,7 @@ export default async function DiscoverPage() {
         flyer_url: e.flyer_url,
         category: e.category,
         scene_tags: e.scene_tags,
+        custom_tags: e.custom_tags,
         from_cents: tiers.length ? Math.min(...tiers.map((t) => t.price_cents)) : null,
         free: tiers.some((t) => t.price_cents === 0),
         talent: e.talent,

@@ -165,7 +165,7 @@ export function EventBuilder({ initialTemplateId = null }: { initialTemplateId?:
         <p className="font-display font-semibold text-cream">Event details</p>
         <ClassificationFields
           key={formKey}
-          defaults={{ category: tpl?.category, scene_tags: tpl?.scene_tags, primary_language: tpl?.primary_language, genre: tpl?.genre }}
+          defaults={{ category: tpl?.category, scene_tags: tpl?.scene_tags, primary_language: tpl?.primary_language }}
           errors={err}
         />
         <Field label="Talent (comma-separated, optional)">

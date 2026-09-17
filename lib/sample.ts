@@ -60,7 +60,6 @@ export async function createSampleEvent(input: { organizerId: string; handle: st
     category: "nightlife",
     scene_tags: ["afrobeats", "nigerian"],
     primary_language: null,
-    genre: "afrobeats",
     talent: ["DJ Sample", "MC Demo"],
     is_sample: true,
     tiers: [

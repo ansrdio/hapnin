@@ -3,7 +3,7 @@ import { geocodeAddress } from "./geocode";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb, ALREADY_EXISTS } from "./firebase-admin";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf, type EventStatus, type EventType, type Community, type LanguageCode, type Genre } from "./enums";
-import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, legacyFieldsFor, type Category, type SceneTag } from "./taxonomy";
+import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, legacyFieldsFor, CUSTOM_TAG_MAX, type Category, type SceneTag } from "./taxonomy";
 import { buildEventDetailsUpdate, type EventDetailsUpdate } from "./event-update";
 
 export type Tier = {
@@ -55,10 +55,11 @@ export type EventRecord = {
   // taxonomy existed gets its category/tags derived from the legacy fields.
   category: Category;
   scene_tags: SceneTag[];
+  custom_tags: string[]; // organizer-authored, ≤ CUSTOM_TAG_MAX, never a Discover filter
   event_type: EventType | null; // legacy
   community: Community | null; // legacy
   primary_language: LanguageCode | null; // optional — null means "not specified", never assumed
-  genre: Genre | null; // optional
+  genre: Genre | null; // legacy, retained: no longer organizer-facing, never written by new code
   talent: string[];
   is_first_event: boolean; // legacy flag — no longer affects fees (see organizers.fee_waived_until)
   is_sample: boolean; // a seeded demo event with fake guests; never publishable, excluded from metrics
@@ -104,6 +105,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     referral_off_cents: d.referral_off_cents ?? 0,
     category: isCategory(d.category) ? d.category : deriveCategory({ event_type: d.event_type }),
     scene_tags: Array.isArray(d.scene_tags) ? normalizeSceneTags(d.scene_tags) : deriveSceneTags({ genre: d.genre, community: d.community }),
+    custom_tags: Array.isArray(d.custom_tags) ? d.custom_tags.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0).slice(0, CUSTOM_TAG_MAX) : [],
     event_type: isOneOf(EVENT_TYPE, d.event_type) ? d.event_type : null,
     community: isOneOf(COMMUNITY, d.community) ? d.community : null,
     primary_language: isOneOf(LANGUAGE_CODE, d.primary_language) ? d.primary_language : null,
@@ -311,8 +313,8 @@ export async function createEvent(input: {
   referral_off_cents?: number;
   category: Category;
   scene_tags?: SceneTag[];
+  custom_tags?: string[];
   primary_language?: LanguageCode | null;
-  genre?: Genre | null;
   talent?: string[];
   is_first_event?: boolean;
   is_sample?: boolean;
@@ -350,9 +352,10 @@ export async function createEvent(input: {
     referral_off_cents: input.referral_off_cents ?? 0,
     category: input.category,
     scene_tags: normalizeSceneTags(input.scene_tags ?? []),
+    custom_tags: (input.custom_tags ?? []).slice(0, CUSTOM_TAG_MAX),
     ...legacyFieldsFor(input.category, input.scene_tags ?? []),
     primary_language: input.primary_language ?? null,
-    genre: input.genre ?? null,
+    // no `genre`: legacy field, never written by new code
     talent: input.talent ?? [],
     is_first_event: input.is_first_event ?? false,
     is_sample: input.is_sample ?? false,

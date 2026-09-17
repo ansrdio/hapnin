@@ -1,5 +1,5 @@
 import "server-only";
-import type { LanguageCode, Genre } from "./enums";
+import type { LanguageCode } from "./enums";
 import type { Category, SceneTag } from "./taxonomy";
 import { parseClassification } from "./classification";
 import { cleanText, normalizeZip, type FieldErrors } from "./validation";
@@ -40,8 +40,8 @@ export type ParsedEventValues = {
   is_first_event: boolean;
   category: Category;
   scene_tags: SceneTag[];
+  custom_tags: string[];
   primary_language: LanguageCode | null;
-  genre: Genre | null;
   tiers: NewTier[];
 };
 
@@ -109,8 +109,8 @@ export function parseEventForm(formData: FormData): {
       title, slug: slug ?? undefined, description, flyer_url, flyer_color,
       venue_name, venue_address, venue_zip, city, state,
       starts_at: starts_at ?? undefined, capacity, refund_policy, referral_off_cents, talent, is_first_event,
-      category: cls.category ?? undefined, scene_tags: cls.scene_tags,
-      primary_language: cls.primary_language, genre: cls.genre, tiers,
+      category: cls.category ?? undefined, scene_tags: cls.scene_tags, custom_tags: cls.custom_tags,
+      primary_language: cls.primary_language, tiers,
     },
     fieldErrors,
   };

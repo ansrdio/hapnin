@@ -59,8 +59,8 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       referral_off_cents: values.referral_off_cents ?? 0,
       category: values.category!,
       scene_tags: values.scene_tags ?? [],
+      custom_tags: values.custom_tags ?? [],
       primary_language: values.primary_language ?? null,
-      genre: values.genre ?? null,
       talent: values.talent ?? [],
       is_first_event: values.is_first_event ?? false,
       tiers: values.tiers!,
@@ -350,8 +350,8 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   await updateEventDetails(eventId, {
     title, description, venue_name, venue_address, venue_zip, city, state,
     starts_at: starts_at!, capacity, refund_policy, referral_off_cents,
-    category: cls.category!, scene_tags: cls.scene_tags,
-    primary_language: cls.primary_language, genre: cls.genre, talent,
+    category: cls.category!, scene_tags: cls.scene_tags, custom_tags: cls.custom_tags,
+    primary_language: cls.primary_language, talent,
   });
 
   // GA tiers — arrays are index-aligned (every row emits all fields incl. hidden id + active).
@@ -536,8 +536,8 @@ export async function duplicateEventAction(formData: FormData): Promise<void> {
         referral_off_cents: source.referral_off_cents,
         category: source.category,
         scene_tags: source.scene_tags,
+        custom_tags: source.custom_tags,
         primary_language: source.primary_language,
-        genre: source.genre,
         talent: source.talent,
         is_first_event: false,
         tiers: tiers

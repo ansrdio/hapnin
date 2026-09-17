@@ -57,8 +57,8 @@ export async function cloneEvent(input: {
         referral_off_cents: source.referral_off_cents,
         category: source.category,
         scene_tags: source.scene_tags,
+        custom_tags: source.custom_tags,
         primary_language: source.primary_language,
-        genre: source.genre,
         talent: source.talent,
         is_first_event: false,
         tiers: tiers

@@ -38,6 +38,9 @@ export const SCENE_TAGS = [
   { id: "soca", label: "Soca", group: "music" },
   { id: "rnb", label: "R&B", group: "music" },
   { id: "hip_hop", label: "Hip-hop", group: "music" },
+  { id: "gospel", label: "Gospel", group: "music" },
+  { id: "alte", label: "Alté", group: "music" },
+  { id: "fuji", label: "Fuji", group: "music" },
   // Culture / community — the scene an event is built around
   { id: "nigerian", label: "Nigerian", group: "culture" },
   { id: "ghanaian", label: "Ghanaian", group: "culture" },
@@ -52,6 +55,8 @@ export const SCENE_TAGS = [
   { id: "day_party", label: "Day Party", group: "format" },
   { id: "owambe", label: "Owambe", group: "format" },
   { id: "nollywood", label: "Nollywood", group: "format" },
+  { id: "documentary", label: "Documentary", group: "format" },
+  { id: "standup", label: "Stand-up", group: "format" },
   { id: "independence", label: "Independence", group: "format" },
   { id: "homecoming", label: "Homecoming", group: "format" },
   { id: "young_professionals", label: "Young Professionals", group: "format" },
@@ -65,9 +70,6 @@ export const SCENE_GROUP_LABELS: Record<SceneGroup, string> = {
 };
 
 export const MAX_SCENE_TAGS = 8;
-
-/** Categories where the sound matters enough to ask for Genre up front. */
-export const GENRE_PROMINENT: readonly Category[] = ["nightlife", "live_music", "festival"];
 
 const CATEGORY_IDS = new Set<string>(CATEGORIES.map((c) => c.id));
 const TAG_IDS = new Set<string>(SCENE_TAGS.map((t) => t.id));
@@ -93,6 +95,63 @@ export function normalizeSceneTags(raw: unknown): SceneTag[] {
     if (out.length >= MAX_SCENE_TAGS) break;
   }
   return out;
+}
+
+// ── Custom tags ──────────────────────────────────────────────────────────────
+// Organizer-authored, event-scoped strings alongside the canonical scene tags.
+// Kept as the organizer typed them (after whitespace cleanup) — we never
+// rewrite their spelling; anything we can't accept is a validation error.
+// They never become Discover filters and are never auto-promoted to canonical.
+
+export const CUSTOM_TAG_MAX = 3;
+export const CUSTOM_TAG_MIN_LEN = 2;
+export const CUSTOM_TAG_MAX_LEN = 24;
+// Unicode letters and marks (accents, diacritics), digits, spaces, and & ' ’ - .
+const CUSTOM_TAG_CHARS = /^[\p{L}\p{M}\p{N} &'’.\-]+$/u;
+
+/** The form used for collision checks: case, spaces, hyphens, underscores and repeated separators collapse. */
+export function tagKey(s: string): string {
+  return s.toLowerCase().replace(/[\s_\-]+/g, " ").trim();
+}
+const CANONICAL_KEYS = new Set<string>(SCENE_TAGS.flatMap((t) => [tagKey(t.id), tagKey(t.label)]));
+
+export type CustomTagResult = { ok: true; value: string } | { ok: false; error: string };
+
+/** Clean whitespace only; validate everything else. Never mutates the organizer's letters. */
+export function normalizeCustomTag(raw: string): CustomTagResult {
+  const value = raw.trim().replace(/\s+/g, " ");
+  if (value.length < CUSTOM_TAG_MIN_LEN) return { ok: false, error: `Tags need at least ${CUSTOM_TAG_MIN_LEN} characters.` };
+  if (value.length > CUSTOM_TAG_MAX_LEN) return { ok: false, error: `Tags can be up to ${CUSTOM_TAG_MAX_LEN} characters.` };
+  if (!CUSTOM_TAG_CHARS.test(value)) return { ok: false, error: "Letters, numbers, spaces, & ' - and . only." };
+  if (CANONICAL_KEYS.has(tagKey(value))) return { ok: false, error: `“${value}” is already a Hapnin tag — pick it from the list instead.` };
+  return { ok: true, value };
+}
+
+/** The canonical tag a typed string collides with, if any (for the picker to offer it instead). */
+export function canonicalFor(raw: string): SceneTag | null {
+  const k = tagKey(raw);
+  return SCENE_TAGS.find((t) => tagKey(t.id) === k || tagKey(t.label) === k)?.id ?? null;
+}
+
+/**
+ * Validate a submitted list. Duplicates (case-insensitive) collapse to the
+ * first spelling; more than CUSTOM_TAG_MAX or any invalid entry is an error,
+ * so a bad tag is never silently dropped or rewritten.
+ */
+export function parseCustomTags(raws: readonly string[]): { tags: string[]; error: string | null } {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of raws) {
+    if (!raw.trim()) continue;
+    const r = normalizeCustomTag(raw);
+    if (!r.ok) return { tags: [], error: r.error };
+    const k = tagKey(r.value);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    tags.push(r.value);
+  }
+  if (tags.length > CUSTOM_TAG_MAX) return { tags: [], error: `Up to ${CUSTOM_TAG_MAX} of your own tags.` };
+  return { tags, error: null };
 }
 
 // ── Legacy bridge ────────────────────────────────────────────────────────────

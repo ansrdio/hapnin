@@ -49,8 +49,8 @@ export default async function EditEventPage({
           referral_off_cents: event.referral_off_cents,
           category: event.category,
           scene_tags: event.scene_tags,
+          custom_tags: event.custom_tags,
           primary_language: event.primary_language,
-          genre: event.genre,
           talent: event.talent,
         }}
         tiers={gaTiers.map((t) => ({

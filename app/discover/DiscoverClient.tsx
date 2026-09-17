@@ -14,6 +14,7 @@ export type Card = {
   flyer_url: string | null;
   category: string;
   scene_tags: string[];
+  custom_tags: string[]; // organizer's own words — searchable, never a filter, not shown on the card
   from_cents: number | null;
   free: boolean;
   talent: string[];
@@ -81,7 +82,7 @@ export function DiscoverClient({ cards, cities }: { cards: Card[]; cities: strin
         if (!(soon && (wd === "Fri" || wd === "Sat" || wd === "Sun"))) return false;
       }
       if (needle) {
-        const hay = `${c.title} ${c.venue_name} ${c.city} ${c.talent.join(" ")}`.toLowerCase();
+        const hay = `${c.title} ${c.venue_name} ${c.city} ${c.talent.join(" ")} ${c.custom_tags.join(" ")}`.toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;

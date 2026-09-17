@@ -3,7 +3,7 @@
 // nothing is saved until the organizer hits Publish or Save as draft. Prices
 // are dollars here (the form field is dollars); 0 = free / RSVP.
 
-import type { LanguageCode, Genre } from "./enums";
+import type { LanguageCode } from "./enums";
 import type { Category, SceneTag } from "./taxonomy";
 import type { RefundPolicy } from "./refund-policy";
 
@@ -19,7 +19,6 @@ export type EventTemplate = {
   category: Category;
   scene_tags: SceneTag[];
   primary_language: LanguageCode | null;
-  genre: Genre | null;
   refund_policy: RefundPolicy;
   capacity: number | null;
   referral_off: number; // dollars; 0 = off
@@ -39,7 +38,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: "nightlife",
     scene_tags: ["afrobeats", "nigerian"],
     primary_language: null,
-    genre: "afrobeats",
     refund_policy: "none",
     capacity: 300,
     referral_off: 5,
@@ -61,7 +59,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: "nightlife",
     scene_tags: ["amapiano", "day_party", "south_african"],
     primary_language: null,
-    genre: "amapiano",
     refund_policy: "none",
     capacity: 250,
     referral_off: 5,
@@ -82,7 +79,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: "film",
     scene_tags: ["nollywood", "nigerian"],
     primary_language: null,
-    genre: "nollywood",
     refund_policy: "7day",
     capacity: 120,
     referral_off: 0,
@@ -100,9 +96,8 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     description:
       "Live band, jollof that slaps, and a dance floor that doesn’t stop. Aso ebi optional, energy mandatory. Doors 7pm.",
     category: "culture",
-    scene_tags: ["owambe", "nigerian"],
+    scene_tags: ["owambe", "fuji", "nigerian"],
     primary_language: "yoruba",
-    genre: "fuji",
     refund_policy: "7day",
     capacity: 200,
     referral_off: 10,
@@ -121,9 +116,8 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     description:
       "Stand-up from the funniest people in the diaspora. Doors 7pm, show 8pm. Two-drink minimum at the bar, no heckling unless it’s good.",
     category: "comedy",
-    scene_tags: ["pan_african"],
+    scene_tags: ["standup", "pan_african"],
     primary_language: null,
-    genre: null,
     refund_policy: "none",
     capacity: 150,
     referral_off: 5,
@@ -140,9 +134,8 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Gospel Night",
     description: "An evening of praise and live worship. Doors 6pm. Families welcome; children under 12 enter free with a paying adult.",
     category: "faith",
-    scene_tags: ["pan_african"],
+    scene_tags: ["gospel", "pan_african"],
     primary_language: null,
-    genre: "gospel",
     refund_policy: "anytime",
     capacity: 300,
     referral_off: 0,
@@ -162,7 +155,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: "culture",
     scene_tags: ["pan_african"],
     primary_language: null,
-    genre: null,
     refund_policy: "none",
     capacity: 100,
     referral_off: 0,
@@ -180,7 +172,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: "business",
     scene_tags: ["young_professionals", "pan_african"],
     primary_language: null,
-    genre: null,
     refund_policy: "7day",
     capacity: 120,
     referral_off: 0,
