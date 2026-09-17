@@ -2,18 +2,23 @@
 // the taxonomy (lib/taxonomy.ts) from their legacy event_type / community /
 // genre. Additive: no field is removed or renamed.
 //
-//   npm run migrate:taxonomy -- --env .env.production.local            # dry run (default)
-//   npm run migrate:taxonomy -- --env .env.production.local --apply    # write
+// Production (Vercel injects the env; Sensitive variables are never written to disk):
+//   npx vercel env run -e production -- npm run migrate:taxonomy              # dry run (default)
+//   npx vercel env run -e production -- npm run migrate:taxonomy -- --apply   # write
 //
-// Reads FIREBASE_* from the environment, or from the file given with --env
-// (default .env.local). The production service-account values live only in
-// Vercel: pull them first with
-//   npx vercel env pull .env.production.local --environment=production
-// and delete that file when done. Safe to re-run:
-// events whose stored values already equal the derived values are skipped.
-// Events with a hand-set category/tags that differ from what the legacy
-// fields would derive are reported and left alone unless --force is passed
-// (never needed in normal use — it exists so a mistaken run can be corrected).
+// Local / non-sensitive env file:
+//   npm run migrate:taxonomy -- --env .env.local
+//
+// With no --env, the Firebase variables are read straight from process.env.
+// Before anything runs, FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL and
+// FIREBASE_PRIVATE_KEY must be present and must not be the "[SENSITIVE]"
+// placeholder Vercel writes on `env pull`; otherwise the script exits without
+// touching Firestore. Secret values are never printed.
+//
+// Safe to re-run: events whose stored values already equal the derived values
+// are skipped. Events with a hand-set category/tags that differ from what the
+// legacy fields would derive are reported and left alone unless --force is
+// passed (never needed in normal use — it exists so a mistaken run can be corrected).
 
 import { readFileSync, existsSync } from "node:fs";
 import { cert, initializeApp } from "firebase-admin/app";
@@ -22,10 +27,17 @@ import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, CATEGO
 
 const APPLY = process.argv.includes("--apply");
 const FORCE = process.argv.includes("--force");
-const ENV_FILE = process.argv[process.argv.indexOf("--env") + 1] && process.argv.includes("--env") ? process.argv[process.argv.indexOf("--env") + 1] : ".env.local";
+const envFlag = process.argv.indexOf("--env");
+const ENV_FILE: string | null = envFlag !== -1 ? (process.argv[envFlag + 1] ?? null) : null;
 
-function loadDotEnv(path = ENV_FILE) {
-  if (!existsSync(path)) return;
+const REQUIRED = ["FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PRIVATE_KEY"] as const;
+const PLACEHOLDER = "[SENSITIVE]";
+
+function loadDotEnv(path: string) {
+  if (!existsSync(path)) {
+    console.error(`--env file not found: ${path}`);
+    process.exit(1);
+  }
   for (const line of readFileSync(path, "utf8").split("\n")) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
     if (!m || process.env[m[1]]) continue;
@@ -35,12 +47,34 @@ function loadDotEnv(path = ENV_FILE) {
   }
 }
 
+/** Fail closed: every required variable present, non-empty, and not Vercel's Sensitive placeholder. Values are never echoed. */
+function requireFirebaseEnv(): { projectId: string; clientEmail: string; privateKey: string } {
+  const problems: string[] = [];
+  for (const k of REQUIRED) {
+    const v = process.env[k];
+    if (!v || !v.trim()) problems.push(`${k} is missing`);
+    else if (v.trim() === PLACEHOLDER || v.includes(PLACEHOLDER)) problems.push(`${k} is the ${PLACEHOLDER} placeholder (Sensitive variable not injected)`);
+  }
+  if (problems.length) {
+    console.error("Refusing to run — Firebase credentials are not available:");
+    for (const p of problems) console.error(`  · ${p}`);
+    console.error(
+      ENV_FILE
+        ? `Checked ${ENV_FILE} and process.env.`
+        : "Run under Vercel's env injection:  npx vercel env run -e production -- npm run migrate:taxonomy"
+    );
+    process.exit(1);
+  }
+  return {
+    projectId: process.env.FIREBASE_PROJECT_ID!.trim(),
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL!.trim(),
+    privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
+  };
+}
+
 function db() {
-  loadDotEnv();
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!projectId || !clientEmail || !privateKey) throw new Error("Missing FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY");
+  if (ENV_FILE) loadDotEnv(ENV_FILE);
+  const { projectId, clientEmail, privateKey } = requireFirebaseEnv();
   initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
   return getFirestore();
 }
