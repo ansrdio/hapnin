@@ -4,9 +4,9 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { editEventAction } from "@/app/o/actions";
 import { initialActionState } from "@/app/admin/action-state";
-import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
 import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
-import { Card, Field, Input, Textarea, Select, inputClass, buttonClass } from "@/app/components/ui";
+import { Card, Field, Input, Textarea, inputClass, buttonClass } from "@/app/components/ui";
+import { ClassificationFields } from "@/app/components/ClassificationFields";
 
 type EventData = {
   id: string;
@@ -21,10 +21,10 @@ type EventData = {
   capacity: number | null;
   refund_policy: string;
   referral_off_cents: number;
-  event_type: string;
-  community: string;
-  primary_language: string;
-  genre: string;
+  category: string;
+  scene_tags: string[];
+  primary_language: string | null;
+  genre: string | null;
   talent: string[];
 };
 type Tier = { id: string; name: string; price_cents: number; quantity_total: number; quantity_sold: number; is_active: boolean };
@@ -112,21 +112,11 @@ export function EditEventForm({ event, tiers }: { event: EventData; tiers: Tier[
       </Card>
 
       <Card className="space-y-5">
-        <p className="font-display font-semibold text-cream">Category</p>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Type" error={err.event_type}>
-            <Select name="event_type" options={EVENT_TYPE} defaultValue={event.event_type} />
-          </Field>
-          <Field label="Community" error={err.community}>
-            <Select name="community" options={COMMUNITY} defaultValue={event.community} />
-          </Field>
-          <Field label="Language" error={err.primary_language}>
-            <Select name="primary_language" options={LANGUAGE_CODE} defaultValue={event.primary_language} />
-          </Field>
-          <Field label="Genre" error={err.genre}>
-            <Select name="genre" options={GENRE} defaultValue={event.genre} />
-          </Field>
-        </div>
+        <p className="font-display font-semibold text-cream">Event details</p>
+        <ClassificationFields
+          defaults={{ category: event.category, scene_tags: event.scene_tags, primary_language: event.primary_language, genre: event.genre }}
+          errors={err}
+        />
         <Field label="Lineup (comma-separated, optional)">
           <Input name="talent" defaultValue={event.talent.join(", ")} placeholder="Uncle Waffles, Major League DJz" />
         </Field>

@@ -4,10 +4,10 @@ import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createEventGuestAction } from "./actions";
 import { initialActionState } from "@/app/admin/action-state";
-import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
 import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
-import { Card, Field, Input, Textarea, Select, inputClass, buttonClass } from "@/app/components/ui";
+import { Card, Field, Input, Textarea, inputClass, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
+import { ClassificationFields } from "@/app/components/ClassificationFields";
 
 type TierRow = { key: number; name: string; price: string; qty: string };
 let nextKey = 2;
@@ -84,21 +84,8 @@ export function GuestEventBuilder() {
       </Card>
 
       <Card className="space-y-5">
-        <p className="font-display font-semibold text-cream">Category</p>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Type" error={err.event_type}>
-            <Select name="event_type" options={EVENT_TYPE} />
-          </Field>
-          <Field label="Community" error={err.community}>
-            <Select name="community" options={COMMUNITY} />
-          </Field>
-          <Field label="Language" error={err.primary_language}>
-            <Select name="primary_language" options={LANGUAGE_CODE} />
-          </Field>
-          <Field label="Genre" error={err.genre}>
-            <Select name="genre" options={GENRE} />
-          </Field>
-        </div>
+        <p className="font-display font-semibold text-cream">Event details</p>
+        <ClassificationFields errors={err} />
         <Field label="Lineup (comma-separated, optional)">
           <Input name="talent" placeholder="Uncle Waffles, Major League DJz" />
         </Field>

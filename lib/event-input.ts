@@ -1,5 +1,6 @@
 import "server-only";
-import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf } from "./enums";
+import { LANGUAGE_CODE, GENRE, isOneOf, type LanguageCode, type Genre } from "./enums";
+import { isCategory, normalizeSceneTags, type Category, type SceneTag } from "./taxonomy";
 import { cleanText, normalizeZip, type FieldErrors } from "./validation";
 import { isRefundPolicy, type NewTier } from "./events";
 
@@ -36,12 +37,43 @@ export type ParsedEventValues = {
   referral_off_cents: number;
   talent: string[];
   is_first_event: boolean;
-  event_type: string;
-  community: string;
-  primary_language: string;
-  genre: string;
+  category: Category;
+  scene_tags: SceneTag[];
+  primary_language: LanguageCode | null;
+  genre: Genre | null;
   tiers: NewTier[];
 };
+
+/**
+ * The classification block, shared by every event form. Category is required;
+ * scene tags are a repeated field (FormData.getAll — a single-value read would
+ * silently keep only the first chip); language and genre are optional and an
+ * empty choice is stored as null, never defaulted.
+ */
+export function parseClassification(formData: FormData): {
+  category: Category | null;
+  scene_tags: SceneTag[];
+  primary_language: LanguageCode | null;
+  genre: Genre | null;
+  fieldErrors: FieldErrors;
+} {
+  const categoryRaw = String(formData.get("category") ?? "");
+  const category = isCategory(categoryRaw) ? categoryRaw : null;
+  const scene_tags = normalizeSceneTags(formData.getAll("scene_tags").map(String));
+  const langRaw = String(formData.get("primary_language") ?? "");
+  const genreRaw = String(formData.get("genre") ?? "");
+  const fieldErrors: FieldErrors = {};
+  if (!category) fieldErrors.category = "Pick what kind of event this is.";
+  if (langRaw && !isOneOf(LANGUAGE_CODE, langRaw)) fieldErrors.primary_language = "Pick one, or leave it blank.";
+  if (genreRaw && !isOneOf(GENRE, genreRaw)) fieldErrors.genre = "Pick one, or leave it blank.";
+  return {
+    category,
+    scene_tags,
+    primary_language: isOneOf(LANGUAGE_CODE, langRaw) ? langRaw : null,
+    genre: isOneOf(GENRE, genreRaw) ? genreRaw : null,
+    fieldErrors,
+  };
+}
 
 /** Parse + validate the event form. Returns partial values plus any field errors. */
 export function parseEventForm(formData: FormData): {
@@ -72,10 +104,7 @@ export function parseEventForm(formData: FormData): {
   const referralDollars = parseFloat(String(formData.get("referral_off") ?? "0"));
   const referral_off_cents = Number.isFinite(referralDollars) ? Math.max(0, Math.min(5000, Math.round(referralDollars * 100))) : 0;
 
-  const event_type = String(formData.get("event_type") ?? "");
-  const community = String(formData.get("community") ?? "");
-  const primary_language = String(formData.get("primary_language") ?? "");
-  const genre = String(formData.get("genre") ?? "");
+  const cls = parseClassification(formData);
 
   const names = formData.getAll("tier_name").map(String);
   const prices = formData.getAll("tier_price").map(String);
@@ -100,10 +129,7 @@ export function parseEventForm(formData: FormData): {
   if (!city) fieldErrors.city = "Required.";
   if (!state) fieldErrors.state = "Required.";
   if (!starts_at) fieldErrors.starts_at = "Pick a date and time.";
-  if (!isOneOf(EVENT_TYPE, event_type)) fieldErrors.event_type = "Pick one.";
-  if (!isOneOf(COMMUNITY, community)) fieldErrors.community = "Pick one.";
-  if (!isOneOf(LANGUAGE_CODE, primary_language)) fieldErrors.primary_language = "Pick one.";
-  if (!isOneOf(GENRE, genre)) fieldErrors.genre = "Pick one.";
+  Object.assign(fieldErrors, cls.fieldErrors);
   if (tiers.length === 0) fieldErrors.tiers = "Add at least one tier with a name and quantity.";
 
   return {
@@ -111,7 +137,8 @@ export function parseEventForm(formData: FormData): {
       title, slug: slug ?? undefined, description, flyer_url, flyer_color,
       venue_name, venue_address, venue_zip, city, state,
       starts_at: starts_at ?? undefined, capacity, refund_policy, referral_off_cents, talent, is_first_event,
-      event_type, community, primary_language, genre, tiers,
+      category: cls.category ?? undefined, scene_tags: cls.scene_tags,
+      primary_language: cls.primary_language, genre: cls.genre, tiers,
     },
     fieldErrors,
   };

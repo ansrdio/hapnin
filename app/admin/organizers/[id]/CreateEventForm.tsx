@@ -3,26 +3,11 @@
 import { useActionState } from "react";
 import { createEventAction } from "../../actions";
 import { initialActionState } from "../../action-state";
-import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
+import { ClassificationFields } from "@/app/components/ClassificationFields";
 
 const field =
   "w-full rounded-lg border border-plum-hi bg-ink/40 px-3 py-2.5 text-cream placeholder:text-mauve-dim/60 focus:border-gold";
 const label = "mb-1 block text-xs font-medium uppercase tracking-[0.12em] text-gold";
-
-function Select({ name, options }: { name: string; options: readonly string[] }) {
-  return (
-    <select name={name} defaultValue="" className={`${field} [color-scheme:dark]`}>
-      <option value="" disabled>
-        Choose…
-      </option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 export function CreateEventForm({ organizerId }: { organizerId: string }) {
   const [state, action] = useActionState(createEventAction, initialActionState);
@@ -79,29 +64,8 @@ export function CreateEventForm({ organizerId }: { organizerId: string }) {
         <textarea name="description" rows={2} className={`${field} resize-none`} />
       </div>
 
-      {/* Vocabulary */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div>
-          <label className={label}>Type</label>
-          <Select name="event_type" options={EVENT_TYPE} />
-          {err.event_type && <p className="mt-1 text-sm text-coral">{err.event_type}</p>}
-        </div>
-        <div>
-          <label className={label}>Community</label>
-          <Select name="community" options={COMMUNITY} />
-          {err.community && <p className="mt-1 text-sm text-coral">{err.community}</p>}
-        </div>
-        <div>
-          <label className={label}>Language</label>
-          <Select name="primary_language" options={LANGUAGE_CODE} />
-          {err.primary_language && <p className="mt-1 text-sm text-coral">{err.primary_language}</p>}
-        </div>
-        <div>
-          <label className={label}>Genre</label>
-          <Select name="genre" options={GENRE} />
-          {err.genre && <p className="mt-1 text-sm text-coral">{err.genre}</p>}
-        </div>
-      </div>
+      {/* Classification */}
+      <ClassificationFields errors={err} />
 
       <div>
         <label className={label}>Talent (comma-separated, optional)</label>

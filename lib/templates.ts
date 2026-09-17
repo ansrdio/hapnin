@@ -3,7 +3,8 @@
 // nothing is saved until the organizer hits Publish or Save as draft. Prices
 // are dollars here (the form field is dollars); 0 = free / RSVP.
 
-import type { EventType, Community, LanguageCode, Genre } from "./enums";
+import type { LanguageCode, Genre } from "./enums";
+import type { Category, SceneTag } from "./taxonomy";
 import type { RefundPolicy } from "./refund-policy";
 
 export type TemplateTier = { name: string; price: number; qty: number };
@@ -15,10 +16,10 @@ export type EventTemplate = {
   blurb: string;
   title: string;
   description: string;
-  event_type: EventType;
-  community: Community;
-  primary_language: LanguageCode;
-  genre: Genre;
+  category: Category;
+  scene_tags: SceneTag[];
+  primary_language: LanguageCode | null;
+  genre: Genre | null;
   refund_policy: RefundPolicy;
   capacity: number | null;
   referral_off: number; // dollars; 0 = off
@@ -35,9 +36,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Afrobeats Night",
     description:
       "Afrobeats all night — the hits, the new ones, the ones you scream to. Doors 9pm. 21+ with ID. Dress to be seen.",
-    event_type: "nightlife",
-    community: "nigerian",
-    primary_language: "mixed",
+    category: "nightlife",
+    scene_tags: ["afrobeats", "nigerian"],
+    primary_language: null,
     genre: "afrobeats",
     refund_policy: "none",
     capacity: 300,
@@ -57,9 +58,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Amapiano Day Party",
     description:
       "Log drums in the sun. Amapiano from 3pm till late — rooftop vibes, food on site, come early for the early-bird price.",
-    event_type: "music",
-    community: "pan_african",
-    primary_language: "mixed",
+    category: "nightlife",
+    scene_tags: ["amapiano", "day_party", "south_african"],
+    primary_language: null,
     genre: "amapiano",
     refund_policy: "none",
     capacity: 250,
@@ -78,9 +79,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Nollywood Screening Night",
     description:
       "A Nollywood premiere on the big screen, with the room to laugh and shout at it. Doors 6:30pm, film 7pm, Q&A after. Snacks and drinks available.",
-    event_type: "film",
-    community: "nigerian",
-    primary_language: "english",
+    category: "film",
+    scene_tags: ["nollywood", "nigerian"],
+    primary_language: null,
     genre: "nollywood",
     refund_policy: "7day",
     capacity: 120,
@@ -98,8 +99,8 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Owambe Night",
     description:
       "Live band, jollof that slaps, and a dance floor that doesn’t stop. Aso ebi optional, energy mandatory. Doors 7pm.",
-    event_type: "cultural",
-    community: "nigerian",
+    category: "culture",
+    scene_tags: ["owambe", "nigerian"],
     primary_language: "yoruba",
     genre: "fuji",
     refund_policy: "7day",
@@ -119,10 +120,10 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Comedy Night",
     description:
       "Stand-up from the funniest people in the diaspora. Doors 7pm, show 8pm. Two-drink minimum at the bar, no heckling unless it’s good.",
-    event_type: "comedy",
-    community: "pan_african",
-    primary_language: "english",
-    genre: "standup",
+    category: "comedy",
+    scene_tags: ["pan_african"],
+    primary_language: null,
+    genre: null,
     refund_policy: "none",
     capacity: 150,
     referral_off: 5,
@@ -138,9 +139,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     blurb: "A worship night or concert. Refundable anytime before.",
     title: "Gospel Night",
     description: "An evening of praise and live worship. Doors 6pm. Families welcome; children under 12 enter free with a paying adult.",
-    event_type: "faith",
-    community: "pan_african",
-    primary_language: "english",
+    category: "faith",
+    scene_tags: ["pan_african"],
+    primary_language: null,
     genre: "gospel",
     refund_policy: "anytime",
     capacity: 300,
@@ -158,10 +159,10 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Community Meetup",
     description:
       "Come through, meet the people, hear what’s next. Free — RSVP so we know how many chairs to put out. Your ticket is your QR at the door.",
-    event_type: "cultural",
-    community: "pan_african",
-    primary_language: "english",
-    genre: "other",
+    category: "culture",
+    scene_tags: ["pan_african"],
+    primary_language: null,
+    genre: null,
     refund_policy: "none",
     capacity: 100,
     referral_off: 0,
@@ -176,10 +177,10 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     title: "Diaspora Business Mixer",
     description:
       "An evening for founders, professionals and creatives across the diaspora. Short talks, long conversations, drinks included with your ticket.",
-    event_type: "conference",
-    community: "pan_african",
-    primary_language: "english",
-    genre: "other",
+    category: "business",
+    scene_tags: ["young_professionals", "pan_african"],
+    primary_language: null,
+    genre: null,
     refund_policy: "7day",
     capacity: 120,
     referral_off: 0,

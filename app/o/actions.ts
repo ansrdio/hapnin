@@ -23,10 +23,10 @@ import { parseContacts, importContacts, announceEvent, deleteContact, IMPORT_MAX
 import { setReviewHidden } from "@/lib/reviews";
 import { createSeries, type Cadence } from "@/lib/series";
 import { createSampleEvent, deleteSampleEvent } from "@/lib/sample";
-import { parseEventForm } from "@/lib/event-input";
+import { parseEventForm, parseClassification } from "@/lib/event-input";
 import { issueComp } from "@/lib/comps";
 import { sendBroadcast, BROADCAST_MAX_LEN } from "@/lib/broadcasts";
-import { isOneOf, EVENT_STATUS, TEAM_ROLE, EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE } from "@/lib/enums";
+import { isOneOf, EVENT_STATUS, TEAM_ROLE } from "@/lib/enums";
 import { normalizeUsPhone, normalizeEmail, normalizeInstagram, normalizeZip, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "@/app/admin/action-state";
 
@@ -57,10 +57,10 @@ export async function createOrganizerEventAction(_prev: ActionState, formData: F
       capacity: values.capacity ?? null,
       refund_policy: values.refund_policy as never,
       referral_off_cents: values.referral_off_cents ?? 0,
-      event_type: values.event_type as never,
-      community: values.community as never,
-      primary_language: values.primary_language as never,
-      genre: values.genre as never,
+      category: values.category!,
+      scene_tags: values.scene_tags ?? [],
+      primary_language: values.primary_language ?? null,
+      genre: values.genre ?? null,
       talent: values.talent ?? [],
       is_first_event: values.is_first_event ?? false,
       tiers: values.tiers!,
@@ -336,29 +336,22 @@ export async function editEventAction(_prev: ActionState, formData: FormData): P
   const referral_off_cents = Number.isFinite(referralDollars) ? Math.max(0, Math.min(5000, Math.round(referralDollars * 100))) : 0;
   const description = cleanText(String(formData.get("description") ?? ""), 2000) || null;
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const event_type = String(formData.get("event_type") ?? "");
-  const community = String(formData.get("community") ?? "");
-  const primary_language = String(formData.get("primary_language") ?? "");
-  const genre = String(formData.get("genre") ?? "");
+  const cls = parseClassification(formData);
 
-  const fieldErrors: FieldErrors = {};
+  const fieldErrors: FieldErrors = { ...cls.fieldErrors };
   if (!title) fieldErrors.title = "Required.";
   if (!venue_name) fieldErrors.venue_name = "Required.";
   if (!venue_address) fieldErrors.venue_address = "Required.";
   if (!city) fieldErrors.city = "Required.";
   if (!state) fieldErrors.state = "Required.";
   if (!starts_at) fieldErrors.starts_at = "Pick a date and time.";
-  if (!isOneOf(EVENT_TYPE, event_type)) fieldErrors.event_type = "Pick one.";
-  if (!isOneOf(COMMUNITY, community)) fieldErrors.community = "Pick one.";
-  if (!isOneOf(LANGUAGE_CODE, primary_language)) fieldErrors.primary_language = "Pick one.";
-  if (!isOneOf(GENRE, genre)) fieldErrors.genre = "Pick one.";
   if (Object.keys(fieldErrors).length) return { status: "error", fieldErrors };
 
   await updateEventDetails(eventId, {
     title, description, venue_name, venue_address, venue_zip, city, state,
     starts_at: starts_at!, capacity, refund_policy, referral_off_cents,
-    event_type: event_type as never, community: community as never,
-    primary_language: primary_language as never, genre: genre as never, talent,
+    category: cls.category!, scene_tags: cls.scene_tags,
+    primary_language: cls.primary_language, genre: cls.genre, talent,
   });
 
   // GA tiers — arrays are index-aligned (every row emits all fields incl. hidden id + active).
@@ -541,8 +534,8 @@ export async function duplicateEventAction(formData: FormData): Promise<void> {
         capacity: source.capacity,
         refund_policy: source.refund_policy,
         referral_off_cents: source.referral_off_cents,
-        event_type: source.event_type,
-        community: source.community,
+        category: source.category,
+        scene_tags: source.scene_tags,
         primary_language: source.primary_language,
         genre: source.genre,
         talent: source.talent,

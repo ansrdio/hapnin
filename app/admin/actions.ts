@@ -7,13 +7,7 @@ import { createOrganizer, getOrganizerById, setFeeWaiver } from "@/lib/organizer
 import { createOnboardingLink, refreshOnboardingStatus } from "@/lib/connect";
 import { sendSMS } from "@/lib/sms";
 import { createEvent } from "@/lib/events";
-import {
-  EVENT_TYPE,
-  COMMUNITY,
-  LANGUAGE_CODE,
-  GENRE,
-  isOneOf,
-} from "@/lib/enums";
+import { parseClassification } from "@/lib/event-input";
 import { normalizeEmail, normalizeUsPhone, normalizeInstagram, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "./action-state";
 
@@ -126,12 +120,9 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   const talent = String(formData.get("talent") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const is_first_event = formData.get("is_first_event") === "on";
 
-  const event_type = String(formData.get("event_type") ?? "");
-  const community = String(formData.get("community") ?? "");
-  const primary_language = String(formData.get("primary_language") ?? "");
-  const genre = String(formData.get("genre") ?? "");
+  const cls = parseClassification(formData);
 
-  const fieldErrors: FieldErrors = {};
+  const fieldErrors: FieldErrors = { ...cls.fieldErrors };
   if (!title) fieldErrors.title = "Required.";
   if (!slug) fieldErrors.slug = "Letters, numbers, hyphens.";
   if (!venue_name) fieldErrors.venue_name = "Required.";
@@ -139,10 +130,6 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   if (!city) fieldErrors.city = "Required.";
   if (!state) fieldErrors.state = "Required.";
   if (!starts_at) fieldErrors.starts_at = "Pick a date and time.";
-  if (!isOneOf(EVENT_TYPE, event_type)) fieldErrors.event_type = "Pick one.";
-  if (!isOneOf(COMMUNITY, community)) fieldErrors.community = "Pick one.";
-  if (!isOneOf(LANGUAGE_CODE, primary_language)) fieldErrors.primary_language = "Pick one.";
-  if (!isOneOf(GENRE, genre)) fieldErrors.genre = "Pick one.";
 
   const names = formData.getAll("tier_name").map(String);
   const prices = formData.getAll("tier_price").map(String);
@@ -166,10 +153,10 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       starts_at: starts_at!,
       status: "on_sale",
       capacity,
-      event_type: event_type as never,
-      community: community as never,
-      primary_language: primary_language as never,
-      genre: genre as never,
+      category: cls.category!,
+      scene_tags: cls.scene_tags,
+      primary_language: cls.primary_language,
+      genre: cls.genre,
       talent,
       is_first_event,
       tiers,
