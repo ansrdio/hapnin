@@ -30,7 +30,7 @@ Door staff & managers (ports the missing `002`). Server guards read this for eve
 - Denormalized venue: `venue_name`, `venue_address`, `city`, `state` (venues are v1.5)
 - `starts_at`, `doors_at`, `timezone` (default `America/Phoenix`)
 - `status` — `EVENT_STATUS`; `capacity`
-- **Vocabulary (dropdowns only):** `event_type`, `community`, `primary_language`, `genre`, `talent` (string[])
+- **Classification:** `category` (one), `scene_tags` (string[]), optional `primary_language` / `genre`, `talent` (string[]); legacy `event_type` / `community` retained
 - `on_sale_at`, `created_at`
 - **Counters** (denormalized for the dashboard, updated in the same transaction as writes): `tickets_sold`, `gross_cents`.
 
@@ -92,9 +92,10 @@ TCPA evidence. **Only ever created — never updated or deleted** (enforced in `
 ## The vocabulary, in plain language
 These four fields are the taxonomy the "map" (and a future Inskriba join) depends on. Dropdowns only.
 
-- **`event_type`** — what kind of night: `music`, `film`, `comedy`, `cultural`, `nightlife`, `food`, `faith`, `conference`.
-- **`community`** — whose scene it primarily serves: `nigerian`, `ghanaian`, `pan_african`, `francophone`, `east_african`, `caribbean`, `other`.
-- **`primary_language`** — the room's language: `english`, `pidgin`, `yoruba`, `igbo`, `hausa`, `french`, `swahili`, `mixed`.
-- **`genre`** — the sound or form: `afrobeats`, `amapiano`, `highlife`, `gospel`, `hip_hop`, `alte`, `fuji`, `nollywood`, `documentary`, `standup`, `other`.
+- **`category`** — what kind of event it is, exactly one (see `lib/taxonomy.ts`): `nightlife`, `live_music`, `film`, `comedy`, `culture`, `business`, `faith`, `food`, `festival`, `other`.
+- **`scene_tags`** — the scenes, cultures, sounds or formats the *event* is built around, zero or more ids: music (`afrobeats`, `amapiano`, `afro_house`, `highlife`, `dancehall`, `soca`, `rnb`, `hip_hop`), culture (`nigerian`, `ghanaian`, `south_african`, `ethiopian`, `kenyan`, `caribbean`, `jamaican`, `trinidadian`, `pan_african`), format (`day_party`, `owambe`, `nollywood`, `independence`, `homecoming`, `young_professionals`, `students`). They describe the event, never the buyer; nobody is labelled by what they bought.
+- **`primary_language`** — optional; `null` means not specified (never assumed). Values unchanged.
+- **`genre`** — optional; prominent in the form only for nightlife / live music / festival. Values unchanged.
+- **Legacy (kept for one release, still written where a clean mapping exists):** `event_type`, `community`. Reads normalize — an event without `category`/`scene_tags` derives them from these. `scripts/migrate-event-taxonomy.ts` writes the derived values once.
 
 Other enums (`order_status`, `sale_channel`, `referral_source`, `consent_*`, `message_*`, `delivery_status`, `layout/zone_*`) are operational and defined in `lib/enums.ts`.

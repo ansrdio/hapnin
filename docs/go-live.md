@@ -113,6 +113,15 @@ case-insensitive). Unset → no code is accepted. `/host?src=launch-night&code=P
 prefills it and records `signup_source` (shown on `/admin`). Admin can also set
 or clear the waiver per organizer on their admin page.
 
+## Event taxonomy (2026-09-16)
+Events carry `category` + `scene_tags` (ids from `lib/taxonomy.ts`); the four
+legacy fields stay for one release and reads fall back to them. Pre-taxonomy
+events get the derived values written by the one-shot script:
+`npx vercel env pull .env.production.local --environment=production` then
+`npm run migrate:taxonomy -- --env .env.production.local` (dry run) and
+`… --apply`. Delete the pulled env file afterwards. Discover filters by
+category and scene, showing only values present in on-sale events.
+
 ## Legal pages
 - `/terms` and `/privacy` are live, linked from the landing footer, beside the
   checkout consent line, and in the sitemap. Both read from `lib/legal.ts`:
