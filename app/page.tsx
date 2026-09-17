@@ -15,8 +15,8 @@ const organizerPoints = [
     line: "Scan tickets from your phone. Keeps working when the venue wifi doesn’t.",
   },
   {
-    label: "Message your crowd",
-    line: "Text everyone who bought, from your own account. Doors moved, running late, next event.",
+    label: "Reach your crowd",
+    line: "Send buyers the updates they need before and after the event. Email works today, with more messaging tools coming.",
   },
   {
     label: "Keep your people",
@@ -97,8 +97,9 @@ export default async function Page() {
             </p>
             <p className="mt-4 text-lg leading-relaxed text-mauve-dim">
               The afrobeats night. The amapiano set. The Nollywood screening. The comedy show. The
-              culture festival. African events in your city move through group chats you&rsquo;re
-              not in &mdash; Hapnin puts them in one place.
+              culture festival. Some of the best events in your city still move through group chats
+              and private circles. Hapnin puts them in one place &mdash; starting with
+              Phoenix&rsquo;s African diaspora scene.
             </p>
           </div>
 
@@ -154,7 +155,7 @@ export default async function Page() {
               For organizers
             </p>
             <h2 className="max-w-2xl font-display text-3xl font-semibold leading-[1.05] text-cream sm:text-5xl">
-              You bring the culture. We fill the room.
+              You bring the culture. We help you run the night.
             </h2>
 
             <ul className="mt-10 grid grid-cols-1 gap-x-10 gap-y-7 sm:grid-cols-2">
@@ -201,12 +202,16 @@ export default async function Page() {
               The map
             </p>
             <h2 className="font-display text-3xl font-semibold leading-[1.05] text-cream sm:text-5xl">
-              Culture leaves home. Nobody&rsquo;s tracking where it lands.
+              Culture travels. Finding the crowd shouldn&rsquo;t be guesswork.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-mauve-dim sm:text-xl">
-              Nigerian films can&rsquo;t reach audiences abroad because no one knows where those
-              audiences are. Not which city, not which crowd, not what they&rsquo;d turn out for.
-              Every ticket sold here answers a little of that. We&rsquo;re building the map.
+              Promoters, filmmakers and organizers know their crowd at home. Once culture moves
+              between cities, that picture gets harder to see. Follows, RSVPs and ticket sales show
+              what people actually turn out for &mdash; giving organizers a better picture of where
+              demand lives.
+            </p>
+            <p className="mt-4 text-base text-mauve-dim/80">
+              We&rsquo;re starting with Phoenix&rsquo;s African diaspora scene and building the map city by city.
             </p>
           </div>
         </div>

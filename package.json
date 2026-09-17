@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:taxonomy": "node --experimental-strip-types scripts/migrate-event-taxonomy.ts"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

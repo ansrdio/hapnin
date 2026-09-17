@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Hapnin — What's hapnin?",
   description:
-    "African events in your city — the afrobeats night, the amapiano set, the Nollywood screening, the comedy show, the culture festival — in one place. Phoenix first. Then wherever you are.",
+    "Find culture-driven events in Phoenix — from Afrobeats and amapiano to Nollywood, comedy, festivals and more. Create an event, sell tickets and run the door with Hapnin.",
   applicationName: "Hapnin",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Hapnin", statusBarStyle: "black-translucent" },
@@ -32,14 +32,14 @@ export const metadata: Metadata = {
     siteName: "Hapnin",
     title: "What's hapnin?",
     description:
-      "Plenty. You just never heard about it. African events in your city, in one place. Phoenix first.",
+      "Plenty. You just never heard about it. Culture-driven events in Phoenix, in one place — starting with the African diaspora scene.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "What's hapnin?",
     description:
-      "Plenty. You just never heard about it. African events in your city, in one place.",
+      "Plenty. You just never heard about it. Culture-driven events in Phoenix, in one place.",
   },
 };
 
