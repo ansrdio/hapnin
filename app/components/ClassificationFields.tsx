@@ -151,12 +151,6 @@ export function ClassificationFields({
           />
           {open && (
             <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-plum-hi bg-plum p-2 shadow-2xl shadow-black/40">
-              {canOfferCustom && (
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={addCustom} className="mb-1 flex w-full items-center justify-between rounded-lg border border-dashed border-mauve-dim/60 px-3 py-2 text-left text-sm text-cream hover:border-gold">
-                  <span>Add <span className="font-semibold">&ldquo;{customCheck!.ok ? customCheck!.value : ""}&rdquo;</span> as your own tag</span>
-                  <span className="text-xs text-mauve-dim">{custom.length}/{CUSTOM_TAG_MAX}</span>
-                </button>
-              )}
               {customCheck && !customCheck.ok && needle && matches.length === 0 && (
                 <p className="px-3 py-2 text-sm text-coral">{customCheck.error}</p>
               )}
@@ -178,6 +172,13 @@ export function ClassificationFields({
                 );
               })}
               {needle && matches.length === 0 && !customCheck && <p className="px-3 py-2 text-sm text-mauve-dim">No Hapnin tag matches.</p>}
+              {/* Hapnin's tags first; the organizer's own tag is the last resort */}
+              {canOfferCustom && (
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={addCustom} className="mt-1 flex w-full items-center justify-between rounded-lg border border-dashed border-mauve-dim/60 px-3 py-2 text-left text-sm text-cream hover:border-gold">
+                  <span>{matches.length ? "None of these? " : ""}Add <span className="font-semibold">&ldquo;{customCheck!.ok ? customCheck!.value : ""}&rdquo;</span> as your own tag</span>
+                  <span className="text-xs text-mauve-dim">{custom.length}/{CUSTOM_TAG_MAX}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
