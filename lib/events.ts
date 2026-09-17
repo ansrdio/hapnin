@@ -2,7 +2,8 @@ import "server-only";
 import { geocodeAddress } from "./geocode";
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb, ALREADY_EXISTS } from "./firebase-admin";
-import type { EventStatus, EventType, Community, LanguageCode, Genre } from "./enums";
+import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf, type EventStatus, type EventType, type Community, type LanguageCode, type Genre } from "./enums";
+import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, legacyFieldsFor, type Category, type SceneTag } from "./taxonomy";
 
 export type Tier = {
   id: string;
@@ -47,10 +48,16 @@ export type EventRecord = {
   capacity: number | null;
   refund_policy: RefundPolicy;
   referral_off_cents: number; // bring-a-friend: flat discount for a referred friend; 0 = off
-  event_type: EventType;
-  community: Community;
-  primary_language: LanguageCode;
-  genre: Genre;
+  // Classification (see lib/taxonomy.ts). `category` + `scene_tags` are the
+  // model; the four legacy fields are kept for one release and still written
+  // where a clean mapping exists. Reads normalize: an event saved before the
+  // taxonomy existed gets its category/tags derived from the legacy fields.
+  category: Category;
+  scene_tags: SceneTag[];
+  event_type: EventType | null; // legacy
+  community: Community | null; // legacy
+  primary_language: LanguageCode | null; // optional — null means "not specified", never assumed
+  genre: Genre | null; // optional
   talent: string[];
   is_first_event: boolean; // legacy flag — no longer affects fees (see organizers.fee_waived_until)
   is_sample: boolean; // a seeded demo event with fake guests; never publishable, excluded from metrics
@@ -94,10 +101,12 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     capacity: d.capacity ?? null,
     refund_policy: (d.refund_policy ?? "none") as RefundPolicy,
     referral_off_cents: d.referral_off_cents ?? 0,
-    event_type: d.event_type,
-    community: d.community,
-    primary_language: d.primary_language,
-    genre: d.genre,
+    category: isCategory(d.category) ? d.category : deriveCategory({ event_type: d.event_type }),
+    scene_tags: Array.isArray(d.scene_tags) ? normalizeSceneTags(d.scene_tags) : deriveSceneTags({ genre: d.genre, community: d.community }),
+    event_type: isOneOf(EVENT_TYPE, d.event_type) ? d.event_type : null,
+    community: isOneOf(COMMUNITY, d.community) ? d.community : null,
+    primary_language: isOneOf(LANGUAGE_CODE, d.primary_language) ? d.primary_language : null,
+    genre: isOneOf(GENRE, d.genre) ? d.genre : null,
     talent: d.talent ?? [],
     is_first_event: !!d.is_first_event,
     is_sample: !!d.is_sample,
@@ -218,17 +227,20 @@ export type EventDetailsUpdate = {
   capacity: number | null;
   refund_policy: RefundPolicy;
   referral_off_cents: number; // bring-a-friend: flat discount for a referred friend; 0 = off
-  event_type: EventType;
-  community: Community;
-  primary_language: LanguageCode;
-  genre: Genre;
+  category: Category;
+  scene_tags: SceneTag[];
+  primary_language: LanguageCode | null;
+  genre: Genre | null;
   talent: string[];
 };
 
 /** Update an event's editable details (slug + status + counters are untouched). */
 export async function updateEventDetails(eventId: string, d: EventDetailsUpdate): Promise<void> {
   // The address may have changed: drop the stored pin so the next page view re-geocodes.
-  await getDb().collection(EVENTS).doc(eventId).update({ ...d, venue_lat: null, venue_lng: null, venue_geocoded_at: null });
+  await getDb()
+    .collection(EVENTS)
+    .doc(eventId)
+    .update({ ...d, ...legacyFieldsFor(d.category, d.scene_tags), venue_lat: null, venue_lng: null, venue_geocoded_at: null });
 }
 
 /** Update an existing GA tier. quantity_total can't drop below what's sold. */
@@ -315,10 +327,10 @@ export async function createEvent(input: {
   capacity?: number | null;
   refund_policy?: RefundPolicy;
   referral_off_cents?: number;
-  event_type: EventType;
-  community: Community;
-  primary_language: LanguageCode;
-  genre: Genre;
+  category: Category;
+  scene_tags?: SceneTag[];
+  primary_language?: LanguageCode | null;
+  genre?: Genre | null;
   talent?: string[];
   is_first_event?: boolean;
   is_sample?: boolean;
@@ -354,10 +366,11 @@ export async function createEvent(input: {
     capacity: input.capacity ?? null,
     refund_policy: input.refund_policy ?? "none",
     referral_off_cents: input.referral_off_cents ?? 0,
-    event_type: input.event_type,
-    community: input.community,
-    primary_language: input.primary_language,
-    genre: input.genre,
+    category: input.category,
+    scene_tags: normalizeSceneTags(input.scene_tags ?? []),
+    ...legacyFieldsFor(input.category, input.scene_tags ?? []),
+    primary_language: input.primary_language ?? null,
+    genre: input.genre ?? null,
     talent: input.talent ?? [],
     is_first_event: input.is_first_event ?? false,
     is_sample: input.is_sample ?? false,
