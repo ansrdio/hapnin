@@ -1,6 +1,7 @@
 import "server-only";
-import { LANGUAGE_CODE, GENRE, isOneOf, type LanguageCode, type Genre } from "./enums";
-import { isCategory, normalizeSceneTags, type Category, type SceneTag } from "./taxonomy";
+import type { LanguageCode, Genre } from "./enums";
+import type { Category, SceneTag } from "./taxonomy";
+import { parseClassification } from "./classification";
 import { cleanText, normalizeZip, type FieldErrors } from "./validation";
 import { isRefundPolicy, type NewTier } from "./events";
 
@@ -44,36 +45,7 @@ export type ParsedEventValues = {
   tiers: NewTier[];
 };
 
-/**
- * The classification block, shared by every event form. Category is required;
- * scene tags are a repeated field (FormData.getAll — a single-value read would
- * silently keep only the first chip); language and genre are optional and an
- * empty choice is stored as null, never defaulted.
- */
-export function parseClassification(formData: FormData): {
-  category: Category | null;
-  scene_tags: SceneTag[];
-  primary_language: LanguageCode | null;
-  genre: Genre | null;
-  fieldErrors: FieldErrors;
-} {
-  const categoryRaw = String(formData.get("category") ?? "");
-  const category = isCategory(categoryRaw) ? categoryRaw : null;
-  const scene_tags = normalizeSceneTags(formData.getAll("scene_tags").map(String));
-  const langRaw = String(formData.get("primary_language") ?? "");
-  const genreRaw = String(formData.get("genre") ?? "");
-  const fieldErrors: FieldErrors = {};
-  if (!category) fieldErrors.category = "Pick what kind of event this is.";
-  if (langRaw && !isOneOf(LANGUAGE_CODE, langRaw)) fieldErrors.primary_language = "Pick one, or leave it blank.";
-  if (genreRaw && !isOneOf(GENRE, genreRaw)) fieldErrors.genre = "Pick one, or leave it blank.";
-  return {
-    category,
-    scene_tags,
-    primary_language: isOneOf(LANGUAGE_CODE, langRaw) ? langRaw : null,
-    genre: isOneOf(GENRE, genreRaw) ? genreRaw : null,
-    fieldErrors,
-  };
-}
+export { parseClassification, type ParsedClassification } from "./classification";
 
 /** Parse + validate the event form. Returns partial values plus any field errors. */
 export function parseEventForm(formData: FormData): {

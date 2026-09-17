@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getDb, ALREADY_EXISTS } from "./firebase-admin";
 import { EVENT_TYPE, COMMUNITY, LANGUAGE_CODE, GENRE, isOneOf, type EventStatus, type EventType, type Community, type LanguageCode, type Genre } from "./enums";
 import { isCategory, normalizeSceneTags, deriveCategory, deriveSceneTags, legacyFieldsFor, type Category, type SceneTag } from "./taxonomy";
+import { buildEventDetailsUpdate, type EventDetailsUpdate } from "./event-update";
 
 export type Tier = {
   id: string;
@@ -215,32 +216,13 @@ export async function deleteEvent(eventId: string): Promise<void> {
   await batch.commit();
 }
 
-export type EventDetailsUpdate = {
-  title: string;
-  description: string | null;
-  venue_name: string;
-  venue_address: string;
-  venue_zip: string | null;
-  city: string;
-  state: string;
-  starts_at: number;
-  capacity: number | null;
-  refund_policy: RefundPolicy;
-  referral_off_cents: number; // bring-a-friend: flat discount for a referred friend; 0 = off
-  category: Category;
-  scene_tags: SceneTag[];
-  primary_language: LanguageCode | null;
-  genre: Genre | null;
-  talent: string[];
-};
+export type { EventDetailsUpdate } from "./event-update";
 
 /** Update an event's editable details (slug + status + counters are untouched). */
 export async function updateEventDetails(eventId: string, d: EventDetailsUpdate): Promise<void> {
-  // The address may have changed: drop the stored pin so the next page view re-geocodes.
-  await getDb()
-    .collection(EVENTS)
-    .doc(eventId)
-    .update({ ...d, ...legacyFieldsFor(d.category, d.scene_tags), venue_lat: null, venue_lng: null, venue_geocoded_at: null });
+  // Payload built in lib/event-update.ts (unit-tested): every key present,
+  // cleared optionals written as explicit null.
+  await getDb().collection(EVENTS).doc(eventId).update(buildEventDetailsUpdate(d));
 }
 
 /** Update an existing GA tier. quantity_total can't drop below what's sold. */
