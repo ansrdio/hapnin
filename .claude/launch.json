@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "hapnin-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--", "-p", "3005"],
+      "port": 3005
+    },
+    {
       "name": "chopcal",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "/Users/abolajifilani/CascadeProjects/chopcal", "--", "-p", "3210"],
