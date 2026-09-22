@@ -48,7 +48,9 @@ export function LoginClient() {
         return;
       }
       window.localStorage.removeItem(EMAIL_KEY);
-      window.location.href = next || (data.role === "admin" ? "/admin" : "/o");
+      // The server says where this account lands (admin, dashboard, or the
+      // door scanner for door-only team members).
+      window.location.href = next || data.landing || (data.role === "admin" ? "/admin" : "/o");
     } catch {
       if (fromConfirm) {
         setView("confirm");
