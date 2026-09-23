@@ -141,6 +141,8 @@ export async function getEventById(id: string): Promise<EventRecord | null> {
 }
 
 export async function getEventBySlug(slug: string): Promise<EventRecord | null> {
+  // Firestore throws on an empty document path; an empty slug is simply "no such event".
+  if (!slug.trim()) return null;
   const lookup = await getDb().collection("event_slugs").doc(slug.toLowerCase()).get();
   if (!lookup.exists) return null;
   return getEventById(lookup.data()!.event_id);
