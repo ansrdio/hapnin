@@ -103,7 +103,42 @@ Removed for launch: `/api/dev/seed`, `/api/dev/email-check`, `/api/dev/purge-org
 `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` ·
 `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` ·
 `BREVO_API_KEY` / `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` ·
-`CRON_SECRET` (set, verified) · `LAUNCH_CODES` (optional — see below) · pending: `TWILIO_*`.
+`CRON_SECRET` (set, verified) · `QR_SECRET` · `LAUNCH_CODES` (optional — see below) ·
+`NEXT_PUBLIC_SENTRY_DSN` (see Monitoring) · pending: `TWILIO_*`.
+`.env.local.example` is the full inventory with a one-line purpose per variable.
+
+## Security headers (2026-09-22)
+`next.config.mjs` sets HSTS (2y, subdomains, no preload yet), nosniff,
+`X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy` (camera for the scanner, payment for Stripe's frame, all
+else off) and a **Content-Security-Policy-Report-Only**. Violations POST to
+`/api/csp-report` and appear in the function logs as `csp-violation …` lines
+(and in Sentry as warnings). To enforce:
+1. After deploy, click through: event page with a map, checkout with Apple Pay
+   and a card, login link, scanner with camera, poster, big screen, admin.
+2. Search logs for `csp-violation`. Add any legitimate origin to the allowlist.
+3. Rename the header to `Content-Security-Policy` and add
+   `upgrade-insecure-requests` to the directive list. Deploy, repeat step 1.
+
+## Monitoring (Sentry) — set up once
+1. Create a free Sentry org + a Next.js project. Copy the DSN.
+2. Vercel → Production (and Preview if wanted): `NEXT_PUBLIC_SENTRY_DSN`.
+   Optional, for readable stack traces: `SENTRY_ORG`, `SENTRY_PROJECT`,
+   `SENTRY_AUTH_TOKEN` (Sensitive; org token with `project:releases` +
+   `org:read`). Without them the build skips source-map upload.
+3. Redeploy. Every `console.error` / `console.warn` on the server now becomes
+   a Sentry event (emails and phones are scrubbed by `lib/monitoring.ts`);
+   unhandled route/action/render errors are captured automatically; browser
+   errors go through the same-origin `/monitoring` tunnel.
+4. **The one alert that matters** — Sentry → Alerts → Create → Issues:
+   "When a new issue is created OR an issue is seen more than 5 times in 1 hour,
+   in environment `production`, where the message contains any of
+   `webhook`, `checkout`, `refund`, `fulfillPaidOrder`, `sweepExpiredHolds`",
+   action: email + (later) SMS/Slack. Name it *Money path*.
+5. Uptime: Sentry → Alerts → Uptime Monitor (or any free pinger) on
+   `https://www.hapnin.now/discover` and `https://www.hapnin.now/api/checkout/quote`
+   (expects 4xx, not 5xx) every 5 minutes, alert after 2 failures.
+6. Stripe → Developers → Webhooks → the endpoint → enable *email me on failures*.
 
 ### Launch codes (`LAUNCH_CODES`)
 An organizer who signs up on `/host` with a valid code gets Hapnin's fee waived

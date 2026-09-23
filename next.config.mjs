@@ -1,4 +1,5 @@
 import createMDX from "@next/mdx";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // ── Security response headers ────────────────────────────────────────────────
 // Applied to every route. The Content-Security-Policy ships in REPORT-ONLY
@@ -92,4 +93,21 @@ const withMDX = createMDX({
   extension: /\.mdx?$/,
 });
 
-export default withMDX(nextConfig);
+// Sentry build plugin. Source-map upload only runs when SENTRY_AUTH_TOKEN (plus
+// SENTRY_ORG / SENTRY_PROJECT) is present in the build env; without it the
+// build is unchanged. The runtime SDK is gated on NEXT_PUBLIC_SENTRY_DSN — see
+// sentry.server.config.ts / instrumentation-client.ts.
+export default withSentryConfig(withMDX(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  // Browser events go to /monitoring on our own origin and are proxied to
+  // Sentry: no CSP entry needed and ad blockers can't drop them.
+  tunnelRoute: "/monitoring",
+  widenClientFileUpload: true,
+  // Strip the SDK's own debug logging from the bundle. (Session Replay is never
+  // initialised, so nothing of it ships.)
+  webpack: { treeshake: { removeDebugLogging: true } },
+});
