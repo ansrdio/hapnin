@@ -91,6 +91,12 @@ export default async function TicketsPage({ params }: { params: Promise<{ orderI
           <div className="absolute inset-0 bg-ink/88" />
         </div>
       )}
+      {event.is_sample && (
+        <p className="anim-rise mb-5 rounded-xl border border-coral/50 bg-coral/10 px-4 py-3 text-sm text-cream" role="note">
+          <span className="font-semibold uppercase tracking-wide text-coral">Sample ticket</span> — demo event, for demonstration only. No actual
+          event or admission.
+        </p>
+      )}
       <p className="anim-rise text-xs font-semibold uppercase tracking-[0.24em] text-gold">Your tickets</p>
       <h1 className="anim-rise d-1 mt-2 font-display text-3xl font-bold leading-tight text-cream">
         {event.title}

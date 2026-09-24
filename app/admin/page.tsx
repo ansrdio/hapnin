@@ -3,10 +3,12 @@ import { listOrganizers, isFeeWaived } from "@/lib/organizers";
 import { getFounderMetrics } from "@/lib/metrics";
 import { Stat, money } from "@/app/components/ui";
 import { CreateOrganizerForm } from "./CreateOrganizerForm";
+import { DemoPanel } from "./DemoPanel";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminHome() {
+export default async function AdminHome({ searchParams }: { searchParams: Promise<{ demo?: string }> }) {
+  const { demo } = await searchParams;
   const [organizers, m] = await Promise.all([listOrganizers(), getFounderMetrics().catch(() => null)]);
 
   return (
@@ -68,6 +70,8 @@ export default async function AdminHome() {
       </section>
 
       <CreateOrganizerForm />
+
+      <DemoPanel notice={demo} />
     </div>
   );
 }

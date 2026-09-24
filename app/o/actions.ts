@@ -223,6 +223,8 @@ export async function resendTicketAction(formData: FormData): Promise<void> {
   if (!event) return;
   const order = await getOrderById(orderId);
   if (!order || order.event_id !== eventId) return;
+  // Sample/demo guests are fictional (example.com, 555 numbers): never send.
+  if (event.is_sample) return;
   // Email (when we have one) + best-effort SMS — Resend must work before Twilio lands.
   await deliverTicket({ orderId, quantity: order.quantity ?? 1, phone: order.buyer_id, event });
 }

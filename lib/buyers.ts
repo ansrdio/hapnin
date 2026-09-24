@@ -19,6 +19,8 @@ export async function findOrCreateBuyer(input: {
   email_marketing_opt_in?: boolean;
   show_name?: boolean; // may their first name appear in "X, Y and N others going"
   first_event_id?: string | null;
+  /** Demo checkout: flag the buyer ONLY if this call creates them, so the sample cleanup can remove them. */
+  is_sample?: boolean;
 }): Promise<void> {
   const db = getDb();
   const ref = db.collection("buyers").doc(input.phone);
@@ -36,6 +38,7 @@ export async function findOrCreateBuyer(input: {
         email_marketing_opt_in: !!input.email_marketing_opt_in,
         show_name: input.show_name !== false,
         first_event_id: input.first_event_id ?? null,
+        ...(input.is_sample ? { is_sample: true } : {}),
         created_at: FieldValue.serverTimestamp(),
       });
       return;

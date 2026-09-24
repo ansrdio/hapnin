@@ -18,11 +18,14 @@ export default async function CheckoutPage({
   const { slug } = await params;
   const { p, tier: preselectTierId, friend } = await searchParams;
   const event = await getEventBySlug(slug);
-  if (!event || event.status !== "on_sale") notFound();
+  // A sample/demo event is never on sale, but its checkout runs as a labelled
+  // simulation (no card, no charge) so the buyer flow can be shown end to end.
+  const demo = !!event?.is_sample;
+  if (!event || (event.status !== "on_sale" && !demo)) notFound();
   // Paid tiers need the organizer's payouts connected (money has nowhere to go
-  // otherwise); free tiers are always open.
+  // otherwise); free tiers are always open; a demo charges nothing.
   const organizer = await getOrganizerById(event.organizer_id);
-  const payable = !!organizer?.stripe_onboarded && !!organizer.stripe_account_id;
+  const payable = (!!organizer?.stripe_onboarded && !!organizer.stripe_account_id) || demo;
 
   const now = Date.now();
   const tiers = (await getTiers(event.id)).filter(
@@ -39,7 +42,8 @@ export default async function CheckoutPage({
     <CheckoutClient
       slug={slug}
       eventTitle={event.title}
-      onBehalfOf={payable ? organizer!.stripe_account_id : null}
+      onBehalfOf={!demo && payable ? organizer!.stripe_account_id : null}
+      demo={demo}
       refundPolicyLabel={REFUND_POLICY_LABELS[event.refund_policy]}
       consentText={CHECKOUT_CONSENT_TEXT}
       promoterCode={p ?? null}

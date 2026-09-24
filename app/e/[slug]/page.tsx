@@ -47,6 +47,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: event.flyer_url
       ? { title: event.title, images: [{ url: event.flyer_url }] }
       : { title: event.title },
+    // Sample/demo events are unlisted: never indexed.
+    ...(event.is_sample ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
@@ -103,12 +105,15 @@ export default async function EventPage({
   const tint = event.flyer_url ? event.flyer_color : null;
   const gaTiers = tiers.filter((t) => t.kind !== "table");
   const tableTiers = tiers.filter((t) => t.kind === "table");
-  const onSale = event.status === "on_sale";
+  // A sample/demo event is never on sale, but its page behaves as if it were:
+  // the checkout behind the button is a labelled simulation (no charge).
+  const demo = event.is_sample;
+  const onSale = event.status === "on_sale" || demo;
   const allSoldOut = tiers.length > 0 && tiers.every((t) => !tierStatus(t).available);
   // Paid tickets can only sell once the organizer's payouts are connected; a
   // free (RSVP) event has nothing to pay out, so it's open either way.
   const freeEvent = tiers.length > 0 && tiers.every((t) => t.price_cents === 0);
-  const payoutReady = !!organizer?.stripe_onboarded || freeEvent;
+  const payoutReady = !!organizer?.stripe_onboarded || freeEvent || demo;
   const sellable = onSale && !allSoldOut && payoutReady;
 
   const priceable = tiers.filter((t) => tierStatus(t).available);
@@ -192,6 +197,12 @@ export default async function EventPage({
 
           {/* Content */}
           <div className="mt-7 lg:order-1 lg:mt-0">
+            {demo && (
+              <p className="anim-rise mb-5 rounded-xl border border-coral/50 bg-coral/10 px-4 py-3 text-sm text-cream" role="note">
+                <span className="font-semibold uppercase tracking-wide text-coral">Demo event</span> — for demonstration only. No actual event or
+                admission. Checkout is simulated: nothing is charged and no messages are sent.
+              </p>
+            )}
             <div className="anim-rise flex items-center justify-between gap-3">
               {organizer ? (
                 <Link

@@ -57,6 +57,7 @@ export function CheckoutClient({
   preselectTierId,
   friendCode,
   onBehalfOf,
+  demo = false,
 }: {
   slug: string;
   eventTitle: string;
@@ -67,6 +68,8 @@ export function CheckoutClient({
   preselectTierId?: string | null;
   friendCode?: string | null; // bring-a-friend share code from ?friend=
   onBehalfOf: string | null; // organizer's connected account (paid events)
+  /** Sample/demo event: real pricing, no wallet, no card — the server issues a simulated order. */
+  demo?: boolean;
 }) {
   const initialTier = tiers.find((t) => t.id === preselectTierId)?.id ?? tiers[0].id;
   const [tierId, setTierId] = useState(initialTier);
@@ -93,10 +96,10 @@ export function CheckoutClient({
   const effQty = isTable ? 1 : qty;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
 
-  // Free tiers skip the wallet screen entirely.
+  // Free tiers (and demo orders) skip the wallet screen entirely.
   useEffect(() => {
-    if (isFree && step === "start") setStep("details");
-  }, [isFree, step]);
+    if ((isFree || demo) && step === "start") setStep("details");
+  }, [isFree, demo, step]);
 
   // Price the wallet button from the server (nothing is reserved by a quote).
   const quoteSeq = useRef(0);
@@ -150,7 +153,7 @@ export function CheckoutClient({
     try {
       const data = await postCheckout(body({ ...f, screening, promo: promo.trim() || undefined }));
       if (!data) return setBusy(false);
-      if (data.free && data.orderId) {
+      if ((data.free || data.demo) && data.orderId) {
         window.location.assign(`/t/${data.orderId}`); // ticket already issued; keep busy on
         return;
       }
@@ -206,9 +209,14 @@ export function CheckoutClient({
         <h1 className="anim-rise font-display text-4xl font-bold text-cream">{isFree ? "RSVP" : "Your details"}</h1>
         <p className="anim-rise mt-1 text-mauve-dim">
           {eventTitle}
-          {!isFree && <> · {effQty}× {tier.name} · {usd(tier.price_cents * effQty)}</>}
+          {!isFree && !demo && <> · {effQty}× {tier.name} · {usd(tier.price_cents * effQty)}</>}
         </p>
-        {isFree ? (
+        {demo ? (
+          <p className="anim-rise mt-3 rounded-xl border border-coral/50 bg-coral/10 px-4 py-3 text-sm text-cream">
+            <span className="font-semibold text-coral">Demo checkout.</span> Real prices and fees, but no card is asked for and nothing is charged.
+            You&rsquo;ll get a sample ticket with a scannable QR. No email or text is sent.
+          </p>
+        ) : isFree ? (
           <p className="anim-rise mt-3 rounded-xl border border-emerald/40 bg-emerald/10 px-4 py-3 text-sm text-cream">
             Free — no payment needed. Your ticket with a QR code lands in your email and on this phone the moment you confirm.
           </p>
@@ -219,7 +227,8 @@ export function CheckoutClient({
         )}
 
         <form onSubmit={submitDetails} noValidate className="anim-rise d-1 mt-8 space-y-5">
-          {isFree && <TierAndQty tiers={tiers} tierId={tierId} setTierId={setTierId} qty={qty} setQty={setQty} maxQ={maxQ} isTable={isTable} tier={tier} />}
+          {(isFree || demo) && <TierAndQty tiers={tiers} tierId={tierId} setTierId={setTierId} qty={qty} setQty={setQty} maxQ={maxQ} isTable={isTable} tier={tier} />}
+          {demo && quote && <Summary amounts={quote} compact />}
 
           <FriendsRows show={!isTable && effQty >= 2} qty={effQty} friends={friends} setFriends={setFriends} isFree={isFree} />
 
@@ -290,10 +299,12 @@ export function CheckoutClient({
 
           <button type="submit" disabled={busy} className={primaryBtn}>
             {busy
-              ? isFree ? "Getting your ticket…" : "One sec…"
-              : isFree
-                ? `Confirm — ${effQty === 1 ? "1 free ticket" : `${effQty} free tickets`}`
-                : `Continue to card — ${usd(tier.price_cents * effQty)}`}
+              ? isFree || demo ? "Getting your ticket…" : "One sec…"
+              : demo
+                ? `Confirm demo order — ${usd(quote?.total_cents ?? tier.price_cents * effQty)}`
+                : isFree
+                  ? `Confirm — ${effQty === 1 ? "1 free ticket" : `${effQty} free tickets`}`
+                  : `Continue to card — ${usd(tier.price_cents * effQty)}`}
           </button>
         </form>
       </main>

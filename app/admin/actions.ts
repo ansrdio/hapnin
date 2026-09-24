@@ -7,6 +7,7 @@ import { createOrganizer, getOrganizerById, setFeeWaiver } from "@/lib/organizer
 import { createOnboardingLink, refreshOnboardingStatus } from "@/lib/connect";
 import { sendSMS } from "@/lib/sms";
 import { createEvent } from "@/lib/events";
+import { createDemoBrunch, resetDemoBrunch, deleteDemoBrunch } from "@/lib/demo";
 import { parseClassification } from "@/lib/event-input";
 import { normalizeEmail, normalizeUsPhone, normalizeInstagram, cleanText, type FieldErrors } from "@/lib/validation";
 import type { ActionState } from "./action-state";
@@ -58,6 +59,36 @@ export async function createOrganizerAction(_prev: ActionState, formData: FormDa
 
   revalidatePath("/admin");
   return { status: "success", message: `${name} created.` };
+}
+
+// ── Organizer-meeting demo (lib/demo.ts) ─────────────────────────────────────
+
+export async function createDemoBrunchAction(): Promise<void> {
+  const user = await requireAdmin();
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hapnin.now";
+  const r = await createDemoBrunch({ ownerEmail: user.email, site });
+  revalidatePath("/admin");
+  redirect(`/admin?demo=${r.created ? "created" : "exists"}`);
+}
+
+export async function resetDemoBrunchAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!eventId) return;
+  await resetDemoBrunch(eventId);
+  revalidatePath("/admin");
+  revalidatePath(`/o/events/${eventId}`);
+  revalidatePath(`/o/events/${eventId}/guests`);
+  redirect("/admin?demo=reset");
+}
+
+export async function deleteDemoBrunchAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const eventId = String(formData.get("event_id") ?? "");
+  if (!eventId) return;
+  await deleteDemoBrunch(eventId);
+  revalidatePath("/admin");
+  redirect("/admin?demo=deleted");
 }
 
 export async function startOnboardingAction(formData: FormData): Promise<void> {

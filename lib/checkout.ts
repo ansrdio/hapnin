@@ -81,11 +81,21 @@ export type CheckoutInput = {
 /** Free (RSVP) orders never touch Stripe; their "payment intent id" is this prefix + the pending-order id. */
 export const FREE_PI_PREFIX = "free_";
 export const isFreePaymentId = (id: string | null | undefined): boolean => !!id && id.startsWith(FREE_PI_PREFIX);
+/**
+ * Simulated orders on a sample/demo event (lib/sample.ts, lib/demo.ts) carry
+ * this prefix. Like free orders they never touch Stripe: fulfilled in the same
+ * request, refunds just void tickets, the sweeper treats them as "missing".
+ */
+export const SAMPLE_PI_PREFIX = "sample_";
+export const isSimulatedPaymentId = (id: string | null | undefined): boolean =>
+  !!id && (id.startsWith(FREE_PI_PREFIX) || id.startsWith(SAMPLE_PI_PREFIX));
 
 export type CheckoutResult =
   | { kind: "pay"; clientSecret: string; amounts: Amounts }
   /** $0 total: the order is already fulfilled — send the buyer straight to their ticket. */
-  | { kind: "free"; orderId: string; amounts: Amounts };
+  | { kind: "free"; orderId: string; amounts: Amounts }
+  /** Sample/demo event: priced like a real order, fulfilled without any payment. */
+  | { kind: "demo"; orderId: string; amounts: Amounts };
 
 export type Quote = {
   event: NonNullable<Awaited<ReturnType<typeof getEventBySlug>>>;
@@ -117,7 +127,9 @@ export async function quoteCheckout(input: {
   const db = getDb();
   const event = await getEventBySlug(input.slug);
   if (!event) throw new Error("EVENT_NOT_FOUND");
-  if (event.status !== "on_sale") throw new Error("NOT_ON_SALE");
+  // A sample/demo event is never on sale (publishing is blocked for it), but its
+  // simulated checkout prices exactly like a real one — same code, same fees.
+  if (event.status !== "on_sale" && !event.is_sample) throw new Error("NOT_ON_SALE");
 
   const tier = await getTier(event.id, input.tierId);
   if (!tier) throw new Error("TIER_NOT_FOUND");
@@ -129,9 +141,10 @@ export async function quoteCheckout(input: {
 
   const organizer = await getOrganizerById(event.organizer_id);
   if (!organizer) throw new Error("ORGANIZER_NOT_READY");
-  // Paid tickets need somewhere for the money to land; free ones don't.
+  // Paid tickets need somewhere for the money to land; free ones don't. A
+  // demo never charges, so it needs no connected account either.
   const organizerPayable = !!organizer.stripe_account_id && organizer.stripe_onboarded;
-  if (tier.price_cents > 0 && !organizerPayable) throw new Error("ORGANIZER_NOT_READY");
+  if (tier.price_cents > 0 && !organizerPayable && !event.is_sample) throw new Error("ORGANIZER_NOT_READY");
 
   // A table sells as one unit (it admits `seats` guests); GA sells up to MAX_QTY.
   const qty = tier.kind === "table" ? 1 : Math.max(1, Math.min(MAX_QTY, Math.floor(input.quantity)));
@@ -228,6 +241,24 @@ export async function createCheckoutIntent(input: CheckoutInput): Promise<Checko
       const orderId = await fulfillPaidOrder(pendingRef.id, fakePi);
       if (!orderId) throw new Error("FREE_FULFIL_FAILED");
       return { kind: "free", orderId, amounts };
+    } catch (err) {
+      await releaseHold(pendingRef.id).catch(() => {});
+      throw err;
+    }
+  }
+
+  // ── Demo path: a sample event. Priced above like a real order, but there is
+  // no card, no Stripe and no money: fulfil now under a "sample_" id. Only
+  // events flagged is_sample by lib/sample.ts / lib/demo.ts get here; no
+  // organizer-facing form can set that flag, and such an event can't be
+  // published, so a real buyer never lands on this branch.
+  if (event.is_sample) {
+    const fakePi = `${SAMPLE_PI_PREFIX}${pendingRef.id}`;
+    try {
+      await pendingRef.set({ ...pendingBase, status: "reserved", payment_intent_id: fakePi, expires_at: Date.now() + 5 * 60 * 1000 });
+      const orderId = await fulfillPaidOrder(pendingRef.id, fakePi);
+      if (!orderId) throw new Error("DEMO_FULFIL_FAILED");
+      return { kind: "demo", orderId, amounts };
     } catch (err) {
       await releaseHold(pendingRef.id).catch(() => {});
       throw err;
@@ -345,6 +376,13 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     return null;
   }
 
+  // A sample/demo event: the order and tickets are flagged so metrics, the
+  // audience and the sample cleanup treat them as demo data; the buyer is
+  // flagged only if this checkout created them (a real buyer typing their own
+  // number into a demo stays a real buyer); no consent is recorded and
+  // nothing is sent — the ticket page is the deliverable.
+  const demo = event.is_sample;
+
   await findOrCreateBuyer({
     phone: p.buyer.phone,
     email: p.buyer.email,
@@ -353,9 +391,10 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     postal_code: p.buyer.postal_code,
     screening_interest: p.buyer.screening_interest,
     show_name: p.buyer.show_name !== false,
-    sms_marketing_opt_in: p.buyer.marketing_opt_in,
-    email_marketing_opt_in: p.buyer.marketing_opt_in,
+    sms_marketing_opt_in: !demo && p.buyer.marketing_opt_in,
+    email_marketing_opt_in: !demo && p.buyer.marketing_opt_in,
     first_event_id: event.id,
+    is_sample: demo,
   });
 
   // days_before_event frozen at purchase (never re-derived).
@@ -381,6 +420,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     days_before_event: daysBefore,
     referral_source: p.referral_source ?? null,
     promoter_link_id: p.promoter_link_id ?? null,
+    ...(demo ? { is_sample: true } : {}),
     created_at: FieldValue.serverTimestamp(),
   });
 
@@ -394,6 +434,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
       buyer_id: p.buyer.phone,
       qr_token: qrToken(tRef.id),
       is_comp: false,
+      ...(demo ? { is_sample: true } : {}),
       checked_in_at: null,
       checked_in_by: null,
       created_at: FieldValue.serverTimestamp(),
@@ -402,7 +443,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   await batch.commit();
 
   // Consent (verbatim), if the buyer opted in.
-  if (p.consent?.granted) {
+  if (p.consent?.granted && !demo) {
     for (const scope of ["hapnin", "organizer_events"] as const) {
       await recordConsent({
         phone: p.buyer.phone,
@@ -432,6 +473,10 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
   if (p.promo_code_id) await adjustPromoRedemption(p.promo_code_id, 1);
 
   await pendingRef.update({ status: "fulfilled", order_id: orderRef.id });
+
+  // Demo orders end here: no emails, no texts, no friend transfers, no referral
+  // nudges. The buyer is on the ticket page already.
+  if (demo) return orderRef.id;
 
   // The organizer's first sale on this event — one email, the moment it lands.
   // `event` was read before the counter bump, so tickets_sold is pre-sale.
@@ -622,10 +667,10 @@ export async function sweepExpiredHolds(opts: { eventId?: string; limit?: number
     const pi: string | undefined = p.payment_intent_id;
     try {
       let status: string | null = null;
-      if (isFreePaymentId(pi)) {
-        // A free order is fulfilled in the same request that reserved it; one
-        // still "reserved" past expiry means that request died. Nothing was
-        // charged, so just give the seats back.
+      if (isSimulatedPaymentId(pi)) {
+        // A free or demo order is fulfilled in the same request that reserved
+        // it; one still "reserved" past expiry means that request died.
+        // Nothing was charged, so just give the seats back.
         status = "missing";
       } else if (pi) {
         try {

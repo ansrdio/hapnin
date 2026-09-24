@@ -80,6 +80,8 @@ export async function POST(req: Request) {
     });
     // Free/RSVP: the ticket already exists — the client goes straight to it.
     if (result.kind === "free") return NextResponse.json({ free: true, orderId: result.orderId, amounts: result.amounts });
+    // Demo (sample event): same — simulated, nothing charged.
+    if (result.kind === "demo") return NextResponse.json({ demo: true, orderId: result.orderId, amounts: result.amounts });
     return NextResponse.json({ clientSecret: result.clientSecret, amounts: result.amounts });
   } catch (err) {
     const code = (err as Error).message;

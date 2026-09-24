@@ -175,7 +175,7 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
             </>
           )}
           {event.status === "draft" && event.is_sample && (
-            <span className="text-sm text-mauve-dim">Sample — private to you; buyers never see it.</span>
+            <span className="text-sm text-mauve-dim">Sample — unlisted and unindexed; only someone with the link can open it. Its checkout is a simulation.</span>
           )}
           {event.status === "on_sale" && (
             <>
