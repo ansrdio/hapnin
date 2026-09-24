@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AudienceForm } from "./components/AudienceForm";
 import { FlyerMarquee } from "./components/FlyerMarquee";
+import { Wordmark } from "./components/Brand";
 import { listOnSaleEvents } from "@/lib/events";
 
 export const revalidate = 60; // refresh the live-events strip periodically
@@ -44,10 +45,9 @@ export default async function Page() {
       <section className="relative overflow-hidden px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-16">
         <div className="mx-auto max-w-page">
           <header className="anim-rise d-1 mb-10 flex items-center justify-between gap-4 sm:mb-14">
-            <p className="inline-flex items-center gap-2 text-sm font-medium uppercase tracking-[0.28em] text-gold">
-              <span className="inline-block h-2 w-2 rotate-45 bg-coral" aria-hidden="true" />
-              Hapnin
-            </p>
+            <Link href="/" aria-label="Hapnin home" className="text-cream transition-opacity hover:opacity-80">
+              <Wordmark height={26} />
+            </Link>
             <nav aria-label="Primary" className="flex items-center gap-4 text-xs font-medium uppercase tracking-[0.16em] text-mauve-dim sm:gap-7 sm:text-sm sm:tracking-[0.18em]">
               <Link href="/discover" className="transition-colors hover:text-gold">
                 Events

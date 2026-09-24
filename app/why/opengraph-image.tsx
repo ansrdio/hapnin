@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { WordmarkOg } from "@/app/components/BrandOg";
 
 export const runtime = "nodejs";
 export const alt = "Why Hapnin exists";
@@ -77,10 +78,7 @@ export default async function WhyOgImage() {
             color: "#C9B2C4",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 14, height: 14, background: "#F2593F", transform: "rotate(45deg)" }} />
-            <span style={{ color: "#F6EEE1" }}>Hapnin</span>
-          </div>
+          <WordmarkOg height={44} />
           <div>hapnin.now</div>
         </div>
       </div>

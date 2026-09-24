@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Wordmark } from "@/app/components/Brand";
 
 // The projector view. Server-rendered numbers, refreshed every few seconds;
 // this component's only job is the moment: when a new name comes through the
@@ -66,8 +67,8 @@ export function ScreenBoard({
       <header className="flex items-start justify-between gap-6">
         <div>
           <p className="inline-flex items-center gap-3 text-[clamp(12px,1.4vw,20px)] font-semibold uppercase tracking-[0.3em] text-gold">
-            <span className="inline-block h-[0.6em] w-[0.6em] rotate-45 bg-coral" aria-hidden="true" />
-            Hapnin · live
+            <Wordmark height={22} className="text-cream" />
+            <span>live</span>
           </p>
           <h1 className="mt-2 font-brand text-[clamp(28px,4.5vw,72px)] font-semibold leading-[1.02]">{title}</h1>
           <p className="mt-2 text-[clamp(14px,1.6vw,24px)] text-mauve-dim">{whenText}</p>

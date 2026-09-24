@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { WordmarkOg } from "@/app/components/BrandOg";
 
 export const runtime = "nodejs";
 export const alt = "You fill the room. We’ll handle everything else.";
@@ -73,10 +74,9 @@ export default async function PitchOgImage() {
               fontWeight: 500,
             }}
           >
-            <div style={{ width: 14, height: 14, background: "#F2593F", transform: "rotate(45deg)" }} />
             No cut of a room you filled yourself.
           </div>
-          <div style={{ color: "#C9B2C4" }}>hapnin.now</div>
+          <WordmarkOg height={44} />
         </div>
       </div>
     ),
