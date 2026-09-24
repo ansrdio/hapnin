@@ -26,7 +26,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ size: string }>
           justifyContent: "center",
           background: "#1B0A2A",
           borderRadius: maskable ? 0 : size * 0.22,
-          border: door ? `${Math.max(3, size * 0.04)}px solid #F4B24C` : undefined,
+          // satori rejects an explicit `undefined` style value — only set the key for the door variant.
+          ...(door ? { border: `${Math.max(3, size * 0.04)}px solid #F4B24C` } : {}),
         }}
       >
         <MarkOg size={glyph} />
