@@ -23,7 +23,8 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
-  "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.stripe.com https://tiles.openfreemap.org",
+  // The apex is listed because NEXT_PUBLIC_SITE_URL builds some asset URLs on it (it 308s to www).
+  "img-src 'self' data: blob: https://hapnin.now https://firebasestorage.googleapis.com https://*.stripe.com https://tiles.openfreemap.org",
   "font-src 'self' data:",
   [
     "connect-src 'self'",
