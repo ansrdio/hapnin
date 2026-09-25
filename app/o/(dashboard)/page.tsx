@@ -45,6 +45,7 @@ function SideStep({
   n,
   done,
   active,
+  open = false,
   title,
   desc,
   children,
@@ -52,10 +53,13 @@ function SideStep({
   n: number;
   done: boolean;
   active: boolean;
+  /** Show the step's controls even when it isn't the next one (e.g. Connect payouts is never gated on the steps before it). */
+  open?: boolean;
   title: string;
   desc?: string;
   children?: React.ReactNode;
 }) {
+  const expanded = active || open;
   return (
     <li className="flex gap-2.5">
       <span
@@ -67,8 +71,8 @@ function SideStep({
       </span>
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-display font-semibold ${done ? "text-mauve-dim/70 line-through" : active ? "text-cream" : "text-mauve-dim"}`}>{title}</p>
-        {active && desc && <p className="mt-0.5 text-xs leading-relaxed text-mauve-dim">{desc}</p>}
-        {active && children && <div className="mt-2">{children}</div>}
+        {expanded && desc && <p className="mt-0.5 text-xs leading-relaxed text-mauve-dim">{desc}</p>}
+        {expanded && children && <div className="mt-2">{children}</div>}
       </div>
     </li>
   );
@@ -347,7 +351,8 @@ export default async function OrganizerHome({
                   </div>
                 )}
               </SideStep>
-              <SideStep n={5} done={payoutsDone} active={nextStep === 5} title="Connect payouts" desc="Paid tickets land in your own account. ~2 minutes. Not needed for free events.">
+              {/* Always reachable: an organizer with a paid draft needs this before step 2, not after step 4. */}
+              <SideStep n={5} done={payoutsDone} active={nextStep === 5} open={!payoutsDone} title="Connect payouts" desc="Paid tickets land in your own account. ~2 minutes. Not needed for free events.">
                 {role === "owner" ? (
                   onboarding === "done" ? (
                     <form action={refreshOwnStripeStatusAction}><button className={smallBtn}>Refresh status</button></form>
