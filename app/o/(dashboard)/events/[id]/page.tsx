@@ -6,7 +6,7 @@ import { listPromoterLinks } from "@/lib/promoters";
 import { listPromoCodes } from "@/lib/promos";
 import { waitlistSummary } from "@/lib/waitlist";
 import { isSmsConfigured } from "@/lib/sms";
-import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction, deleteSampleEventAction } from "@/app/o/actions";
+import { setEventStatusAction, setEventFlyerAction, notifyWaitlistAction, duplicateEventAction, deleteSampleEventAction, startOwnOnboardingAction } from "@/app/o/actions";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import {
   PageHeader,
@@ -53,7 +53,7 @@ function StatusButton({ eventId, status, label, variant }: { eventId: string; st
 
 export default async function ManageEvent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { organizer } = await requireOrganizer();
+  const { organizer, role } = await requireOrganizer();
   const event = await getEventById(id);
   if (!event || event.organizer_id !== organizer.id) notFound();
   const tiers = await getTiers(id);
@@ -125,9 +125,15 @@ export default async function ManageEvent({ params }: { params: Promise<{ id: st
               ? "This event is published, but paid tickets won’t sell until your payouts are connected — the money needs somewhere to land. Free tiers still work."
               : "Connect your payouts before you publish, so paid tickets can sell the moment you go live. Free tiers work without it."}
           </p>
-          <LinkButton href="/o" variant="primary" className="mt-4">
-            Connect payouts
-          </LinkButton>
+          {role === "owner" ? (
+            // Straight into Stripe's hosted onboarding (returns to /o). Before,
+            // this only linked to the dashboard, which read as "nothing happened".
+            <form action={startOwnOnboardingAction} className="mt-4">
+              <button className={buttonClass("primary")}>{organizer.stripe_account_id ? "Finish Stripe setup" : "Connect payouts with Stripe"}</button>
+            </form>
+          ) : (
+            <p className="mt-3 text-sm text-mauve-dim">Only the account owner can connect payouts.</p>
+          )}
         </Card>
       )}
 

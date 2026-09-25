@@ -473,6 +473,10 @@ export async function createPromoCodeAction(_prev: ActionState, formData: FormDa
 /** Organizer connects their own Stripe payouts (self-serve). Owner only. */
 export async function startOwnOnboardingAction(): Promise<void> {
   const { organizer } = await requireOwner();
+  // The demo organizer is fictional: never open a real Stripe account for it.
+  if (organizer.signup_source === "demo") {
+    redirect(`/o?payout_error=${encodeURIComponent("This is the demo organizer — payouts stay disconnected on purpose. Its checkout is simulated.")}`);
+  }
   let url: string | null = null;
   try {
     url = await createOnboardingLink(organizer.id, "/o");
