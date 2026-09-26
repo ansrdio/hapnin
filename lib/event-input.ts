@@ -95,7 +95,9 @@ export function parseEventForm(formData: FormData): {
 
   const fieldErrors: FieldErrors = {};
   if (!title) fieldErrors.title = "Required.";
-  if (!slug) fieldErrors.slug = "Letters, numbers, hyphens.";
+  // The slug derives from the title when no slug field exists (guest form), so
+  // a missing title already covers it; only flag the slug on its own merits.
+  if (!slug && title) fieldErrors.slug = "Letters, numbers, hyphens.";
   if (!venue_name) fieldErrors.venue_name = "Required.";
   if (!venue_address) fieldErrors.venue_address = "Required.";
   if (!city) fieldErrors.city = "Required.";
