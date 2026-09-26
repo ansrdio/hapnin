@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState, startTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from "firebase/auth";
 import { getClientAuth } from "@/lib/firebase-client";
@@ -13,6 +13,11 @@ export function LoginClient() {
   const params = useSearchParams();
   const next = params.get("next") || "";
   const denied = params.get("denied");
+  // from=create: the guest event builder just saved a draft under this email.
+  // Send the sign-in link without asking them to type the address again, and
+  // say what happened — otherwise this page read as "bounced back to a form".
+  const fromCreate = params.get("from") === "create";
+  const autoSent = useRef(false);
 
   const [email, setEmail] = useState(params.get("email") || "");
   const [view, setView] = useState<"form" | "sent" | "confirm" | "completing">("form");
@@ -20,7 +25,16 @@ export function LoginClient() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [error, setError] = useState(denied ? "That account isn’t set up for this area." : "");
 
-  const [state, action] = useActionState(sendLoginLink, initialLoginState);
+  const [state, action, sending] = useActionState(sendLoginLink, initialLoginState);
+
+  useEffect(() => {
+    if (!fromCreate || !email || autoSent.current) return;
+    autoSent.current = true;
+    const fd = new FormData();
+    fd.set("email", email);
+    startTransition(() => action(fd));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Exchange the email link for a session. `fromConfirm` = the address was
   // typed on the confirm step (link opened in another browser), so a mismatch
@@ -172,6 +186,12 @@ export function LoginClient() {
   if (view === "sent") {
     return (
       <div role="status" className="anim-rise">
+        {fromCreate && (
+          <p className="mb-5 rounded-xl border border-emerald/40 bg-emerald/10 px-4 py-3 text-sm text-cream">
+            <span className="font-semibold">Your event is saved as a draft.</span> One more step: open the link we just emailed you to publish it and
+            connect payouts.
+          </p>
+        )}
         <h1 className="font-display text-3xl font-bold text-cream">Check your email.</h1>
         <p className="mt-2 leading-relaxed text-mauve-dim">
           We sent a sign-in link to <span className="text-cream">{sentTo}</span>. Open it on this
@@ -190,8 +210,22 @@ export function LoginClient() {
     );
   }
 
+  if (fromCreate && sending) {
+    return (
+      <div role="status">
+        <h1 className="font-display text-2xl font-semibold text-cream">Event saved. Sending your sign-in link…</h1>
+        <p className="mt-2 text-mauve-dim">One moment.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="anim-rise">
+      {fromCreate && (
+        <p className="mb-5 rounded-xl border border-emerald/40 bg-emerald/10 px-4 py-3 text-sm text-cream">
+          <span className="font-semibold">Your event is saved as a draft.</span> Sign in with the email you gave to publish it.
+        </p>
+      )}
       <h1 className="font-display text-3xl font-bold text-cream">Sign in</h1>
       <p className="mt-2 text-mauve-dim">We’ll email you a one-time link — no password.</p>
       <form action={action} className="mt-6">

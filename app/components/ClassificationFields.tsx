@@ -106,7 +106,7 @@ export function ClassificationFields({
             <option key={c.id} value={c.id}>{c.label}</option>
           ))}
         </select>
-        {errors.category && <p className="mt-1 text-sm text-coral">{errors.category}</p>}
+        {errors.category && <p data-field-error className="mt-1 text-sm text-coral">{errors.category}</p>}
       </div>
 
       <div ref={box}>
@@ -183,8 +183,8 @@ export function ClassificationFields({
           )}
         </div>
         {note && <p className="mt-1 text-sm text-coral">{note}</p>}
-        {errors.custom_tags && <p className="mt-1 text-sm text-coral">{errors.custom_tags}</p>}
-        {errors.scene_tags && <p className="mt-1 text-sm text-coral">{errors.scene_tags}</p>}
+        {errors.custom_tags && <p data-field-error className="mt-1 text-sm text-coral">{errors.custom_tags}</p>}
+        {errors.scene_tags && <p data-field-error className="mt-1 text-sm text-coral">{errors.scene_tags}</p>}
       </div>
 
       <div className="sm:max-w-xs">
@@ -195,7 +195,7 @@ export function ClassificationFields({
             <option key={o} value={o}>{humanize(o)}</option>
           ))}
         </select>
-        {errors.primary_language && <p className="mt-1 text-sm text-coral">{errors.primary_language}</p>}
+        {errors.primary_language && <p data-field-error className="mt-1 text-sm text-coral">{errors.primary_language}</p>}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export function Field({
       <label className={labelClass}>{label}</label>
       {children}
       {hint && !error && <p className="mt-1 text-xs text-mauve-dim/80">{hint}</p>}
-      {error && <p className="mt-1 text-sm text-coral">{error}</p>}
+      {error && <p data-field-error className="mt-1 text-sm text-coral">{error}</p>}
     </div>
   );
 }

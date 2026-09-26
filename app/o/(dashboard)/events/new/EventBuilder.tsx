@@ -8,6 +8,7 @@ import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
 import { Card, Field, Input, Textarea, inputClass, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import { ClassificationFields } from "@/app/components/ClassificationFields";
+import { FormErrorSummary, EVENT_FIELD_LABELS } from "@/app/components/FormErrorSummary";
 import { EVENT_TEMPLATES, findTemplate, type EventTemplate } from "@/lib/templates";
 
 type TierRow = { key: number; name: string; price: string; qty: string; start: string; end: string };
@@ -244,7 +245,7 @@ export function EventBuilder({ initialTemplateId = null }: { initialTemplateId?:
         </div>
       </Card>
 
-      {state.status === "error" && state.message && <p className="text-sm text-coral">{state.message}</p>}
+      <FormErrorSummary status={state.status} errors={err} labels={EVENT_FIELD_LABELS} message={state.message} />
 
       <SubmitButtons />
       <p className="text-xs text-mauve-dim/80">

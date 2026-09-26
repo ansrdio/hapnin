@@ -8,6 +8,7 @@ import { REFUND_POLICIES, REFUND_POLICY_SHORT } from "@/lib/refund-policy";
 import { Card, Field, Input, Textarea, inputClass, buttonClass } from "@/app/components/ui";
 import { FlyerUpload } from "@/app/components/FlyerUpload";
 import { ClassificationFields } from "@/app/components/ClassificationFields";
+import { FormErrorSummary, EVENT_FIELD_LABELS } from "@/app/components/FormErrorSummary";
 
 type TierRow = { key: number; name: string; price: string; qty: string };
 let nextKey = 2;
@@ -35,8 +36,11 @@ export function GuestEventBuilder() {
   const addTier = () => setTiers((rows) => [...rows, { key: nextKey++, name: "", price: "", qty: "" }]);
   const removeTier = (key: number) => setTiers((rows) => (rows.length > 1 ? rows.filter((r) => r.key !== key) : rows));
 
+  // Saved as a draft → the login page sends the sign-in link itself and says
+  // so (from=create), instead of showing a bare sign-in form that read as
+  // "it bounced me back to a form".
   useEffect(() => {
-    if (state.status === "success") window.location.href = `/login?next=/o&email=${encodeURIComponent(email)}`;
+    if (state.status === "success") window.location.href = `/login?next=/o&from=create&email=${encodeURIComponent(email)}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.status]);
 
@@ -130,7 +134,7 @@ export function GuestEventBuilder() {
         </div>
       </Card>
 
-      {state.status === "error" && state.message && <p className="text-sm text-coral">{state.message}</p>}
+      <FormErrorSummary status={state.status} errors={err} labels={EVENT_FIELD_LABELS} message={state.message} />
       <Submit />
     </form>
   );
