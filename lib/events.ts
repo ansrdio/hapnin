@@ -63,6 +63,7 @@ export type EventRecord = {
   talent: string[];
   is_first_event: boolean; // legacy flag — no longer affects fees (see organizers.fee_waived_until)
   is_sample: boolean; // a seeded demo event with fake guests; never publishable, excluded from metrics
+  place_id: string | null; // optional link to a Place (lib/places.ts) — "Hosted at"; null for every event created before Places
   // Live counters, bumped by fulfillment (tickets_sold/gross_cents) and the door
   // scanner (checked_in). Default 0 until the first sale/scan.
   tickets_sold: number;
@@ -113,6 +114,7 @@ function toEvent(id: string, d: FirebaseFirestore.DocumentData): EventRecord {
     talent: d.talent ?? [],
     is_first_event: !!d.is_first_event,
     is_sample: !!d.is_sample,
+    place_id: typeof d.place_id === "string" && d.place_id ? d.place_id : null,
     tickets_sold: d.tickets_sold ?? 0,
     gross_cents: d.gross_cents ?? 0,
     checked_in: d.checked_in ?? 0,
@@ -320,6 +322,7 @@ export async function createEvent(input: {
   talent?: string[];
   is_first_event?: boolean;
   is_sample?: boolean;
+  place_id?: string | null;
   tiers: NewTier[];
 }): Promise<EventRecord> {
   const db = getDb();
@@ -361,6 +364,7 @@ export async function createEvent(input: {
     talent: input.talent ?? [],
     is_first_event: input.is_first_event ?? false,
     is_sample: input.is_sample ?? false,
+    place_id: input.place_id ?? null,
     tickets_sold: 0,
     gross_cents: 0,
     created_at: FieldValue.serverTimestamp(),
@@ -413,4 +417,23 @@ export async function releaseInventory(eventId: string, tierId: string, qty: num
     const sold = snap.data()!.quantity_sold ?? 0;
     tx.update(ref, { quantity_sold: Math.max(0, sold - qty) });
   });
+}
+
+// ── Places (Experiment 001) ──────────────────────────────────────────────────
+
+/** Link (or unlink with null) an event to a Place. Admin-only callers. */
+export async function setEventPlace(eventId: string, placeId: string | null): Promise<void> {
+  await getDb().collection(EVENTS).doc(eventId).update({ place_id: placeId });
+}
+
+/** Every event linked to a place, any status (admin). */
+export async function listEventsForPlace(placeId: string): Promise<EventRecord[]> {
+  const snap = await getDb().collection(EVENTS).where("place_id", "==", placeId).get();
+  return snap.docs.map((d) => toEvent(d.id, d.data())).sort((a, b) => a.starts_at - b.starts_at);
+}
+
+/** What a place's public page shows: on sale, upcoming, never a sample. */
+export async function listUpcomingEventsForPlace(placeId: string): Promise<EventRecord[]> {
+  const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+  return (await listEventsForPlace(placeId)).filter((e) => e.status === "on_sale" && !e.is_sample && e.starts_at >= cutoff);
 }

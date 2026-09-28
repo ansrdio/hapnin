@@ -58,6 +58,7 @@ export async function cloneEvent(input: {
         category: source.category,
         scene_tags: source.scene_tags,
         custom_tags: source.custom_tags,
+        place_id: source.place_id, // same venue → same Place link (null for most events)
         primary_language: source.primary_language,
         talent: source.talent,
         is_first_event: false,

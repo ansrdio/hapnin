@@ -63,6 +63,36 @@ export const SCENE_TAGS = [
   { id: "students", label: "Students", group: "format" },
 ] as const satisfies readonly { id: string; label: string; group: SceneGroup }[];
 
+// ── Places ───────────────────────────────────────────────────────────────────
+// A Place (lib/places.ts) has ONE business/place category from this list —
+// its own vocabulary, because "restaurant" is not an event category — and
+// reuses the scene tags above plus custom tags for its cultural associations
+// (many per place; a business can represent several cultures at once).
+// Future hierarchy (e.g. Yoruba → Nigerian → West African) belongs on the tag
+// definitions as an optional parent id; stored place/event data won't change.
+export type PlaceCategory = (typeof PLACE_CATEGORIES)[number]["id"];
+
+export const PLACE_CATEGORIES = [
+  { id: "restaurant", label: "Restaurant & food" },
+  { id: "dance_studio", label: "Dance studio" },
+  { id: "fashion", label: "Fashion & design" },
+  { id: "art", label: "Art & artists" },
+  { id: "creative_space", label: "Creative space" },
+  { id: "retail", label: "Shop & retail" },
+  { id: "beauty", label: "Beauty & hair" },
+  { id: "cultural_org", label: "Cultural organization" },
+  { id: "community_org", label: "Community organization" },
+  { id: "other", label: "Other" },
+] as const;
+
+const PLACE_CATEGORY_IDS = new Set<string>(PLACE_CATEGORIES.map((c) => c.id));
+export function isPlaceCategory(v: unknown): v is PlaceCategory {
+  return typeof v === "string" && PLACE_CATEGORY_IDS.has(v);
+}
+export function placeCategoryLabel(id: string): string {
+  return PLACE_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+}
+
 export const SCENE_GROUP_LABELS: Record<SceneGroup, string> = {
   music: "Music & scene",
   culture: "Culture & community",

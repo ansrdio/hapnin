@@ -38,6 +38,12 @@ export function isAdminEmail(email: string): boolean {
   return allow.includes(email.toLowerCase());
 }
 
+/** True when the current request is a signed-in admin (no redirect) — for draft previews on public pages. */
+export async function isAdminViewer(): Promise<boolean> {
+  const user = await getSessionUser();
+  return !!user && isAdminEmail(user.email);
+}
+
 /** Guard for /admin/* — redirects to login if not a signed-in admin. */
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await getSessionUser();
