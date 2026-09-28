@@ -17,3 +17,13 @@ export function getStripe(): Stripe {
   stripe = new Stripe(key);
   return stripe;
 }
+
+/**
+ * Integration tests only (HAPNIN_TEST=1): swap in a fake client that records
+ * calls and can be told to fail. Refuses outside the test harness so no code
+ * path in production can replace the real client.
+ */
+export function setStripeForTests(fake: unknown): void {
+  if (process.env.HAPNIN_TEST !== "1") throw new Error("setStripeForTests outside tests");
+  stripe = fake as Stripe;
+}

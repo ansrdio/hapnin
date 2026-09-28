@@ -30,3 +30,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Firestore emulator logs
+firestore-debug.log
+*-debug.log
