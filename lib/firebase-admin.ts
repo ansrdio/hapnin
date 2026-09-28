@@ -17,6 +17,13 @@ function getAdminApp(): App {
     app = existing[0];
     return app;
   }
+  // Integration tests run against the local Firestore emulator (npm run
+  // test:money). The SDK routes to it by itself when FIRESTORE_EMULATOR_HOST is
+  // set; it needs a project id and no credentials. Production never sets it.
+  if (process.env.FIRESTORE_EMULATOR_HOST) {
+    app = initializeApp({ projectId: process.env.GCLOUD_PROJECT || "demo-hapnin" });
+    return app;
+  }
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
