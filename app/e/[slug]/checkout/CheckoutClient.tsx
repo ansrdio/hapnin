@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Appearance, StripeElementsOptions, StripeExpressCheckoutElementConfirmEvent } from "@stripe/stripe-js";
 import { Elements, PaymentElement, ExpressCheckoutElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { getStripeClient } from "@/lib/stripe-client";
+import { currentAttribution, track } from "@/app/components/Track";
 
 // Checkout, wallet first.
 //
@@ -58,7 +59,9 @@ export function CheckoutClient({
   friendCode,
   onBehalfOf,
   demo = false,
+  eventId,
 }: {
+  eventId: string;
   slug: string;
   eventTitle: string;
   refundPolicyLabel?: string;
@@ -119,7 +122,15 @@ export function CheckoutClient({
       .catch(() => {});
   }, [slug, tierId, effQty, friendCode, isFree]);
 
+  // Discovery attribution (Experiment 001): record the arrival, and send the
+  // tab-scoped visit context with the order so a purchase can be tied back to
+  // the story / place / source that led here. Never affects price or payment.
+  useEffect(() => {
+    track("checkout_viewed", { event_id: eventId });
+  }, [eventId]);
+
   const body = (extra: Record<string, unknown>) => ({
+    attribution: currentAttribution(),
     slug,
     tierId,
     quantity: effQty,

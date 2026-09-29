@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { PitchDeck } from "./components/PitchDeck";
 import { copy } from "./content";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
 const ogTitle = "Keep more of every ticket.";
 const ogDesc =
@@ -12,10 +11,10 @@ export const metadata: Metadata = {
   title: "Run one event with Hapnin",
   description: copy.concedeDeck,
   robots: { index: false, follow: false },
-  alternates: { canonical: `${siteUrl}/pitch` },
+  alternates: { canonical: "/pitch" },
   openGraph: {
     type: "website",
-    url: `${siteUrl}/pitch`,
+    url: "/pitch",
     siteName: "Hapnin",
     title: ogTitle,
     description: ogDesc,

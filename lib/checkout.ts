@@ -11,6 +11,7 @@ import { qrToken } from "./qr";
 import { sendSMS } from "./sms";
 import { sendTicketEmail, sendReferralJoinedEmail, sendOrganizerFirstSaleEmail } from "./email";
 import { transferTickets } from "./transfers";
+import type { Attribution } from "./attribution";
 
 // ── Money ────────────────────────────────────────────────────────────────────
 // Every amount is computed HERE, server-side, from the tier price in Firestore —
@@ -74,6 +75,8 @@ export type CheckoutInput = {
   friend_code: string | null;
   /** Group buying: named friends who each get one ticket transferred to them on payment. */
   friends: { first_name: string; phone: string; email: string | null }[];
+  /** Discovery context (sanitized). Stored on the order; never affects price or payment. */
+  attribution?: Attribution | null;
   ip: string | null;
   user_agent: string | null;
 };
@@ -224,6 +227,7 @@ export async function createCheckoutIntent(input: CheckoutInput): Promise<Checko
     promo_code_id: referralWins ? null : (promo?.id ?? null),
     referred_by_order_id: referralWins && referrer ? referrer.id : null,
     friends: input.friends ?? [],
+    attribution: input.attribution ?? null,
     consent: {
       granted: input.buyer.marketing_opt_in,
       text: CHECKOUT_CONSENT_TEXT,
@@ -420,6 +424,7 @@ export async function fulfillPaidOrder(pendingOrderId: string, paymentIntentId: 
     days_before_event: daysBefore,
     referral_source: p.referral_source ?? null,
     promoter_link_id: p.promoter_link_id ?? null,
+    attribution: p.attribution ?? null,
     ...(demo ? { is_sample: true } : {}),
     created_at: FieldValue.serverTimestamp(),
   });

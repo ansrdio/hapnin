@@ -4,6 +4,7 @@ import { FindTicketsForm } from "./FindTicketsForm";
 
 export const metadata: Metadata = {
   title: "Find my tickets — Hapnin",
+  alternates: { canonical: "/tickets" },
   description: "Lost the link? Enter the email or phone you bought with and we'll send your tickets again.",
 };
 

@@ -4,6 +4,7 @@ import { GuestEventBuilder } from "./GuestEventBuilder";
 
 export const metadata: Metadata = {
   title: "Create an event",
+  alternates: { canonical: "/create" },
   description: "Build your event on Hapnin — no account needed to start.",
 };
 

@@ -13,6 +13,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             Hapnin <span className="text-mauve-dim">admin</span>
           </Link>
           <div className="flex items-center gap-4 text-sm text-mauve-dim">
+            <Link href="/admin/places" className="hover:text-cream">Places</Link>
+            <Link href="/admin/stories" className="hover:text-cream">Stories</Link>
             <span className="hidden sm:inline">{user.email}</span>
             <form action={signOutAction}>
               <button className="text-mauve-dim underline decoration-plum-hi underline-offset-4 hover:text-cream">

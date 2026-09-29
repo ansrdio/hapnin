@@ -10,6 +10,10 @@ import { FollowForm } from "@/app/components/FollowForm";
 import { Countdown } from "@/app/components/Countdown";
 import { getGoingNames } from "@/lib/door";
 import { EventMap } from "@/app/components/EventMap";
+import { getPlaceById } from "@/lib/places";
+import { listPublishedStoriesForEvent } from "@/lib/stories";
+import { placeCategoryLabel } from "@/lib/taxonomy";
+import { EventArrival } from "@/app/components/Track";
 
 export const dynamic = "force-dynamic";
 
@@ -44,9 +48,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${event.title} — Hapnin`,
     description: `${event.venue_name}, ${event.city}. Tickets on Hapnin.`,
+    alternates: { canonical: `/e/${event.slug}` },
     openGraph: event.flyer_url
-      ? { title: event.title, images: [{ url: event.flyer_url }] }
-      : { title: event.title },
+      ? { title: event.title, url: `/e/${event.slug}`, images: [{ url: event.flyer_url }] }
+      : { title: event.title, url: `/e/${event.slug}` },
     // Sample/demo events are unlisted: never indexed.
     ...(event.is_sample ? { robots: { index: false, follow: false } } : {}),
   };
@@ -101,7 +106,16 @@ export default async function EventPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const [tiers, organizer, pin] = await Promise.all([getTiers(event.id), getOrganizerById(event.organizer_id), ensureGeocoded(event)]);
+  const [tiers, organizer, pin, placeRaw, stories] = await Promise.all([
+    getTiers(event.id),
+    getOrganizerById(event.organizer_id),
+    ensureGeocoded(event),
+    event.place_id ? getPlaceById(event.place_id) : Promise.resolve(null),
+    listPublishedStoriesForEvent(event.id).catch(() => []),
+  ]);
+  // Hosted at: only a published place is shown; no link means nothing changes on the page.
+  const place = placeRaw && placeRaw.status === "published" ? placeRaw : null;
+  const story = stories[0] ?? null;
   const tint = event.flyer_url ? event.flyer_color : null;
   const gaTiers = tiers.filter((t) => t.kind !== "table");
   const tableTiers = tiers.filter((t) => t.kind === "table");
@@ -174,6 +188,7 @@ export default async function EventPage({
 
   return (
     <main className="grain relative min-h-[100svh] pb-28">
+      <EventArrival eventId={event.id} />
       {/* The flyer takes over the room: its blur behind everything, its dominant
           colour washed over the top so the whole page reads as this event. */}
       {event.flyer_url && (
@@ -256,6 +271,36 @@ export default async function EventPage({
                 <p className="text-sm text-mauve-dim">{REFUND_POLICY_LABELS[event.refund_policy]}</p>
               </div>
             </div>
+
+            {/* Hosted at a Place / featured in a story — only when those links exist */}
+            {(place || story) && (
+              <div className="anim-rise d-2 mt-5 space-y-3">
+                {place && (
+                  <Link href={`/places/${place.slug}`} className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 transition-colors hover:border-gold">
+                    {place.hero_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={place.hero_image_url} alt="" loading="lazy" className="h-14 w-14 flex-none rounded-xl object-cover" />
+                    ) : (
+                      <span className="h-14 w-14 flex-none rounded-xl bg-plum" aria-hidden="true" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">Hosted at</span>
+                      <span className="block truncate font-display font-semibold text-cream group-hover:text-gold">{place.name}</span>
+                      <span className="block text-sm text-mauve-dim">{placeCategoryLabel(place.category)} · Experience this place ↗</span>
+                    </span>
+                  </Link>
+                )}
+                {story && (
+                  <Link href={`/stories/${story.slug}`} className="group flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/[0.06] px-4 py-3 transition-colors hover:border-gold">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 flex-none text-gold" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-gold">Inside the Culture</span>
+                      <span className="block truncate font-display font-semibold text-cream group-hover:text-gold">{story.title}</span>
+                    </span>
+                  </Link>
+                )}
+              </div>
+            )}
 
             {/* Lineup — the headliner billed, support in chips */}
             {event.talent.length > 0 && (

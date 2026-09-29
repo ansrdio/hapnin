@@ -1,17 +1,16 @@
 import { Arithmetic } from "./components/Arithmetic";
 import { Ref } from "./components/Ref";
 
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
 export const metadata = {
   title: "Why Hapnin exists",
   description:
     "Ticketing is solved. This is about the one audience the solution was never shaped to fit — and the map nobody is positioned to collect.",
   robots: { index: false, follow: false },
-  alternates: { canonical: `${siteUrl}/why` },
+  alternates: { canonical: "/why" },
   openGraph: {
     type: "article",
-    url: `${siteUrl}/why`,
+    url: "/why",
     siteName: "Hapnin",
     title: "Why Hapnin exists",
     description:

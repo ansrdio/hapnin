@@ -4,6 +4,6 @@
 export const LEGAL_NAME = "Hapnin";
 export const SUPPORT_EMAIL = "jii@hapnin.now";
 export const GOVERNING_STATE = "Arizona";
-export const LAST_UPDATED = "September 14, 2026";
+export const LAST_UPDATED = "September 28, 2026";
 // Mirrors lib/checkout.ts PLATFORM (3% + 50¢). Free tickets carry no fee.
 export const PLATFORM_FEE_TEXT = "3% + $0.50 per paid ticket (free tickets carry no fee)";

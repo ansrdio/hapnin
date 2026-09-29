@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   if (!organizer) return { title: "Not found · Hapnin" };
   return {
     title: `${organizer.name} · Hapnin`,
+    alternates: { canonical: `/o/${organizer.handle}` },
     description: `Upcoming events by ${organizer.name} on Hapnin.`,
   };
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { listOnSaleEvents, getTiers } from "@/lib/events";
 import { DiscoverClient, type Card } from "./DiscoverClient";
+import { SiteHeader } from "@/app/components/SiteHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Events in Phoenix | Hapnin",
   description:
     "Discover what’s happening in Phoenix, starting with the city’s African diaspora event scene. Find nightlife, day parties, film, comedy, festivals and more.",
+  alternates: { canonical: "/discover" },
 };
 
 export default async function DiscoverPage() {
@@ -38,9 +39,9 @@ export default async function DiscoverPage() {
   return (
     <main className="grain min-h-[100svh]">
       <div className="mx-auto max-w-page px-5 py-12 sm:px-8 sm:py-16">
+        <SiteHeader current="events" className="relative z-50 mb-10" />
         <header className="anim-rise mb-8">
-          <Link href="/" className="text-sm text-mauve-dim transition-colors hover:text-cream">← Hapnin</Link>
-          <h1 className="mt-2 font-brand text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin in Phoenix</h1>
+          <h1 className="font-brand text-4xl font-bold text-cream sm:text-6xl">What&rsquo;s hapnin in Phoenix</h1>
           <p className="mt-1 text-mauve-dim">Starting with Phoenix&rsquo;s African diaspora scene.</p>
         </header>
 

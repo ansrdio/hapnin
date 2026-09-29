@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { createCheckoutIntent } from "@/lib/checkout";
 import { clientIpFrom, rateLimit } from "@/lib/rate-limit";
 import { normalizeUsPhone, normalizeEmail, normalizeZip, cleanText } from "@/lib/validation";
+import { sanitizeAttribution, referralSourceFrom } from "@/lib/attribution";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,11 @@ export async function POST(req: Request) {
     }))
     .filter((f): f is { first_name: string; phone: string; email: string | null } => !!f.phone);
 
+  // Where this buyer came from. The client sends its tab-scoped visit context;
+  // only well-formed fields survive. Used for "How they found it" and the
+  // discovery funnel — never for pricing.
+  const attribution = sanitizeAttribution(body.attribution);
+
   try {
     const result = await createCheckoutIntent({
       slug,
@@ -70,7 +76,10 @@ export async function POST(req: Request) {
         marketing_opt_in: body.optIn !== false,
         show_name: body.showName !== false,
       },
-      referral_source: body.ref ? cleanText(String(body.ref), 40) : null,
+      // Bug fix: nothing ever sent `ref`, so every order recorded no source.
+      // An explicit ref still wins; otherwise the visit's first source.
+      referral_source: body.ref ? cleanText(String(body.ref), 40) : referralSourceFrom(attribution),
+      attribution,
       promoter_code: body.p ? cleanText(String(body.p), 40) : null,
       promo_code: body.promo ? cleanText(String(body.promo), 24) : null,
       friend_code: body.friend ? cleanText(String(body.friend), 24).toLowerCase() : null,

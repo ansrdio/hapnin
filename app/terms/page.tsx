@@ -4,6 +4,7 @@ import { LEGAL_NAME, SUPPORT_EMAIL, GOVERNING_STATE, PLATFORM_FEE_TEXT } from "@
 
 export const metadata: Metadata = {
   title: "Terms of Service — Hapnin",
+  alternates: { canonical: "/terms" },
   description: "The terms for buying tickets and hosting events on Hapnin.",
 };
 

@@ -5,6 +5,7 @@ import { FeeCalculator } from "@/app/pitch/components/FeeCalculator";
 
 export const metadata: Metadata = {
   title: "Host on Hapnin — 3% + 50¢ a ticket, free events free",
+  alternates: { canonical: "/host" },
   description:
     "Ticketing for African events in Phoenix. Apple Pay checkout, payouts straight to your own Stripe account, door scanning that works offline. 3% + 50¢ per paid ticket; free events cost nothing.",
 };

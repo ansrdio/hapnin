@@ -6,13 +6,12 @@ import { PitchForm } from "../components/PitchForm";
 import { CrowdGrowth } from "../components/CrowdGrowth";
 import { copy, roomSources, expected, unique, trustPoints } from "../content";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
 export const metadata: Metadata = {
   title: "Run one event with Hapnin",
   description: copy.concedeDeck,
   robots: { index: false, follow: false },
-  alternates: { canonical: `${siteUrl}/pitch/read` },
+  alternates: { canonical: "/pitch/read" },
 };
 
 export default function PitchReadPage() {

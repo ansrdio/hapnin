@@ -87,7 +87,7 @@ export function parsePlaceForm(formData: FormData): { values: Partial<PlaceValue
   const galleryRaw = formData.getAll("gallery").map(String).map((g) => g.trim()).filter(Boolean);
   const gallery = galleryRaw.map((g) => httpsImageUrl(g)).filter((g): g is string => typeof g === "string");
   const offerings = parseOfferings(s("offerings"));
-  const custom = parseCustomTags(formData.getAll("custom_tags").map(String));
+  const custom = parseCustomTags(formData.getAll("custom_tags").flatMap((v) => String(v).split(",")));
   const languages = [...new Set(formData.getAll("languages").map(String))].filter((l): l is LanguageCode => isOneOf(LANGUAGE_CODE, l)).slice(0, 4);
 
   const fieldErrors: FieldErrors = {};

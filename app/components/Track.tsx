@@ -44,12 +44,17 @@ function newId(): string {
 export function ensureVisit(): Visit {
   const now = Date.now();
   const existing = read();
-  if (existing && now - existing.last_at < IDLE_MS) {
+  const params = new URLSearchParams(window.location.search);
+  const tagged = params.has("utm_source") || params.has("src");
+  const src = deriveFirstSource({ search: window.location.search, referrer: document.referrer, selfHost: window.location.host });
+  // A new campaign-tagged arrival (a different Instagram/QR/partner link)
+  // starts a new visit, so each tagged link gets its own journey.
+  const sameCampaign = !tagged || (existing?.first_source === src.source && existing?.first_campaign === src.campaign);
+  if (existing && now - existing.last_at < IDLE_MS && sameCampaign) {
     existing.last_at = now;
     write(existing);
     return existing;
   }
-  const src = deriveFirstSource({ search: window.location.search, referrer: document.referrer, selfHost: window.location.host });
   const v: Visit = {
     visit_id: newId(),
     first_source: src.source,
@@ -129,7 +134,7 @@ export function TrackView({ name, subject, seen, clearRef = true }: { name: stri
   return null;
 }
 
-/** Event page: if this visit clicked through from a place or story, record the arrival (then consume the click context). */
+/** Event page: if this visit clicked through from a place or story, record the arrival. The click context is kept so checkout can carry it; the next place/story view resets it. */
 export function EventArrival({ eventId }: { eventId: string }) {
   useEffect(() => {
     const v = read();

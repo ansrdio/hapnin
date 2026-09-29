@@ -40,6 +40,7 @@ export default async function CheckoutPage({
 
   return (
     <CheckoutClient
+      eventId={event.id}
       slug={slug}
       eventTitle={event.title}
       onBehalfOf={!demo && payable ? organizer!.stripe_account_id : null}

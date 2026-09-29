@@ -4,6 +4,7 @@ import { LEGAL_NAME, SUPPORT_EMAIL } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — Hapnin",
+  alternates: { canonical: "/privacy" },
   description: "What Hapnin collects, why, who it's shared with, and your choices.",
 };
 
@@ -35,6 +36,14 @@ export default function PrivacyPage() {
         <li>
           <strong>Automatically:</strong> standard server logs (IP address, browser, pages requested) and a
           sign-in cookie that keeps you logged in for 14 days. We don&rsquo;t use advertising trackers.
+        </li>
+        <li>
+          <strong>How you found us, for one visit:</strong> when you browse Hapnin&rsquo;s events, places and Inside
+          the Culture stories, your browser keeps a random visit number for that tab only. It records how the visit
+          started (for example an Instagram link or a QR code) and which Hapnin pages led to which, so we can tell
+          businesses and organizers whether Hapnin sent people their way. It is deleted when you close the tab or
+          after 30 minutes of inactivity, is not a cookie, and is never linked to your name, contact details, IP
+          address or device. If you buy a ticket during that visit, the same summary is saved with the order.
         </li>
       </ul>
 

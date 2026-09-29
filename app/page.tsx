@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { AudienceForm } from "./components/AudienceForm";
 import { FlyerMarquee } from "./components/FlyerMarquee";
-import { Wordmark } from "./components/Brand";
+import { SiteHeader } from "./components/SiteHeader";
+import { PlaceCard, StoryCard } from "./components/DiscoveryCards";
+import { listPublishedPlaces, type PlaceRecord } from "@/lib/places";
+import { listPublishedStories, type StoryRecord } from "@/lib/stories";
+import type { Metadata } from "next";
 import { listOnSaleEvents } from "@/lib/events";
 
 export const revalidate = 60; // refresh the live-events strip periodically
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const organizerPoints = [
   {
@@ -38,34 +44,22 @@ export default async function Page() {
   } catch {
     liveEvents = [];
   }
+  // Places + Inside the Culture rows appear only once something is published.
+  let places: PlaceRecord[] = [];
+  let stories: StoryRecord[] = [];
+  try {
+    [places, stories] = await Promise.all([listPublishedPlaces(4), listPublishedStories(3)]);
+  } catch {
+    places = [];
+    stories = [];
+  }
 
   return (
     <main className="grain">
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-16">
         <div className="mx-auto max-w-page">
-          <header className="anim-rise d-1 mb-10 flex items-center justify-between gap-4 sm:mb-14">
-            <Link href="/" aria-label="Hapnin home" className="text-cream transition-opacity hover:opacity-80">
-              <Wordmark height={26} />
-            </Link>
-            <nav aria-label="Primary" className="flex items-center gap-4 text-xs font-medium uppercase tracking-[0.16em] text-mauve-dim sm:gap-7 sm:text-sm sm:tracking-[0.18em]">
-              <Link href="/discover" className="transition-colors hover:text-gold">
-                Events
-              </Link>
-              <Link href="/pitch" className="hidden transition-colors hover:text-gold sm:inline">
-                For organizers
-              </Link>
-              <Link href="/why" className="hidden transition-colors hover:text-gold sm:inline">
-                The case
-              </Link>
-              <Link
-                href="/create"
-                className="whitespace-nowrap rounded-full bg-gold px-4 py-1.5 font-display text-xs font-semibold normal-case tracking-normal text-ink transition-colors hover:bg-gold-hi sm:text-sm"
-              >
-                Create event
-              </Link>
-            </nav>
-          </header>
+          <SiteHeader current="home" className="anim-rise d-1 relative z-50 mb-10 sm:mb-14" />
 
           {/* Signature: the flyer masthead + spotlight bloom */}
           <div className="relative">
@@ -93,13 +87,12 @@ export default async function Page() {
 
           <div className="anim-rise d-5 mt-8 max-w-xl">
             <p className="font-display text-2xl font-semibold text-cream sm:text-3xl">
-              Plenty. You just never heard about it.
+              Discover the culture around you.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-mauve-dim">
-              The afrobeats night. The amapiano set. The Nollywood screening. The comedy show. The
-              culture festival. Some of the best events in your city still move through group chats
-              and private circles. Hapnin puts them in one place &mdash; starting with
-              Phoenix&rsquo;s African diaspora scene.
+              Events, places, people and experiences that bring our cultures to life. The afrobeats
+              night, the amapiano set, the Nollywood screening, the kitchen that tastes like home
+              &mdash; starting with Phoenix&rsquo;s African diaspora scene.
             </p>
           </div>
 
@@ -128,6 +121,42 @@ export default async function Page() {
             <Link href="/discover" className="font-display text-sm font-semibold text-gold transition-colors hover:text-gold-hi">
               See all events →
             </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ============== PLACES + INSIDE THE CULTURE (only when published) ============== */}
+      {stories.length > 0 && (
+        <section className="px-5 pb-16 sm:px-8 sm:pb-24" aria-labelledby="home-itc">
+          <div className="mx-auto max-w-page">
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <h2 id="home-itc" className="font-display text-3xl font-semibold text-cream sm:text-4xl">Inside the Culture</h2>
+                <p className="mt-1 text-mauve-dim">The people, places and stories behind the cultures around us.</p>
+              </div>
+              <Link href="/stories" className="hidden whitespace-nowrap font-display text-sm font-semibold text-gold hover:text-gold-hi sm:inline">All stories →</Link>
+            </div>
+            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {stories.map((s) => <li key={s.id}><StoryCard story={s} /></li>)}
+            </ul>
+            <Link href="/stories" className="mt-5 inline-block font-display text-sm font-semibold text-gold hover:text-gold-hi sm:hidden">All stories →</Link>
+          </div>
+        </section>
+      )}
+      {places.length > 0 && (
+        <section className="px-5 pb-16 sm:px-8 sm:pb-24" aria-labelledby="home-places">
+          <div className="mx-auto max-w-page">
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <h2 id="home-places" className="font-display text-3xl font-semibold text-cream sm:text-4xl">Places to discover</h2>
+                <p className="mt-1 text-mauve-dim">The kitchens, studios and spaces that keep our cultures close.</p>
+              </div>
+              <Link href="/places" className="hidden whitespace-nowrap font-display text-sm font-semibold text-gold hover:text-gold-hi sm:inline">All places →</Link>
+            </div>
+            <ul className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+              {places.map((p) => <li key={p.id}><PlaceCard place={p} /></li>)}
+            </ul>
+            <Link href="/places" className="mt-5 inline-block font-display text-sm font-semibold text-gold hover:text-gold-hi sm:hidden">All places →</Link>
           </div>
         </section>
       )}
@@ -257,6 +286,8 @@ export default async function Page() {
           </p>
           <p className="text-sm text-mauve-dim">
             Starting in Phoenix, Arizona. ·{" "}
+            <Link href="/pitch" className="hover:text-cream">For organizers</Link> ·{" "}
+            <Link href="/why" className="hover:text-cream">The case</Link> ·{" "}
             <Link href="/tickets" className="hover:text-cream">Find my tickets</Link> ·{" "}
             <Link href="/terms" className="hover:text-cream">Terms</Link> ·{" "}
             <Link href="/privacy" className="hover:text-cream">Privacy</Link> ·{" "}

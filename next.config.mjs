@@ -24,7 +24,8 @@ const csp = [
   "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
   // The apex is listed because NEXT_PUBLIC_SITE_URL builds some asset URLs on it (it 308s to www).
-  "img-src 'self' data: blob: https://hapnin.now https://firebasestorage.googleapis.com https://*.stripe.com https://tiles.openfreemap.org",
+  // i.ytimg.com: YouTube poster frames for Inside the Culture (the player itself loads only on tap).
+  "img-src 'self' data: blob: https://hapnin.now https://firebasestorage.googleapis.com https://*.stripe.com https://tiles.openfreemap.org https://i.ytimg.com",
   "font-src 'self' data:",
   [
     "connect-src 'self'",
@@ -36,7 +37,8 @@ const csp = [
   ]
     .filter(Boolean)
     .join(" "),
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://pay.google.com",
+  // Story videos: the no-cookie YouTube player and Vimeo, framed only after a tap.
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://pay.google.com https://www.youtube-nocookie.com https://player.vimeo.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "media-src 'self' blob:",

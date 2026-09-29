@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { sansFont, serifFont } from "./fonts";
+import { CANONICAL_ORIGIN } from "@/lib/site";
+import { VisitStart } from "./components/Track";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://hapnin.now";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  // Canonical host is www (the apex 308s there). Each public page declares its
+  // own canonical path; the layout deliberately sets none, so no page can
+  // inherit the homepage as its canonical again.
+  metadataBase: new URL(CANONICAL_ORIGIN),
   title: "Hapnin — What's hapnin?",
   description:
     "Find culture-driven events in Phoenix — from Afrobeats and amapiano to Nollywood, comedy, festivals and more. Create an event, sell tickets and run the door with Hapnin.",
@@ -25,10 +29,8 @@ export const metadata: Metadata = {
     "diaspora",
     "event tickets",
   ],
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    url: siteUrl,
     siteName: "Hapnin",
     title: "What's hapnin?",
     description:
@@ -52,7 +54,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sansFont.variable} ${serifFont.variable}`}>
-      <body>{children}</body>
+      <body>
+        <VisitStart />
+        {children}
+      </body>
     </html>
   );
 }

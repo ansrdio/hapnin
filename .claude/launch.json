@@ -4,14 +4,49 @@
     {
       "name": "hapnin-prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start", "--", "-p", "3005"],
+      "runtimeArgs": [
+        "start",
+        "--",
+        "-p",
+        "3005"
+      ],
       "port": 3005
     },
     {
       "name": "chopcal",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "/Users/abolajifilani/CascadeProjects/chopcal", "--", "-p", "3210"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "/Users/abolajifilani/CascadeProjects/chopcal",
+        "--",
+        "-p",
+        "3210"
+      ],
       "port": 3210
+    },
+    {
+      "name": "emulators",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "firebase",
+        "emulators:start",
+        "--only",
+        "firestore,auth",
+        "--project",
+        "demo-hapnin"
+      ],
+      "port": 8085
+    },
+    {
+      "name": "hapnin-e2e",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-hapnin ADMIN_EMAILS=qa-admin@example.com QR_SECRET=local-qr-secret BREVO_API_KEY= STRIPE_SECRET_KEY= STRIPE_WEBHOOK_SECRET= TWILIO_ACCOUNT_SID= TWILIO_AUTH_TOKEN= npx next start -p 3006"
+      ],
+      "port": 3006
     }
   ]
 }

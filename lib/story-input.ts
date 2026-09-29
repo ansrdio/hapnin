@@ -46,7 +46,7 @@ export function parseStoryForm(formData: FormData): { values: Partial<StoryValue
   const place_ids = [...new Set(formData.getAll("place_ids").map(String).filter((p) => ID.test(p)))];
   const eventLines = s("event_refs").split(/[\n,]/).map((l) => l.trim()).filter(Boolean);
   const event_refs = [...new Set(eventLines.map(eventSlugFromRef).filter((x): x is string => !!x))];
-  const custom = parseCustomTags(formData.getAll("custom_tags").map(String));
+  const custom = parseCustomTags(formData.getAll("custom_tags").flatMap((v) => String(v).split(",")));
 
   const fieldErrors: FieldErrors = {};
   if (!title) fieldErrors.title = "Required.";
